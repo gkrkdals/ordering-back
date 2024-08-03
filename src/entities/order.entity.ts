@@ -2,7 +2,7 @@ import { Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn } from "ty
 import { Customer } from "@src/entities/customer.entity";
 import { Menu } from "@src/entities/menu.entity";
 
-@Entity('order')
+@Entity()
 export class Order {
   @PrimaryGeneratedColumn()
   id: number;

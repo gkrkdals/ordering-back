@@ -1,23 +1,15 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { MenuModule } from "@src/modules/menu/menu.module";
-import { OrderModule } from "@src/modules/order/order.module";
+import { ConfigModule } from '@nestjs/config';
+import { ApiModule } from './api.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot({
-      type: "mysql",
-      host: 'localhost',
-      port: 3306,
-      username: 'root',
-      password: 'dltkrkfody1',
-      database: 'ordering',
-      autoLoadEntities: true,
+    ConfigModule.forRoot({
+      isGlobal: true,
     }),
-    MenuModule,
-    OrderModule,
+    ApiModule,
   ],
   controllers: [AppController],
   providers: [AppService],
