@@ -7,17 +7,32 @@ export class Order {
   @PrimaryGeneratedColumn()
   id: number;
 
+  @Column()
+  customer: number;
+
   @JoinColumn({ name: 'customer' })
   @OneToOne(() => Customer)
-  customer: Customer;
+  customerJoin: Customer;
+
+  @Column()
+  menu: number;
 
   @JoinColumn({ name: 'menu' })
   @OneToOne(() => Menu)
-  menu: Menu;
+  menuJoin: Menu;
+
+  @Column()
+  done: number;
 
   @Column()
   time: Date;
 
-  @Column()
+  @Column({ nullable: true })
+  request: string;
+
+  @Column({ nullable: true })
   memo: string;
+
+  @Column()
+  price: number;
 }

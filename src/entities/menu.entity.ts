@@ -6,6 +6,9 @@ export class Menu {
   @PrimaryGeneratedColumn()
   id: number;
 
+  @Column({ name: 'price_category' })
+  priceCategory: number;
+
   @Column()
   name: string;
 

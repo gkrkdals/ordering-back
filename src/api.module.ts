@@ -1,14 +1,16 @@
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { ormConfig } from "./config/mysql";
-import { MenuModule } from "./modules/main/menu/menu.module";
-import { OrderModule } from "./modules/main/order/order.module";
+import { AuthModule } from "./modules/auth/auth.module";
+import { ClientModule } from "@src/modules/main/client/client.module";
+import { ManagerModule } from "@src/modules/main/manager/manager.module";
 
 @Module({
   imports: [
     TypeOrmModule.forRootAsync(ormConfig), 
-    MenuModule,
-    OrderModule,
+    AuthModule,
+    ClientModule,
+    ManagerModule,
   ],
 })
 export class ApiModule {}
