@@ -7,7 +7,7 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
   app.enableCors({
     credentials: true,
-    origin: ['http://localhost:5173', 'http://34.47.98.56:3000'],
+    origin: ['http://localhost:5173', 'http://34.47.98.56', 'http://yeonsu.kr'],
   });
   app.use(cookieParser());
   await app.listen(3000);
