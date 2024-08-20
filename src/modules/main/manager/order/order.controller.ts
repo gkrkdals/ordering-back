@@ -33,5 +33,4 @@ export class OrderController {
   async updateOrder(@Body() updatedOrder: OrderStatus) {
     return this.orderService.updateOrder(updatedOrder);
   }
-
 }
