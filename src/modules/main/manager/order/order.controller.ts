@@ -4,6 +4,7 @@ import { GetOrderResponseDto } from "@src/modules/main/manager/order/dto/respons
 import { Menu } from "@src/entities/menu.entity";
 import { Customer } from "@src/entities/customer.entity";
 import { OrderStatus } from "@src/entities/order-status.entity";
+import { OrderStatusRaw } from "@src/types/models/OrderStatusRaw";
 
 @Controller('manager/order')
 export class OrderController {
@@ -17,7 +18,10 @@ export class OrderController {
   }
 
   @Get()
-  async getOrderStatus(@Query('page') page: number, @Query('query') query: string | undefined): Promise<GetOrderResponseDto> {
+  async getOrderStatus(
+    @Query('page') page: number,
+    @Query('query') query: string | undefined
+  ): Promise<GetOrderResponseDto> {
     return this.orderService.getOrders(page, query);
   }
 
@@ -30,7 +34,12 @@ export class OrderController {
   }
 
   @Put()
-  async updateOrder(@Body() updatedOrder: OrderStatus) {
+  async updateOrder(@Body() updatedOrder: OrderStatusRaw) {
     return this.orderService.updateOrder(updatedOrder);
+  }
+
+  @Delete(':id')
+  async cancelOrder(@Param('id') id: number) {
+    return this.orderService.cancelOrder(id);
   }
 }

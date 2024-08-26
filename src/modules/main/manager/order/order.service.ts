@@ -8,6 +8,9 @@ import { Menu } from "@src/entities/menu.entity";
 import { Customer } from "@src/entities/customer.entity";
 import { Order } from "@src/entities/order.entity";
 import { OrderCategory } from "@src/entities/order-category.entity";
+import { Status } from "@src/types/enum/Status";
+import { OrderSql } from "@src/modules/main/manager/order/sql/order.sql";
+import { OrderStatusRaw } from "@src/types/models/OrderStatusRaw";
 
 @Injectable()
 export class OrderService {
@@ -21,24 +24,14 @@ export class OrderService {
   ) {}
 
   async getOrders(page: number, query: string): Promise<GetOrderResponseDto> {
-    const like = Like(`%${query}%`);
-    const [data, count] = await this.orderStatusRepository.findAndCount({
-      take: 20,
-      skip: countSkip(page),
-      relations: {
-        orderJoin: {
-          menuJoin: true,
-          customerJoin: true
-        },
-        statusJoin: true,
-      },
-      where: [
-        { orderJoin: { customerJoin: { name: like } } },
-        { orderJoin: { menuJoin: { name: like } } },
-        { orderJoin: { request: like } },
-        { statusJoin: { statusName: like } }
-      ]
-    });
+    const like = `%${query}%`;
+
+    const data: OrderStatusRaw[] = await this
+      .orderStatusRepository
+      .query(OrderSql.getOrderStatus, new Array(5).fill(like).concat(countSkip(page)));
+    const { count } = (await this
+      .orderStatusRepository
+      .query(OrderSql.getOrderStatusCount, new Array(5).fill(like)))[0];
 
     return {
       data,
@@ -61,20 +54,25 @@ export class OrderService {
     }
   }
 
-  async updateOrder(order: OrderStatus) {
-    const updatedOrder = await this.orderStatusRepository.findOne({
-      where: {id: order.id},
-      relations: {
-        orderJoin: {
-          menuJoin: true,
-          customerJoin: true
-        },
-        statusJoin: true,
-      }
-    });
+  async updateOrder(order: OrderStatusRaw) {
+    const updatedOrder = new OrderStatus();
 
     updatedOrder.status = order.status;
-    updatedOrder.orderJoin.price = order.orderJoin.price;
-    await this.orderRepository.save(updatedOrder, {  });
+    updatedOrder.orderCode = order.order_code;
+    updatedOrder.time = order.time;
+
+    await this.orderStatusRepository.save(updatedOrder);
+  }
+
+  async cancelOrder(id: number) {
+    const canceledOrder = await this.orderStatusRepository.findOne({
+      where: { id },
+    });
+    const newOrderStatus = new OrderStatus();
+
+    newOrderStatus.orderCode = canceledOrder.orderCode;
+    newOrderStatus.status = Status.Canceled;
+
+    await this.orderStatusRepository.save(newOrderStatus);
   }
 }

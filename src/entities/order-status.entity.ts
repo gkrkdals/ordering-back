@@ -11,7 +11,7 @@ export class OrderStatus {
   orderCode: number;
 
   @JoinColumn({ name: 'order_code' })
-  @OneToOne(() => Order, { cascade: true })
+  @OneToOne(() => Order)
   orderJoin: Order;
 
   @Column()

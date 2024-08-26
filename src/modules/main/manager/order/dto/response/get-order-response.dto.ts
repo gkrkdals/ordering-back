@@ -1,6 +1,6 @@
 import { BasicDto } from "@src/types/dto/basic.dto";
-import { OrderStatus } from "@src/entities/order-status.entity";
+import { OrderStatusRaw } from "@src/types/models/OrderStatusRaw";
 
 export class GetOrderResponseDto extends BasicDto {
-  data: OrderStatus[];
+  data: OrderStatusRaw[];
 }
