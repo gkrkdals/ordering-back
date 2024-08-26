@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { OrderStatus } from "@src/entities/order-status.entity";
-import { Like, Repository } from "typeorm";
+import { Repository } from "typeorm";
 import { GetOrderResponseDto } from "@src/modules/main/manager/order/dto/response/get-order-response.dto";
 import { countSkip, countToTotalPage } from "@src/utils/data";
 import { Menu } from "@src/entities/menu.entity";
@@ -45,13 +45,13 @@ export class OrderService {
   }
 
   async createNewOrder(menu: Menu[], customer: Customer) {
-    console.log(menu, customer);
+    console.log(menu)
     for(const orderedMenu of menu) {
       const newOrder = new Order();
       newOrder.price = orderedMenu.foodCategory.price + 1000;
       newOrder.customer = customer.id;
       newOrder.menu = orderedMenu.id;
-      await this.orderRepository.save(newOrder);
+      console.log(await this.orderRepository.save(newOrder));
     }
   }
 

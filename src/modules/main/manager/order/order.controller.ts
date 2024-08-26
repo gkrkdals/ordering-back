@@ -29,7 +29,6 @@ export class OrderController {
     @Body('menu') menu: Menu[],
     @Body('customer') customer: Customer
   ) {
-    console.log(menu, customer)
     return this.orderService.createNewOrder(menu, customer);
   }
 
