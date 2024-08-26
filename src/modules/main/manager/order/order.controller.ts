@@ -3,7 +3,6 @@ import { OrderService } from "@src/modules/main/manager/order/order.service";
 import { GetOrderResponseDto } from "@src/modules/main/manager/order/dto/response/get-order-response.dto";
 import { Menu } from "@src/entities/menu.entity";
 import { Customer } from "@src/entities/customer.entity";
-import { OrderStatus } from "@src/entities/order-status.entity";
 import { OrderStatusRaw } from "@src/types/models/OrderStatusRaw";
 
 @Controller('manager/order')
@@ -30,6 +29,7 @@ export class OrderController {
     @Body('menu') menu: Menu[],
     @Body('customer') customer: Customer
   ) {
+    console.log(menu, customer)
     return this.orderService.createNewOrder(menu, customer);
   }
 

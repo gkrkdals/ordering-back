@@ -45,6 +45,7 @@ export class OrderService {
   }
 
   async createNewOrder(menu: Menu[], customer: Customer) {
+    console.log(menu, customer);
     for(const orderedMenu of menu) {
       const newOrder = new Order();
       newOrder.price = orderedMenu.foodCategory.price + 1000;
