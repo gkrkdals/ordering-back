@@ -36,11 +36,12 @@ export class OrderSql {
                 AND e.status = a.status
                 AND f.id = c.customer
               ) t
-      WHERE t.customer_name LIKE ?
+      WHERE (t.customer_name LIKE ?
          OR t.menu_name LIKE ?
          OR t.request LIKE ?
          OR t.status_name LIKE ?
-         OR t.price LIKE ?
+         OR t.price LIKE ?)
+         AND t.status < (SELECT status FROM order_category WHERE status_name = '수거완료')
       ORDER BY t.time DESC
       LIMIT ?, 20`;
 
@@ -54,6 +55,7 @@ export class OrderSql {
                  d.name menu_name,
                  f.name customer_name,
                  c.request,
+                 e.status,
                  e.status_name,
                  c.price
               FROM
@@ -74,9 +76,10 @@ export class OrderSql {
                 AND e.status = a.status
                 AND f.id = c.customer
               ) t
-      WHERE t.customer_name LIKE ?
+      WHERE (t.customer_name LIKE ?
          OR t.menu_name LIKE ?
          OR t.request LIKE ?
          OR t.status_name LIKE ?
-         OR t.price LIKE ?`
+         OR t.price LIKE ?)
+         AND t.status < (SELECT status FROM order_category WHERE status_name = '수거완료')`
 }
