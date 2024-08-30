@@ -4,12 +4,15 @@ import { Customer } from "@src/entities/customer.entity";
 import { Like, Repository } from "typeorm";
 import { GetCustomerResponseDto } from "@src/modules/main/manager/customer/dto/response/get-customer-response.dto";
 import { countSkip, countToTotalPage } from "@src/utils/data";
+import { CustomerCategory } from "@src/entities/customer-category.entity";
 
 @Injectable()
 export class CustomerService {
   constructor(
     @InjectRepository(Customer)
     private readonly customerRepository: Repository<Customer>,
+    @InjectRepository(CustomerCategory)
+    private readonly customerCategoryRepository: Repository<CustomerCategory>,
   ) {}
 
   async getCustomer(page: number, query: string): Promise<Customer[] | GetCustomerResponseDto> {
@@ -23,7 +26,8 @@ export class CustomerService {
           { name: like },
           { address: like },
           { memo: like },
-        ]
+        ],
+        relations: { categoryJoin: true }
       })
 
       return {
@@ -37,6 +41,8 @@ export class CustomerService {
   }
 
   async getAll() { return this.customerRepository.find(); }
+
+  async getCategories() { return this.customerCategoryRepository.find(); }
 
   async createCustomer(customer: Customer) {
     const newCustomer = new Customer();
@@ -54,6 +60,7 @@ export class CustomerService {
       updatedCustomer.name = customer.name;
       updatedCustomer.address = customer.address;
       updatedCustomer.memo = customer.memo;
+      updatedCustomer.category = customer.category;
       await this.customerRepository.save(updatedCustomer);
     }
   }

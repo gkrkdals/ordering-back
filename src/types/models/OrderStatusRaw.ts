@@ -5,6 +5,7 @@ export interface OrderStatusRaw {
   menu_name: string;
   time: Date;
   customer: number;
+  customer_category: number;
   customer_name: string;
   request: string;
   status: number;

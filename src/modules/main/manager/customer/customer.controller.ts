@@ -20,6 +20,11 @@ export class CustomerController {
     return this.customerService.getAll();
   }
 
+  @Get('category')
+  async getCategories() {
+    return this.customerService.getCategories();
+  }
+
   @Post()
   async createCustomer(@Body() body: Customer) {
     return this.customerService.createCustomer(body);

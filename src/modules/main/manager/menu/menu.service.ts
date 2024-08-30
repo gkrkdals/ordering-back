@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Menu } from "@src/entities/menu.entity";
-import { LessThan, Like, Repository } from "typeorm";
+import { LessThan, Like, Not, Repository } from "typeorm";
 import { countSkip, countToTotalPage } from "@src/utils/data";
 import { GetMenuResponseDto } from "@src/modules/main/manager/menu/dto/response/get-menu-response.dto";
 import { MenuCategory } from "@src/entities/menu-category.entity";
@@ -27,7 +27,7 @@ export class MenuService {
       where: [
         { menuCategory: { name: like } },
         { name: like },
-      ]
+      ] && { id: Not(0) },
     });
 
     return {
@@ -38,7 +38,7 @@ export class MenuService {
   }
 
   async getAll(): Promise<Menu[]> {
-    return this.menuRepository.find({ relations: { menuCategory: true }});
+    return this.menuRepository.find({ relations: { menuCategory: true }, where: { id: Not(0) }});
   }
 
   async getMenuCategoryAll(): Promise<MenuCategory[]> {

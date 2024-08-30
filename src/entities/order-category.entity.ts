@@ -8,6 +8,6 @@ export class OrderCategory {
   @Column()
   status: number;
 
-  @Column({ name: 'status_name' })
-  statusName: string;
+  @Column()
+  name: string;
 }

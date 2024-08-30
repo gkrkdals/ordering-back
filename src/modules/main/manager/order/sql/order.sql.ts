@@ -11,10 +11,11 @@ export class OrderSql {
                  IF(d.id = 0, CONCAT('추가메뉴(', c.memo, ')'), d.name) menu_name,
                  c.time,
                  f.id customer,
+                 g.id customer_category,
                  f.name customer_name,
                  c.request,
                  a.status,
-                 e.status_name,
+                 e.name status_name,
                  c.price,
                  f.floor,
                  c.memo
@@ -28,20 +29,22 @@ export class OrderSql {
                   \`order\` c,
                   \`menu\` d,
                   \`order_category\` e,
-                  \`customer\` f
+                  \`customer\` f,
+                  \`customer_category\` g
               WHERE b.order_code = a.order_code
                 AND b.status = a.status
                 AND c.id = a.order_code
                 AND d.id = c.menu
                 AND e.status = a.status
                 AND f.id = c.customer
+                AND g.id = f.category
               ) t
       WHERE (t.customer_name LIKE ?
          OR t.menu_name LIKE ?
          OR t.request LIKE ?
          OR t.status_name LIKE ?
          OR t.price LIKE ?)
-         AND t.status < (SELECT status FROM order_category WHERE status_name = '수거완료')
+         AND t.status < (SELECT status FROM order_category WHERE name = '수거완료')
       ORDER BY t.time DESC
       LIMIT ?, 20`;
 
@@ -56,7 +59,7 @@ export class OrderSql {
                  f.name customer_name,
                  c.request,
                  e.status,
-                 e.status_name,
+                 e.name status_name,
                  c.price
               FROM
                   (SELECT
@@ -81,5 +84,5 @@ export class OrderSql {
          OR t.request LIKE ?
          OR t.status_name LIKE ?
          OR t.price LIKE ?)
-         AND t.status < (SELECT status FROM order_category WHERE status_name = '수거완료')`
+         AND t.status < (SELECT status FROM order_category WHERE name = '수거완료')`
 }
