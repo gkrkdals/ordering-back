@@ -16,30 +16,31 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Table structure for table `food_category`
+-- Table structure for table `customer_credit`
 --
 
-DROP TABLE IF EXISTS `food_category`;
+DROP TABLE IF EXISTS `customer_credit`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `food_category` (
-  `id` int NOT NULL AUTO_INCREMENT COMMENT '기본키',
-  `hex` char(6) NOT NULL COMMENT '색상',
-  `price` int NOT NULL COMMENT '가격',
-  `name` varchar(3) DEFAULT NULL COMMENT '구분명',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `food_category_pk` (`hex`,`price`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='음식 카테고리 테이블';
+CREATE TABLE `customer_credit` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `customer` int NOT NULL,
+  `credit_diff` int NOT NULL DEFAULT '0',
+  `time` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY `customer_credit_pk` (`id`),
+  KEY `customer_credit_customer_id_fk` (`customer`),
+  CONSTRAINT `customer_credit_customer_id_fk` FOREIGN KEY (`customer`) REFERENCES `customer` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='거래처 잔금';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `food_category`
+-- Dumping data for table `customer_credit`
 --
 
-LOCK TABLES `food_category` WRITE;
-/*!40000 ALTER TABLE `food_category` DISABLE KEYS */;
-INSERT INTO `food_category` VALUES (1,'FFFFFF',18000,'투명색'),(2,'4FC3F7',20000,'파란색'),(3,'92D050',25000,'초록색');
-/*!40000 ALTER TABLE `food_category` ENABLE KEYS */;
+LOCK TABLES `customer_credit` WRITE;
+/*!40000 ALTER TABLE `customer_credit` DISABLE KEYS */;
+INSERT INTO `customer_credit` VALUES (1,3,18000,'2024-08-29 19:45:42'),(2,1,0,'2024-08-30 12:25:31'),(3,1,0,'2024-08-30 12:29:58'),(4,1,0,'2024-08-30 12:33:01'),(5,1,-1000,'2024-08-30 13:11:04'),(6,14,0,'2024-08-30 18:23:33'),(7,15,0,'2024-08-30 18:25:24'),(8,15,-1500,'2024-08-30 18:25:50');
+/*!40000 ALTER TABLE `customer_credit` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
@@ -51,4 +52,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2024-08-16 20:16:28
+-- Dump completed on 2024-08-31  3:50:29

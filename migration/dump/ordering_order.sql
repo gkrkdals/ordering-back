@@ -26,7 +26,6 @@ CREATE TABLE `order` (
   `id` int NOT NULL AUTO_INCREMENT,
   `customer` int NOT NULL,
   `menu` int NOT NULL,
-  `done` int NOT NULL DEFAULT '0' COMMENT '배달 완료(0: false, 1: true)',
   `time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `request` varchar(15) DEFAULT NULL,
   `memo` varchar(50) DEFAULT NULL COMMENT '메모',
@@ -36,7 +35,7 @@ CREATE TABLE `order` (
   KEY `order_status_menu_id_fk` (`menu`),
   CONSTRAINT `order_status_customer_id_fk` FOREIGN KEY (`customer`) REFERENCES `customer` (`id`),
   CONSTRAINT `order_status_menu_id_fk` FOREIGN KEY (`menu`) REFERENCES `menu` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -45,7 +44,7 @@ CREATE TABLE `order` (
 
 LOCK TABLES `order` WRITE;
 /*!40000 ALTER TABLE `order` DISABLE KEYS */;
-INSERT INTO `order` VALUES (3,4,21,0,'2024-08-16 10:09:59',NULL,NULL,18000),(4,4,9,0,'2024-08-16 10:23:14',NULL,NULL,19000);
+INSERT INTO `order` VALUES (3,4,21,'2024-08-16 10:09:59',NULL,NULL,18000),(4,4,9,'2024-08-16 10:23:14',NULL,NULL,19000),(5,3,7,'2024-08-26 15:12:23',NULL,NULL,19000),(6,8,12,'2024-08-26 19:57:48',NULL,NULL,21000),(7,1,0,'2024-08-30 12:25:31','','공기밥',1000),(8,1,0,'2024-08-30 12:29:58','많이 담아주세요','왕공기밥',0),(9,1,0,'2024-08-30 12:33:01','500ml 부탁합니다','물',0),(10,14,0,'2024-08-30 18:23:33',NULL,'공깃밥',0),(11,15,0,'2024-08-30 18:25:24',NULL,'잡곡밥',1500);
 /*!40000 ALTER TABLE `order` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -58,4 +57,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2024-08-16 20:16:28
+-- Dump completed on 2024-08-31  3:50:28

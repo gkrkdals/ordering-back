@@ -16,29 +16,30 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Table structure for table `order_category`
+-- Table structure for table `menu_category`
 --
 
-DROP TABLE IF EXISTS `order_category`;
+DROP TABLE IF EXISTS `menu_category`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `order_category` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `status` int NOT NULL COMMENT '주문 상태 코드',
-  `status_name` varchar(4) NOT NULL COMMENT '주문 상태 이름',
+CREATE TABLE `menu_category` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '기본키',
+  `name` varchar(3) DEFAULT NULL COMMENT '구분명',
+  `price` int NOT NULL COMMENT '가격',
+  `hex` char(6) NOT NULL COMMENT '색상',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `order_status_pk_2` (`status`)
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+  UNIQUE KEY `food_category_pk` (`hex`,`price`)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='음식 카테고리 테이블';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `order_category`
+-- Dumping data for table `menu_category`
 --
 
-LOCK TABLES `order_category` WRITE;
-/*!40000 ALTER TABLE `order_category` DISABLE KEYS */;
-INSERT INTO `order_category` VALUES (1,1,'접수대기'),(2,2,'조리중'),(3,3,'배달대기'),(4,4,'배달중'),(5,5,'수거대기'),(6,6,'수거완료'),(7,7,'주문취소');
-/*!40000 ALTER TABLE `order_category` ENABLE KEYS */;
+LOCK TABLES `menu_category` WRITE;
+/*!40000 ALTER TABLE `menu_category` DISABLE KEYS */;
+INSERT INTO `menu_category` VALUES (1,'투명색',18000,'FFFFFF'),(2,'파란색',20000,'4FC3F7'),(3,'초록색',25000,'92D050'),(4,'커스텀',0,'FFFFFF');
+/*!40000 ALTER TABLE `menu_category` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
