@@ -31,10 +31,17 @@ export class OrderService {
   async addOrder(customer: Customer, orderedMenus: OrderedMenuDto[]): Promise<void> {
     for(const orderedMenu of orderedMenus) {
       const newOrder = new Order();
+
+      if (orderedMenu.menu.id === 0) {
+        newOrder.memo = orderedMenu.menu.name;
+        newOrder.price = 0;
+      } else {
+        newOrder.price = orderedMenu.menu.menuCategory.price;
+      }
+
       newOrder.customer = customer.id;
       newOrder.menu = orderedMenu.menu.id;
       newOrder.request = orderedMenu.request;
-      newOrder.price = orderedMenu.menu.foodCategory.price;
       await this.orderRepository.save(newOrder);
     }
   }

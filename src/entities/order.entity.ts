@@ -22,9 +22,6 @@ export class Order {
   menuJoin: Menu;
 
   @Column()
-  done: number;
-
-  @Column()
   time: Date;
 
   @Column({ nullable: true })

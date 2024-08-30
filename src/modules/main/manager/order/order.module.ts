@@ -5,6 +5,7 @@ import { OrderStatus } from "@src/entities/order-status.entity";
 import { OrderCategory } from "@src/entities/order-category.entity";
 import { OrderController } from "@src/modules/main/manager/order/order.controller";
 import { OrderService } from "@src/modules/main/manager/order/order.service";
+import { CustomerCredit } from "@src/entities/customer-credit.entity";
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { OrderService } from "@src/modules/main/manager/order/order.service";
       Order,
       OrderStatus,
       OrderCategory,
+      CustomerCredit
     ]),
   ],
   controllers: [OrderController],

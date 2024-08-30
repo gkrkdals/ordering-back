@@ -4,10 +4,12 @@ export interface OrderStatusRaw {
   menu: number;
   menu_name: string;
   time: Date;
+  customer: number;
   customer_name: string;
   request: string;
   status: number;
   status_name: string;
-  price: number;
+  credit: number
+  floor: string;
   memo: string;
 }

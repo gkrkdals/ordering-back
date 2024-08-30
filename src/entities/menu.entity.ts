@@ -1,18 +1,18 @@
 import { Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn } from "typeorm";
-import { FoodCategory } from "./food-category.entity";
+import { MenuCategory } from "./menu-category.entity";
 
 @Entity()
 export class Menu {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ name: 'price_category' })
-  priceCategory: number;
+  @Column()
+  category: number;
 
   @Column()
   name: string;
 
-  @JoinColumn({ name: 'price_category' })
-  @OneToOne(() => FoodCategory)
-  foodCategory: FoodCategory;
+  @JoinColumn({ name: 'category' })
+  @OneToOne(() => MenuCategory)
+  menuCategory: MenuCategory;
 }

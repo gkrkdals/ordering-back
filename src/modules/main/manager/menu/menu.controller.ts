@@ -16,9 +16,9 @@ export class MenuController {
     return this.menuService.getAll();
   }
 
-  @Get('food-category')
-  async getFoodCategoryAll() {
-    return this.menuService.getFoodCategoryAll();
+  @Get('category')
+  async getMenuCategoryAll() {
+    return this.menuService.getMenuCategoryAll();
   }
 
   @Post()

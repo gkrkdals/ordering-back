@@ -1,16 +1,24 @@
 export class OrderSql {
-  static getOrderStatus =
-    `SELECT
+  static getOrderStatus = `
+    SELECT
         b.id,
-        max(a.status) AS status,
+        a.status,
         d.status_name,
-        menu,
-        c.name menu_name
-    FROM order_status a
-        INNER JOIN \`order\` b on b.id = a.order_code
-        INNER JOIN \`menu\` c on c.id = b.menu
-        INNER JOIN \`order_category\` d on a.status = d.status
-    WHERE customer = ?
-      AND b.done < 1
-    GROUP BY b.id, status_name`
+        b.menu,
+        IF(b.menu = 0, b.memo, c.name) menu_name
+    FROM
+        (SELECT
+             order_code,
+             MAX(status) status
+         FROM order_status
+         GROUP BY order_code) a,
+        \`order\` b,
+        \`menu\` c,
+        \`order_category\` d
+    WHERE b.id = a.order_code
+      AND b.customer = ?
+      AND c.id = b.menu
+      AND d.id = a.status
+      AND a.status < 5
+    ORDER BY status DESC`;
 }

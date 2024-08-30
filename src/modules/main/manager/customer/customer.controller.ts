@@ -15,6 +15,11 @@ export class CustomerController {
     return this.customerService.getCustomer(page, query);
   }
 
+  @Get('all')
+  async getAll() {
+    return this.customerService.getAll();
+  }
+
   @Post()
   async createCustomer(@Body() body: Customer) {
     return this.customerService.createCustomer(body);

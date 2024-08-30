@@ -36,6 +36,8 @@ export class CustomerService {
     }
   }
 
+  async getAll() { return this.customerRepository.find(); }
+
   async createCustomer(customer: Customer) {
     const newCustomer = new Customer();
     newCustomer.name = customer.name;

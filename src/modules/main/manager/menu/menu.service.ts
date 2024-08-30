@@ -1,18 +1,18 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Menu } from "@src/entities/menu.entity";
-import { Like, Repository } from "typeorm";
+import { LessThan, Like, Repository } from "typeorm";
 import { countSkip, countToTotalPage } from "@src/utils/data";
 import { GetMenuResponseDto } from "@src/modules/main/manager/menu/dto/response/get-menu-response.dto";
-import { FoodCategory } from "@src/entities/food-category.entity";
+import { MenuCategory } from "@src/entities/menu-category.entity";
 
 @Injectable()
 export class MenuService {
   constructor(
     @InjectRepository(Menu)
     private readonly menuRepository: Repository<Menu>,
-    @InjectRepository(FoodCategory)
-    private readonly foodCategoryRepository: Repository<FoodCategory>
+    @InjectRepository(MenuCategory)
+    private readonly foodCategoryRepository: Repository<MenuCategory>
   ) {}
 
   async getMenus(page: number, query: string | undefined): Promise<GetMenuResponseDto> {
@@ -22,10 +22,10 @@ export class MenuService {
       take: 20,
       skip: countSkip(page),
       relations: {
-        foodCategory: true,
+        menuCategory: true,
       },
       where: [
-        { foodCategory: { name: like } },
+        { menuCategory: { name: like } },
         { name: like },
       ]
     });
@@ -38,17 +38,17 @@ export class MenuService {
   }
 
   async getAll(): Promise<Menu[]> {
-    return this.menuRepository.find({ relations: { foodCategory: true }});
+    return this.menuRepository.find({ relations: { menuCategory: true }});
   }
 
-  async getFoodCategoryAll(): Promise<FoodCategory[]> {
-    return this.foodCategoryRepository.find();
+  async getMenuCategoryAll(): Promise<MenuCategory[]> {
+    return this.foodCategoryRepository.find({ where: { id: LessThan(4) } });
   }
 
   async createFood(body: Menu) {
     const newMenu = new Menu();
     newMenu.name = body.name;
-    newMenu.priceCategory = body.priceCategory;
+    newMenu.category = body.category;
     await this.menuRepository.save(newMenu);
   }
 
@@ -56,7 +56,7 @@ export class MenuService {
     const updatedMenu = await this.menuRepository.findOneBy({ id: menu.id });
 
     if (updatedMenu) {
-      updatedMenu.priceCategory = menu.priceCategory;
+      updatedMenu.category = menu.category;
       updatedMenu.name = menu.name;
       await this.menuRepository.save(updatedMenu);
     }
