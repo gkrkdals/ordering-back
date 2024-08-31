@@ -13,6 +13,7 @@ import { OrderSql } from "@src/modules/main/manager/order/sql/order.sql";
 import { OrderStatusRaw } from "@src/types/models/OrderStatusRaw";
 import { UpdateOrderDto } from "@src/modules/main/manager/order/dto/update-order.dto";
 import { CustomerCredit } from "@src/entities/customer-credit.entity";
+import { OrderGateway } from "@src/websocket/order.gateway";
 
 @Injectable()
 export class OrderService {
@@ -24,7 +25,8 @@ export class OrderService {
     @InjectRepository(OrderCategory)
     private readonly orderCategoryRepository: Repository<OrderCategory>,
     @InjectRepository(CustomerCredit)
-    private readonly customerCreditRepository: Repository<CustomerCredit>
+    private readonly customerCreditRepository: Repository<CustomerCredit>,
+    private readonly orderGateway: OrderGateway,
   ) {}
 
   async getOrders(page: number, query: string): Promise<GetOrderResponseDto> {
@@ -75,7 +77,9 @@ export class OrderService {
 
     newOrder.customer = customer.id;
     newOrder.menu = menu.id;
-    await this.orderRepository.save(newOrder)
+    await this.orderRepository.save(newOrder);
+
+    this.orderGateway.broadcastEvent('refresh_client');
   }
 
   async updateOrder(order: UpdateOrderDto) {
@@ -108,6 +112,7 @@ export class OrderService {
     }
 
     await this.orderStatusRepository.save(updatedOrder);
+    this.orderGateway.broadcastEvent('refresh_client');
   }
 
   async cancelOrder(id: number) {
@@ -120,5 +125,6 @@ export class OrderService {
     newOrderStatus.status = Status.Canceled;
 
     await this.orderStatusRepository.save(newOrderStatus);
+    this.orderGateway.broadcastEvent('refresh_client');
   }
 }

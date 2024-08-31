@@ -23,4 +23,7 @@ export class OrderStatus {
 
   @Column()
   time: Date;
+
+  @Column()
+  location: string;
 }

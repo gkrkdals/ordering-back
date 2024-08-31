@@ -7,6 +7,7 @@ import { Order } from "@src/entities/order.entity";
 import { OrderStatus } from "@src/entities/order-status.entity";
 import { JwtService } from "@nestjs/jwt";
 import { DishDisposalService } from "@src/modules/main/client/order/services/dish-disposal.service";
+import { OrderGateway } from "@src/websocket/order.gateway";
 
 @Module({
   imports: [
@@ -20,7 +21,8 @@ import { DishDisposalService } from "@src/modules/main/client/order/services/dis
   providers: [
     OrderService,
     DishDisposalService,
-    JwtService
+    JwtService,
+    OrderGateway,
   ],
 })
 export class OrderModule {}

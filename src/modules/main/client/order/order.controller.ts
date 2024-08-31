@@ -6,8 +6,9 @@ import { User } from "@src/modules/user/user.decorator";
 import { Customer } from "@src/entities/customer.entity";
 import { AuthGuard } from "@src/modules/auth/auth.guard";
 import { DishDisposalService } from "@src/modules/main/client/order/services/dish-disposal.service";
-import { DishDisposalsResponseDto } from "@src/modules/main/client/order/dto/response/dish-disposals-response.dto";
 import { OrderSummaryResponseDto } from "@src/modules/main/client/order/dto/response/order-summary-response.dto";
+import { CreateDishDisposalDto } from "@src/modules/main/client/order/dto/create-dish-disposal.dto";
+import { Disposal } from "@src/types/models/disposal";
 
 @UseGuards(AuthGuard)
 @Controller('order')
@@ -33,7 +34,12 @@ export class OrderController {
   }
 
   @Get('dish')
-  async getDishDisposals(@User() customer: Customer): Promise<DishDisposalsResponseDto[]> {
+  async getDishDisposals(@User() customer: Customer): Promise<Disposal[]> {
     return this.dishDisposalService.getDishDisposals(customer);
+  }
+
+  @Post('dish')
+  async createDishDisposals(@Body() body: CreateDishDisposalDto) {
+    return this.dishDisposalService.createDishDisposal(body);
   }
 }

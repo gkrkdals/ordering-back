@@ -8,6 +8,7 @@ import { Customer } from "@src/entities/customer.entity";
 import { Status } from "@src/types/enum/Status";
 import { OrderSql } from "@src/modules/main/client/order/sql/OrderSql";
 import { OrderSummaryResponseDto } from "@src/modules/main/client/order/dto/response/order-summary-response.dto";
+import { OrderGateway } from "@src/websocket/order.gateway";
 
 @Injectable()
 export class OrderService {
@@ -17,7 +18,8 @@ export class OrderService {
     @InjectRepository(Order)
     private orderRepository: Repository<Order>,
     @InjectDataSource()
-    private readonly datasource: DataSource
+    private readonly datasource: DataSource,
+    private readonly orderGateway: OrderGateway,
   ) {}
 
   getOrderCategories(): Promise<OrderCategory[]> {
@@ -44,5 +46,7 @@ export class OrderService {
       newOrder.request = orderedMenu.request;
       await this.orderRepository.save(newOrder);
     }
+
+    this.orderGateway.broadcastEvent('refresh_manager');
   }
 }
