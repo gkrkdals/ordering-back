@@ -16,7 +16,7 @@ export class AuthController {
   ): Promise<Customer> {
     const token = await this.authService.signIn(signInDto.id);
     res.setHeader("Authorization", `Bearer ${token.access_token}`)
-    res.cookie("jwt", token.access_token, { httpOnly: true, sameSite: "none" });
+    res.cookie("jwt", token.access_token, { httpOnly: true, domain: 'yeonsu.kr' });
 
     return token.payload
   }
