@@ -48,5 +48,6 @@ export class OrderService {
     }
 
     this.orderGateway.broadcastEvent('new_event_cook');
+    this.orderGateway.broadcastEvent('refresh');
   }
 }
