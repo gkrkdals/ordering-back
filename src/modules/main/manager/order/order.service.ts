@@ -14,6 +14,12 @@ import { OrderStatusRaw } from "@src/types/models/OrderStatusRaw";
 import { UpdateOrderDto } from "@src/modules/main/manager/order/dto/update-order.dto";
 import { CustomerCredit } from "@src/entities/customer-credit.entity";
 import { OrderGateway } from "@src/websocket/order.gateway";
+import { Interval } from "@nestjs/schedule";
+
+interface Pending {
+  status: number;
+  count: string;
+}
 
 @Injectable()
 export class OrderService {
@@ -29,16 +35,19 @@ export class OrderService {
     private readonly orderGateway: OrderGateway,
   ) {}
 
-  async getOrders(page: number, query: string): Promise<GetOrderResponseDto> {
+  async getOrders(page: number, query: string, user: 'manager' | 'rider' | 'cook'): Promise<GetOrderResponseDto> {
     const like = `%${query}%`;
+    const likes = new Array(5).fill(like);
+
+    const [firstStatus, lastStatus] = this.getFirstAndLastStatus(user);
 
     const data: OrderStatusRaw[] = await this
       .orderStatusRepository
-      .query(OrderSql.getOrderStatus, new Array(5).fill(like).concat(countSkip(page)));
+      .query(OrderSql.getOrderStatus, [...likes, firstStatus, lastStatus, countSkip(page)]);
 
     const { count } = (await this
       .orderStatusRepository
-      .query(OrderSql.getOrderStatusCount, new Array(5).fill(like)))[0];
+      .query(OrderSql.getOrderStatusCount, [...likes, firstStatus, lastStatus]))[0];
 
     // 각 주문 상태에 잔금 매핑
     for (const status of data) {
@@ -80,8 +89,16 @@ export class OrderService {
     await this.orderRepository.save(newOrder);
 
     this.orderGateway.broadcastEvent('refresh_client');
+    this.orderGateway.broadcastEvent('refresh');
   }
 
+  /**
+   * 주문을 업데이트합니다.
+   *
+   * 주문이 업데이트 될 시,
+   * 조리원이나 배달원의 알람이 울리거나 취소되도록 합니다.
+   * @param order 주문정보
+   */
   async updateOrder(order: UpdateOrderDto) {
     const currentOrderStatus = await this.orderStatusRepository.findOne({
       where: { id: order.orderId },
@@ -112,9 +129,23 @@ export class OrderService {
     }
 
     await this.orderStatusRepository.save(updatedOrder);
+
+    if (order.newStatus === Status.WaitingForDelivery || order.newStatus === Status.AwaitingPickup) {
+      this.orderGateway.broadcastEvent('new_event_rider');
+    }
+
     this.orderGateway.broadcastEvent('refresh_client');
+    this.orderGateway.broadcastEvent('refresh');
+
+    // 전부 조리중으로 바뀌면 벨 울리기 취소
+    await this.cancelRingingIfNoPending();
   }
 
+  /**
+   * 주문을 취소합니다.
+   *
+   * @param id 클라이언트에서 받아온 주문정보의 id
+   */
   async cancelOrder(id: number) {
     const canceledOrder = await this.orderStatusRepository.findOne({
       where: { id },
@@ -126,5 +157,39 @@ export class OrderService {
 
     await this.orderStatusRepository.save(newOrderStatus);
     this.orderGateway.broadcastEvent('refresh_client');
+    this.orderGateway.broadcastEvent('refresh');
+  }
+
+  private getFirstAndLastStatus(user: 'manager' | 'rider' | 'cook') {
+    switch (user) {
+      case 'manager':
+        return [Status.PendingReceipt, Status.InPickingUp];
+
+      case 'rider':
+        return [Status.WaitingForDelivery, Status.InPickingUp];
+
+      case "cook":
+        return [Status.PendingReceipt, Status.InPreparation];
+    }
+  }
+
+  /**
+   * 조리원이나 배달원에게 대기 중인 정보가 있는지 확인하고, 없으면 지속적으로 울리는 알림을 해제합니다.
+   *
+   * @private
+   */
+  private async cancelRingingIfNoPending() {
+    const pendingArray: Pending[] = await this.orderStatusRepository.query(OrderSql.getRemainingPendingRequestCount);
+    const pendingCook = pendingArray.find(pending => pending.status === Status.PendingReceipt);
+    const pendingRider = pendingArray
+      .find(pending => pending.status === Status.WaitingForDelivery || pending.status === Status.AwaitingPickup);
+
+    if (!pendingCook || parseInt(pendingCook.count) === 0) {
+      this.orderGateway.broadcastEvent('remove_event_cook');
+    }
+
+    if (!pendingRider || parseInt(pendingRider.count) === 0) {
+      this.orderGateway.broadcastEvent('remove_event_rider');
+    }
   }
 }

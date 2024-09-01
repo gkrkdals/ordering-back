@@ -47,6 +47,6 @@ export class OrderService {
       await this.orderRepository.save(newOrder);
     }
 
-    this.orderGateway.broadcastEvent('refresh_manager');
+    this.orderGateway.broadcastEvent('new_event_cook');
   }
 }

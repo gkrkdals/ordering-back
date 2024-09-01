@@ -5,6 +5,7 @@ import { ConfigModule } from '@nestjs/config';
 import { ApiModule } from './api.module';
 import { ServeStaticModule } from "@nestjs/serve-static";
 import { join } from 'path';
+import { ScheduleModule } from "@nestjs/schedule";
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { join } from 'path';
       isGlobal: true,
     }),
     ApiModule,
+    ScheduleModule.forRoot()
   ],
   controllers: [AppController],
   providers: [AppService],

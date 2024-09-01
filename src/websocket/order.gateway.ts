@@ -6,7 +6,7 @@ import {
 } from "@nestjs/websockets";
 import { Server, Socket } from 'socket.io';
 
-@WebSocketGateway(8080, { cors: 'http://localhost:5173' })
+@WebSocketGateway(8080, { cors: ['http://localhost:5173', 'http://34.47.98.56', 'http://yeonsu.kr'] })
 export class OrderGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
 
   @WebSocketServer()
@@ -15,7 +15,6 @@ export class OrderGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
   private clients: Socket[] = [];
 
   afterInit(server: Server) {
-    console.log('initialized');
     this.server = server;
   }
 
@@ -29,13 +28,6 @@ export class OrderGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
         this.clients.splice(i, 1);
         break;
       }
-    }
-  }
-
-  broadcast(data?: any) {
-    const broadcastingMessage = JSON.stringify(data);
-    for (const client of this.clients) {
-      client.send(broadcastingMessage);
     }
   }
 

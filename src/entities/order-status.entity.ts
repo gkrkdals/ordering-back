@@ -24,6 +24,6 @@ export class OrderStatus {
   @Column()
   time: Date;
 
-  @Column()
+  @Column({ nullable: true })
   location: string;
 }

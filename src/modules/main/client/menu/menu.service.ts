@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Menu } from "@src/entities/menu.entity";
-import { Like, Repository } from "typeorm";
+import { Like, Not, Repository } from "typeorm";
 
 @Injectable()
 export class MenuService {
@@ -10,7 +10,7 @@ export class MenuService {
   ) {}
 
   findAll(): Promise<Menu[]> {
-    return this.menuRepository.find({ relations: { menuCategory: true } });
+    return this.menuRepository.find({ relations: { menuCategory: true }, where: { id: Not(0) } });
   }
 
   findOne(id: number): Promise<Menu | null> {

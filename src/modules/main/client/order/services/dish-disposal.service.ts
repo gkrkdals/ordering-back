@@ -24,14 +24,13 @@ export class DishDisposalService {
   async createDishDisposal(body: CreateDishDisposalDto) {
     const newOrderStatus = new OrderStatus();
     const { disposal, location } = body;
-    console.log(disposal);
-
     newOrderStatus.orderCode = disposal.order_code;
     newOrderStatus.status = Status.InPickingUp;
     newOrderStatus.location = location;
 
     await this.orderStatusRepository.save(newOrderStatus);
 
-    this.orderGateway.broadcastEvent('refresh_manager');
+    this.orderGateway.broadcastEvent('refresh');
+    this.orderGateway.broadcastEvent('new_event_rider');
   }
 }

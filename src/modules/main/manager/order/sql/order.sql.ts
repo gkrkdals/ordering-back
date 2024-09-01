@@ -18,7 +18,8 @@ export class OrderSql {
                  e.name status_name,
                  c.price,
                  f.floor,
-                 c.memo
+                 c.memo,
+                 b.location
               FROM
                   (SELECT
                       order_code,
@@ -44,7 +45,7 @@ export class OrderSql {
          OR t.request LIKE ?
          OR t.status_name LIKE ?
          OR t.price LIKE ?)
-         AND t.status < (SELECT status FROM order_category WHERE name = '수거완료')
+         AND (t.status >= ? AND t.status <= ?)
       ORDER BY t.time DESC
       LIMIT ?, 20`;
 
@@ -84,5 +85,18 @@ export class OrderSql {
          OR t.request LIKE ?
          OR t.status_name LIKE ?
          OR t.price LIKE ?)
-         AND t.status < (SELECT status FROM order_category WHERE name = '수거완료')`
+         AND (t.status >= ? AND t.status <= ?)`;
+
+  static getRemainingPendingRequestCount = `
+    SELECT
+        t.status,
+        COUNT(t.status) count
+    FROM (
+            SELECT MAX(status) status
+              FROM order_status
+             GROUP BY order_code
+         ) t
+    WHERE t.status = 1 OR t.status = 3 OR t.status = 5
+    GROUP BY t.status;
+  `;
 }

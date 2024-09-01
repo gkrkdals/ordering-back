@@ -19,9 +19,10 @@ export class OrderController {
   @Get()
   async getOrderStatus(
     @Query('page') page: number,
-    @Query('query') query: string | undefined
+    @Query('query') query: string | undefined,
+    @Query('user') user: 'manager' | 'rider' | 'cook',
   ): Promise<GetOrderResponseDto> {
-    return this.orderService.getOrders(page, query);
+    return this.orderService.getOrders(page, query, user);
   }
 
   @Post()
