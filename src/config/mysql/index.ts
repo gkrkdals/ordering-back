@@ -13,7 +13,6 @@ export const ormConfig: TypeOrmModuleAsyncOptions = {
       password: configService.get<string>('DATABASE_PASSWORD'),
       database: configService.get('DATABASE'),
       autoLoadEntities: true,
-      timezone: 'Asia/Seoul'
     }
 
     return config;
