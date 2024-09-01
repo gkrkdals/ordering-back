@@ -25,10 +25,10 @@ DROP TABLE IF EXISTS `order_category`;
 CREATE TABLE `order_category` (
   `id` int NOT NULL AUTO_INCREMENT,
   `status` int NOT NULL COMMENT '주문 상태 코드',
-  `status_name` varchar(4) NOT NULL COMMENT '주문 상태 이름',
+  `name` varchar(4) NOT NULL COMMENT '주문 상태 이름',
   PRIMARY KEY (`id`),
   UNIQUE KEY `order_status_pk_2` (`status`)
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -37,7 +37,7 @@ CREATE TABLE `order_category` (
 
 LOCK TABLES `order_category` WRITE;
 /*!40000 ALTER TABLE `order_category` DISABLE KEYS */;
-INSERT INTO `order_category` VALUES (1,1,'접수대기'),(2,2,'조리중'),(3,3,'배달대기'),(4,4,'배달중'),(5,5,'수거대기'),(6,6,'수거완료'),(7,7,'주문취소');
+INSERT INTO `order_category` VALUES (1,1,'접수대기'),(2,2,'조리중'),(3,3,'배달대기'),(4,4,'배달중'),(5,5,'수거대기'),(6,6,'수거중'),(7,7,'수거완료'),(8,8,'주문취소');
 /*!40000 ALTER TABLE `order_category` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -50,4 +50,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2024-08-31  3:50:29
+-- Dump completed on 2024-09-02  5:46:54
