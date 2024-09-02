@@ -5,7 +5,7 @@ export class OrderSql {
         a.status,
         d.name status_name,
         b.menu,
-        IF(b.menu = 0, b.memo, c.name) menu_name
+        c.name menu_name
     FROM
         (SELECT
              order_code,

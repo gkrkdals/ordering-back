@@ -38,7 +38,7 @@ export class MenuService {
   }
 
   async getAll(): Promise<Menu[]> {
-    return this.menuRepository.find({ relations: { menuCategory: true }, where: { id: Not(0) }});
+    return this.menuRepository.find({ relations: { menuCategory: true }});
   }
 
   async getMenuCategoryAll(): Promise<MenuCategory[]> {
@@ -58,6 +58,7 @@ export class MenuService {
     if (updatedMenu) {
       updatedMenu.category = menu.category;
       updatedMenu.name = menu.name;
+      updatedMenu.soldOut = menu.soldOut;
       await this.menuRepository.save(updatedMenu);
     }
   }

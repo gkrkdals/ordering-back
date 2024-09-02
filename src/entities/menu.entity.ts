@@ -15,4 +15,7 @@ export class Menu {
   @JoinColumn({ name: 'category' })
   @OneToOne(() => MenuCategory)
   menuCategory: MenuCategory;
+
+  @Column({ name: 'sold_out' })
+  soldOut: number;
 }

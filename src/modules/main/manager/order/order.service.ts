@@ -14,7 +14,6 @@ import { OrderStatusRaw } from "@src/types/models/OrderStatusRaw";
 import { UpdateOrderDto } from "@src/modules/main/manager/order/dto/update-order.dto";
 import { CustomerCredit } from "@src/entities/customer-credit.entity";
 import { OrderGateway } from "@src/websocket/order.gateway";
-import { Interval } from "@nestjs/schedule";
 
 interface Pending {
   status: number;
@@ -79,7 +78,6 @@ export class OrderService {
 
     if (menu.id === 0) {
       newOrder.price = 0;
-      newOrder.memo = menu.name;
     } else {
       newOrder.price = menu.menuCategory.price + 1000;
     }
@@ -112,6 +110,7 @@ export class OrderService {
     if(order.newStatus === Status.InPreparation && order.menu === 0) {
       const originalOrder = await this.orderRepository.findOneBy({ id: currentOrderStatus.orderCode });
       originalOrder.price = order.paidAmount;
+      originalOrder.request = order.menuName;
       await this.orderRepository.save(originalOrder);
 
       const newCreditInfo = new CustomerCredit();
@@ -163,10 +162,8 @@ export class OrderService {
   private getFirstAndLastStatus(user: 'manager' | 'rider' | 'cook') {
     switch (user) {
       case 'manager':
-        return [Status.PendingReceipt, Status.InPickingUp];
-
       case 'rider':
-        return [Status.WaitingForDelivery, Status.InPickingUp];
+        return [Status.PendingReceipt, Status.InPickingUp];
 
       case "cook":
         return [Status.PendingReceipt, Status.InPreparation];

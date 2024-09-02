@@ -7,7 +7,10 @@ export class MenuController {
   constructor(private readonly menuService: MenuService) {}
 
   @Get()
-  async getMenus(@Query('page') page: number, @Query('query') query: string | undefined) {
+  async getMenus(
+    @Query('page') page: number,
+    @Query('query') query: string | undefined
+  ) {
     return this.menuService.getMenus(page, query);
   }
 

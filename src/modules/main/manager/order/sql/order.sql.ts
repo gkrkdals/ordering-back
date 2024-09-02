@@ -8,7 +8,7 @@ export class OrderSql {
                  b.id,
                  a.order_code,
                  d.id menu,
-                 IF(d.id = 0, CONCAT('추가메뉴(', c.memo, ')'), d.name) menu_name,
+                 d.name menu_name,
                  c.time,
                  f.id customer,
                  g.id customer_category,
@@ -17,6 +17,7 @@ export class OrderSql {
                  a.status,
                  e.name status_name,
                  c.price,
+                 f.address,
                  f.floor,
                  c.memo,
                  b.location
