@@ -88,6 +88,7 @@ export class OrderService {
 
     this.orderGateway.broadcastEvent('refresh_client');
     this.orderGateway.broadcastEvent('refresh');
+    this.orderGateway.broadcastEvent('new_event_cook');
   }
 
   /**
@@ -98,15 +99,18 @@ export class OrderService {
    * @param order 주문정보
    */
   async updateOrder(order: UpdateOrderDto) {
+    // 상태변경을 일으킨 주문상태의 엔티티를 받아옴
     const currentOrderStatus = await this.orderStatusRepository.findOne({
       where: { id: order.orderId },
       relations: { orderJoin: true, }
     });
 
-    const updatedOrder = new OrderStatus();
-    updatedOrder.status = order.newStatus;
-    updatedOrder.orderCode = currentOrderStatus.orderCode;
+    // 새 주문상태 엔티티 생성, 새로운 주문상태와 해당 주문 코드 매핑
+    const newOrderStatus = new OrderStatus();
+    newOrderStatus.status = order.newStatus;
+    newOrderStatus.orderCode = currentOrderStatus.orderCode;
 
+    // 관리자 메뉴에서 추가메뉴 항목의 상태를 조리중으로 변경 시 받아온 메뉴명/금액 적용
     if(order.newStatus === Status.InPreparation && order.menu === 0) {
       const originalOrder = await this.orderRepository.findOneBy({ id: currentOrderStatus.orderCode });
       originalOrder.price = order.paidAmount;
@@ -119,7 +123,7 @@ export class OrderService {
 
       await this.customerCreditRepository.save(newCreditInfo);
 
-    } else if(order.newStatus === Status.AwaitingPickup && !order.postpaid) {
+    } else if(order.newStatus === Status.AwaitingPickup && !order.postpaid) { // 음식 수령 후 금액을 바로 지불하였을 시 저장
         const newCreditInfo = new CustomerCredit();
         newCreditInfo.creditDiff = order.paidAmount;
         newCreditInfo.customer = currentOrderStatus.orderJoin.customer;
@@ -127,7 +131,7 @@ export class OrderService {
         await this.customerCreditRepository.save(newCreditInfo);
     }
 
-    await this.orderStatusRepository.save(updatedOrder);
+    await this.orderStatusRepository.save(newOrderStatus);
 
     if (order.newStatus === Status.WaitingForDelivery || order.newStatus === Status.AwaitingPickup) {
       this.orderGateway.broadcastEvent('new_event_rider');
