@@ -44,7 +44,7 @@ export class OrderService {
     return (user === 'cook' && cookPending) || (user === 'rider' && riderPending);
   }
 
-  async getOrders(page: number, query: string, user: 'manager' | 'rider' | 'cook'): Promise<GetOrderResponseDto> {
+  async getOrders(page: number, query: string, user: UserType): Promise<GetOrderResponseDto> {
     const like = `%${query}%`;
     const likes = new Array(5).fill(like);
 
@@ -96,9 +96,9 @@ export class OrderService {
     newOrder.menu = menu.id;
     await this.orderRepository.save(newOrder);
 
-    this.orderGateway.broadcastEvent('refresh_client');
-    this.orderGateway.broadcastEvent('refresh');
-    this.orderGateway.broadcastEvent('new_event_cook');
+    this.orderGateway.refreshClient();
+    this.orderGateway.refresh();
+    this.orderGateway.newEventCook();
   }
 
   /**
@@ -144,11 +144,10 @@ export class OrderService {
     await this.orderStatusRepository.save(newOrderStatus);
 
     if (order.newStatus === Status.WaitingForDelivery) {
-      this.orderGateway.broadcastEvent('new_event_rider');
+      this.orderGateway.newEventRider();
     }
-
-    this.orderGateway.broadcastEvent('refresh_client');
-    this.orderGateway.broadcastEvent('refresh');
+    this.orderGateway.refreshClient();
+    this.orderGateway.refresh();
 
     // 전부 조리중으로 바뀌면 벨 울리기 취소
     await this.cancelRingingIfNoPending();
@@ -169,11 +168,11 @@ export class OrderService {
     newOrderStatus.status = Status.Canceled;
 
     await this.orderStatusRepository.save(newOrderStatus);
-    this.orderGateway.broadcastEvent('refresh_client');
-    this.orderGateway.broadcastEvent('refresh');
+    this.orderGateway.refreshClient();
+    this.orderGateway.refresh();
   }
 
-  private getFirstAndLastStatus(user: 'manager' | 'rider' | 'cook') {
+  private getFirstAndLastStatus(user: UserType) {
     switch (user) {
       case 'manager':
       case 'rider':
@@ -196,11 +195,11 @@ export class OrderService {
       .find(pending => pending.status === Status.WaitingForDelivery || pending.status === Status.AwaitingPickup);
 
     if (!pendingCook || parseInt(pendingCook.count) === 0) {
-      this.orderGateway.broadcastEvent('remove_event_cook');
+      this.orderGateway.removeEventCook();
     }
 
     if (!pendingRider || parseInt(pendingRider.count) === 0) {
-      this.orderGateway.broadcastEvent('remove_event_rider');
+      this.orderGateway.removeEventRider();
     }
   }
 }

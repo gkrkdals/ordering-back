@@ -31,10 +31,34 @@ export class OrderGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
     }
   }
 
-  broadcastEvent(event: string, data?: any) {
+  private broadcastEvent(event: string, data?: any) {
     const broadcastingMessage = JSON.stringify(data);
     for (const client of this.clients) {
       client.emit(event, broadcastingMessage);
     }
+  }
+
+  refresh() {
+    this.broadcastEvent('refresh');
+  }
+
+  refreshClient() {
+    this.broadcastEvent('refresh_client');
+  }
+
+  newEventCook() {
+    this.broadcastEvent('new_event_cook');
+  }
+
+  newEventRider() {
+    this.broadcastEvent('new_event_rider');
+  }
+
+  removeEventCook() {
+    this.broadcastEvent('remove_event_cook');
+  }
+
+  removeEventRider() {
+    this.broadcastEvent('remove_event_rider');
   }
 }

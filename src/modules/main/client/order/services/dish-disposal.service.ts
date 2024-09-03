@@ -30,6 +30,6 @@ export class DishDisposalService {
 
     await this.orderStatusRepository.save(newOrderStatus);
 
-    this.orderGateway.broadcastEvent('refresh');
+    this.orderGateway.refresh();
   }
 }
