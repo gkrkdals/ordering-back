@@ -4,12 +4,18 @@ import { GetOrderResponseDto } from "@src/modules/main/manager/order/dto/respons
 import { Menu } from "@src/entities/menu.entity";
 import { Customer } from "@src/entities/customer.entity";
 import { UpdateOrderDto } from "@src/modules/main/manager/order/dto/update-order.dto";
+import { UserType } from "@src/types/UserType";
 
 @Controller('manager/order')
 export class OrderController {
   constructor(
     private readonly orderService: OrderService
   ) {}
+
+  @Get('pending')
+  async pendingStatusForManager(@Query('user') user: UserType) {
+    return this.orderService.pendingStatusForManager(user);
+  }
 
   @Get('category')
   async getOrderCategories() {

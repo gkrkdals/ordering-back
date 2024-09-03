@@ -97,7 +97,7 @@ export class OrderSql {
               FROM order_status
              GROUP BY order_code
          ) t
-    WHERE t.status = 1 OR t.status = 3 OR t.status = 5
+    WHERE t.status = 1 OR t.status = 3
     GROUP BY t.status;
   `;
 }

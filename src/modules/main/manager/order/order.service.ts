@@ -14,6 +14,7 @@ import { OrderStatusRaw } from "@src/types/models/OrderStatusRaw";
 import { UpdateOrderDto } from "@src/modules/main/manager/order/dto/update-order.dto";
 import { CustomerCredit } from "@src/entities/customer-credit.entity";
 import { OrderGateway } from "@src/websocket/order.gateway";
+import { UserType } from "@src/types/UserType";
 
 interface Pending {
   status: number;
@@ -33,6 +34,15 @@ export class OrderService {
     private readonly customerCreditRepository: Repository<CustomerCredit>,
     private readonly orderGateway: OrderGateway,
   ) {}
+
+  async pendingStatusForManager(user: UserType) {
+    const pending: Pending[] = await this.orderStatusRepository.query(OrderSql.getRemainingPendingRequestCount);
+
+    const cookPending = pending.some(p => p.status === Status.PendingReceipt);
+    const riderPending = pending.some(p => p.status === Status.WaitingForDelivery || p.status === Status.AwaitingPickup);
+
+    return (user === 'cook' && cookPending) || (user === 'rider' && riderPending);
+  }
 
   async getOrders(page: number, query: string, user: 'manager' | 'rider' | 'cook'): Promise<GetOrderResponseDto> {
     const like = `%${query}%`;
@@ -133,7 +143,7 @@ export class OrderService {
 
     await this.orderStatusRepository.save(newOrderStatus);
 
-    if (order.newStatus === Status.WaitingForDelivery || order.newStatus === Status.AwaitingPickup) {
+    if (order.newStatus === Status.WaitingForDelivery) {
       this.orderGateway.broadcastEvent('new_event_rider');
     }
 
