@@ -27,7 +27,7 @@ export class MenuService {
       where: [
         { menuCategory: { name: like } },
         { name: like },
-      ] && { id: Not(0) },
+      ],
     });
 
     return {

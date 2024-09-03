@@ -8,6 +8,7 @@ import { OrderStatus } from "@src/entities/order-status.entity";
 import { JwtService } from "@nestjs/jwt";
 import { DishDisposalService } from "@src/modules/main/client/order/services/dish-disposal.service";
 import { OrderGateway } from "@src/websocket/order.gateway";
+import { CustomerPrice } from "@src/entities/customer-price";
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { OrderGateway } from "@src/websocket/order.gateway";
       Order,
       OrderStatus,
       OrderCategory,
+      CustomerPrice,
     ]),
   ],
   controllers: [OrderController],

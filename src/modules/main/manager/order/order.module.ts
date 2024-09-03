@@ -7,6 +7,7 @@ import { OrderController } from "@src/modules/main/manager/order/order.controlle
 import { OrderService } from "@src/modules/main/manager/order/order.service";
 import { CustomerCredit } from "@src/entities/customer-credit.entity";
 import { OrderGateway } from "@src/websocket/order.gateway";
+import { CustomerPrice } from "@src/entities/customer-price";
 
 @Module({
   imports: [
@@ -14,7 +15,8 @@ import { OrderGateway } from "@src/websocket/order.gateway";
       Order,
       OrderStatus,
       OrderCategory,
-      CustomerCredit
+      CustomerCredit,
+      CustomerPrice,
     ]),
   ],
   controllers: [OrderController],

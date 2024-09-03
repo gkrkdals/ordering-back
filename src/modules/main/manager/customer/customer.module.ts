@@ -4,12 +4,16 @@ import { Customer } from "@src/entities/customer.entity";
 import { CustomerService } from "@src/modules/main/manager/customer/customer.service";
 import { CustomerController } from "@src/modules/main/manager/customer/customer.controller";
 import { CustomerCategory } from "@src/entities/customer-category.entity";
+import { CustomerPrice } from "@src/entities/customer-price";
+import { MenuCategory } from "@src/entities/menu-category.entity";
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       Customer,
       CustomerCategory,
+      CustomerPrice,
+      MenuCategory,
     ]),
   ],
   providers: [CustomerService],

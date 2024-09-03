@@ -9,6 +9,7 @@ import { Status } from "@src/types/enum/Status";
 import { OrderSql } from "@src/modules/main/client/order/sql/OrderSql";
 import { OrderSummaryResponseDto } from "@src/modules/main/client/order/dto/response/order-summary-response.dto";
 import { OrderGateway } from "@src/websocket/order.gateway";
+import { CustomerPrice } from "@src/entities/customer-price";
 
 @Injectable()
 export class OrderService {
@@ -17,6 +18,8 @@ export class OrderService {
     private orderCategoryRepository: Repository<OrderCategory>,
     @InjectRepository(Order)
     private orderRepository: Repository<Order>,
+    @InjectRepository(CustomerPrice)
+    private readonly customerPriceRepository: Repository<CustomerPrice>,
     @InjectDataSource()
     private readonly datasource: DataSource,
     private readonly orderGateway: OrderGateway,
@@ -31,6 +34,8 @@ export class OrderService {
   }
 
   async addOrder(customer: Customer, orderedMenus: OrderedMenuDto[]): Promise<void> {
+    const customPrices = await this.customerPriceRepository.findBy({ customer: customer.id });
+
     for(const orderedMenu of orderedMenus) {
       const newOrder = new Order();
 
@@ -38,7 +43,13 @@ export class OrderService {
         newOrder.memo = orderedMenu.menu.name;
         newOrder.price = 0;
       } else {
-        newOrder.price = orderedMenu.menu.menuCategory.price;
+        const customPrice = customPrices.find(price => price.category === orderedMenu.menu.category);
+
+        if(customPrice) {
+          newOrder.price = customPrice.price;
+        } else {
+          newOrder.price = orderedMenu.menu.menuCategory.price;
+        }
       }
 
       newOrder.customer = customer.id;

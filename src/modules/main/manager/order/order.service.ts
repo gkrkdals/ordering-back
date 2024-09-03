@@ -15,6 +15,7 @@ import { UpdateOrderDto } from "@src/modules/main/manager/order/dto/update-order
 import { CustomerCredit } from "@src/entities/customer-credit.entity";
 import { OrderGateway } from "@src/websocket/order.gateway";
 import { UserType } from "@src/types/UserType";
+import { CustomerPrice } from "@src/entities/customer-price";
 
 interface Pending {
   status: number;
@@ -32,6 +33,8 @@ export class OrderService {
     private readonly orderCategoryRepository: Repository<OrderCategory>,
     @InjectRepository(CustomerCredit)
     private readonly customerCreditRepository: Repository<CustomerCredit>,
+    @InjectRepository(CustomerPrice)
+    private readonly customerPriceRepository: Repository<CustomerPrice>,
     private readonly orderGateway: OrderGateway,
   ) {}
 
@@ -85,11 +88,18 @@ export class OrderService {
 
   async createNewOrder(menu: Menu, customer: Customer) {
     const newOrder = new Order();
+    const customPrices = await this.customerPriceRepository.findBy({ customer: customer.id });
 
     if (menu.id === 0) {
       newOrder.price = 0;
     } else {
-      newOrder.price = menu.menuCategory.price + 1000;
+      const customPrice = customPrices.find(price => price.category === menu.category);
+
+      if(customPrice) {
+        newOrder.price = customPrice.price + 1000;
+      } else {
+        newOrder.price = menu.menuCategory.price + 1000;
+      }
     }
 
     newOrder.customer = customer.id;

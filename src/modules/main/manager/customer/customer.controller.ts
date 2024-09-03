@@ -1,7 +1,8 @@
-import { Body, Controller, Delete, Get, Post, Put, Query } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Post, Put, Query } from "@nestjs/common";
 import { CustomerService } from "@src/modules/main/manager/customer/customer.service";
 import { Customer } from "@src/entities/customer.entity";
 import { GetCustomerResponseDto } from "@src/modules/main/manager/customer/dto/response/get-customer-response.dto";
+import { UpdateCustomerPriceDto } from "@src/modules/main/manager/customer/dto/update-customer-price.dto";
 
 @Controller('manager/customer')
 export class CustomerController {
@@ -38,5 +39,15 @@ export class CustomerController {
   @Delete()
   async deleteCustomer(@Query('id') id: number) {
     return this.customerService.deleteCustomer(id);
+  }
+
+  @Get('price')
+  async getCustomerPrice(@Query('id') id: number) {
+    return this.customerService.getCustomerPrice(id);
+  }
+
+  @Put('price')
+  async updateCustomerPrice(@Body() body: UpdateCustomerPriceDto) {
+    return this.customerService.updateCustomerPrice(body);
   }
 }

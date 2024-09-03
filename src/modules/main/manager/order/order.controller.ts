@@ -26,7 +26,7 @@ export class OrderController {
   async getOrderStatus(
     @Query('page') page: number,
     @Query('query') query: string | undefined,
-    @Query('user') user: 'manager' | 'rider' | 'cook',
+    @Query('user') user: UserType,
   ): Promise<GetOrderResponseDto> {
     return this.orderService.getOrders(page, query, user);
   }

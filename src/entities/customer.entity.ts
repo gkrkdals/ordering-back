@@ -1,8 +1,10 @@
-import { Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 import { CustomerCategory } from "@src/entities/customer-category.entity";
+import { CustomerPrice } from "@src/entities/customer-price";
 
 @Entity()
-export class Customer {
+export class
+Customer {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -24,4 +26,7 @@ export class Customer {
   @JoinColumn({ name: 'category' })
   @OneToOne(() => CustomerCategory)
   categoryJoin: CustomerCategory;
+
+  @OneToMany(() => CustomerPrice, (category) => category.customerJoin)
+  customerPriceJoin: CustomerPrice[];
 }
