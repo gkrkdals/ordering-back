@@ -22,7 +22,7 @@ export class Order {
   menuJoin: Menu;
 
   @Column()
-  time: Date;
+  time: string;
 
   @Column({ nullable: true })
   request: string;

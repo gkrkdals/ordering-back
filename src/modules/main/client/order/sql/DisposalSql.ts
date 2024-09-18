@@ -11,7 +11,7 @@ export class DisposalSql {
         \`order\` b,
         menu c,
         order_status d
-    WHERE (a.status = (SELECT status FROM order_category WHERE name = '수거대기') OR a.status = (SELECT status FROM order_category WHERE name = '수거중'))
+    WHERE (a.status = (SELECT status FROM order_category WHERE name = ?) OR a.status = (SELECT status FROM order_category WHERE name = ?))
       AND b.id = a.order_code
       AND b.customer = ?
       AND c.id = b.menu

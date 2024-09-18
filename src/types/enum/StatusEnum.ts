@@ -1,4 +1,4 @@
-export enum Status {
+export enum StatusEnum {
   PendingReceipt = 1,
   InPreparation,
   WaitingForDelivery,

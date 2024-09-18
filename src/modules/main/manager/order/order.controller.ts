@@ -1,15 +1,20 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query } from "@nestjs/common";
-import { OrderService } from "@src/modules/main/manager/order/order.service";
+import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } from "@nestjs/common";
+import { OrderService } from "@src/modules/main/manager/order/services/order.service";
 import { GetOrderResponseDto } from "@src/modules/main/manager/order/dto/response/get-order-response.dto";
 import { Menu } from "@src/entities/menu.entity";
 import { Customer } from "@src/entities/customer.entity";
 import { UpdateOrderDto } from "@src/modules/main/manager/order/dto/update-order.dto";
 import { UserType } from "@src/types/UserType";
+import { UpdateOrderMenuDto } from "@src/modules/main/manager/order/dto/update-order-menu.dto";
+import { OrderModifyService } from "@src/modules/main/manager/order/services/order-modify.service";
+import { AuthGuard } from "@src/modules/auth/auth.guard";
 
 @Controller('manager/order')
+@UseGuards(AuthGuard)
 export class OrderController {
   constructor(
-    private readonly orderService: OrderService
+    private readonly orderService: OrderService,
+    private readonly orderModifyService: OrderModifyService,
   ) {}
 
   @Get('pending')
@@ -31,6 +36,11 @@ export class OrderController {
     return this.orderService.getOrders(page, query, user);
   }
 
+  @Get('history')
+  async getOrderHistory(@Query('orderCode') orderCode: number) {
+    return this.orderService.getOrderHistory(orderCode);
+  }
+
   @Post()
   async createNewOrder(
     @Body('menu') menu: Menu,
@@ -41,11 +51,16 @@ export class OrderController {
 
   @Put()
   async updateOrder(@Body() body: UpdateOrderDto) {
-    return this.orderService.updateOrder(body);
+    return this.orderModifyService.updateOrder(body);
   }
 
   @Delete(':id')
   async cancelOrder(@Param('id') id: number) {
-    return this.orderService.cancelOrder(id);
+    return this.orderModifyService.cancelOrder(id);
+  }
+
+  @Put('menu')
+  async updateOrderMenu(@Body() body: UpdateOrderMenuDto) {
+    return this.orderModifyService.updateOrderMenu(body);
   }
 }

@@ -5,7 +5,7 @@ import { DataSource, LessThan, Repository } from "typeorm";
 import { OrderedMenuDto } from "@src/modules/main/client/order/dto/ordered-menu.dto";
 import { Order } from "@src/entities/order.entity";
 import { Customer } from "@src/entities/customer.entity";
-import { Status } from "@src/types/enum/Status";
+import { StatusEnum } from "@src/types/enum/StatusEnum";
 import { OrderSql } from "@src/modules/main/client/order/sql/OrderSql";
 import { OrderSummaryResponseDto } from "@src/modules/main/client/order/dto/response/order-summary-response.dto";
 import { OrderGateway } from "@src/websocket/order.gateway";
@@ -26,7 +26,7 @@ export class OrderService {
   ) {}
 
   getOrderCategories(): Promise<OrderCategory[]> {
-    return this.orderCategoryRepository.findBy({ status: LessThan(Status.AwaitingPickup) });
+    return this.orderCategoryRepository.findBy({ status: LessThan(StatusEnum.AwaitingPickup) });
   }
 
   getOrderSummaries(customer: Customer): Promise<OrderSummaryResponseDto[]> {

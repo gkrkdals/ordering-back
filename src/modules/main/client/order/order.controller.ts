@@ -2,13 +2,13 @@ import { Body, Controller, Get, Post, UseGuards } from "@nestjs/common";
 import { OrderService } from "@src/modules/main/client/order/services/order.service";
 import { OrderCategory } from "@src/entities/order-category.entity";
 import { OrderedMenuDto } from "@src/modules/main/client/order/dto/ordered-menu.dto";
-import { User } from "@src/modules/user/user.decorator";
+import { User } from "@src/modules/user/customer.decorator";
 import { Customer } from "@src/entities/customer.entity";
 import { AuthGuard } from "@src/modules/auth/auth.guard";
 import { DishDisposalService } from "@src/modules/main/client/order/services/dish-disposal.service";
 import { OrderSummaryResponseDto } from "@src/modules/main/client/order/dto/response/order-summary-response.dto";
 import { CreateDishDisposalDto } from "@src/modules/main/client/order/dto/create-dish-disposal.dto";
-import { Disposal } from "@src/types/models/disposal";
+import { Disposal } from "@src/types/models/Disposal";
 
 @UseGuards(AuthGuard)
 @Controller('order')

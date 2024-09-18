@@ -1,4 +1,4 @@
-import { Disposal } from "@src/types/models/disposal";
+import { Disposal } from "@src/types/models/Disposal";
 
 export class CreateDishDisposalDto {
   disposal: Disposal;
