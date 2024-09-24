@@ -8,6 +8,8 @@ import { UserType } from "@src/types/UserType";
 import { UpdateOrderMenuDto } from "@src/modules/main/manager/order/dto/update-order-menu.dto";
 import { OrderModifyService } from "@src/modules/main/manager/order/services/order-modify.service";
 import { AuthGuard } from "@src/modules/auth/auth.guard";
+import { UserData } from "@src/modules/user/customer.decorator";
+import { User } from "@src/entities/user.entity";
 
 @Controller('manager/order')
 @UseGuards(AuthGuard)
@@ -44,9 +46,10 @@ export class OrderController {
   @Post()
   async createNewOrder(
     @Body('menu') menu: Menu,
-    @Body('customer') customer: Customer
+    @Body('customer') customer: Customer,
+    @Body('request') request: string,
   ) {
-    return this.orderService.createNewOrder(menu, customer);
+    return this.orderService.createNewOrder(menu, customer, request);
   }
 
   @Put()
@@ -60,7 +63,7 @@ export class OrderController {
   }
 
   @Put('menu')
-  async updateOrderMenu(@Body() body: UpdateOrderMenuDto) {
-    return this.orderModifyService.updateOrderMenu(body);
+  async updateOrderMenu(@UserData() user: User, @Body() body: UpdateOrderMenuDto) {
+    return this.orderModifyService.updateOrderMenu(body, user);
   }
 }

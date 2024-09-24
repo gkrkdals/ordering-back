@@ -8,6 +8,8 @@ import { CustomerCategory } from "@src/entities/customer-category.entity";
 import { CustomerPrice } from "@src/entities/customer-price";
 import { UpdateCustomerPriceDto } from "@src/modules/main/manager/customer/dto/update-customer-price.dto";
 import { MenuCategory } from "@src/entities/menu-category.entity";
+import { CustomerWithCredit } from "@src/types/models/CustomerWithCredit";
+import { CustomerSql } from "@src/modules/main/manager/customer/sql/CustomerSql";
 
 @Injectable()
 export class CustomerService {
@@ -22,35 +24,43 @@ export class CustomerService {
     private readonly menuCategoryRepository: Repository<MenuCategory>,
   ) {}
 
-  async getCustomer(page: number, query: string): Promise<Customer[] | GetCustomerResponseDto> {
+  async getCustomer(page: number, query: string): Promise<GetCustomerResponseDto> {
     const like = Like(`%${query}%`)
 
-    if (page) {
-      const [data, count] = await this.customerRepository.findAndCount({
-        take: 20,
-        skip: countSkip(page),
-        where: [
-          { name: like },
-          { address: like },
-          { memo: like },
-        ],
-        relations: {
-          categoryJoin: true,
-          customerPriceJoin: true,
-        }
-      })
-
-      return {
-        currentPage: page,
-        totalPage: countToTotalPage(count),
-        data,
+    const [data, count] = await this.customerRepository.findAndCount({
+      take: 20,
+      skip: countSkip(page),
+      where: [
+        { name: like, withdrawn: Not(1) },
+        { address: like, withdrawn: Not(1) },
+        { memo: like, withdrawn: Not(1) },
+      ],
+      relations: {
+        categoryJoin: true,
+        customerPriceJoin: true,
       }
-    } else {
-      return this.customerRepository.find();
+    });
+
+    const dataWithCredit: CustomerWithCredit[] = [];
+
+    for (const customer of data) {
+      const credit: number = parseInt((await this.customerRepository.query(CustomerSql.getCustomerCredit, [customer.id])).at(0).credit);
+
+      dataWithCredit.push({
+        ...customer,
+        credit
+      });
+    }
+
+    return {
+      currentPage: page,
+      totalPage: countToTotalPage(count),
+      count,
+      data: dataWithCredit,
     }
   }
 
-  async getAll() { return this.customerRepository.find(); }
+  async getAll() { return this.customerRepository.findBy({ withdrawn: Not(1) }); }
 
   async getCategories() { return this.customerCategoryRepository.find(); }
 
@@ -58,6 +68,7 @@ export class CustomerService {
     const newCustomer = new Customer();
     newCustomer.name = customer.name;
     newCustomer.memo = customer.memo;
+    newCustomer.floor = customer.floor
     newCustomer.address = customer.address;
 
     await this.customerRepository.save(newCustomer);
@@ -76,7 +87,9 @@ export class CustomerService {
   }
 
   async deleteCustomer(id: number) {
-    await this.customerRepository.delete({ id });
+    const foundCustomer = await this.customerRepository.findOneBy({ id });
+    foundCustomer.withdrawn = 1;
+    await this.customerRepository.save(foundCustomer);
   }
 
   async getCustomerPrice(id: number) {

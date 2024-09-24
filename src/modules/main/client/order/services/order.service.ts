@@ -59,6 +59,7 @@ export class OrderService {
     }
 
     this.orderGateway.newEventCook();
+    this.orderGateway.newEventRider();
     this.orderGateway.refresh();
   }
 }

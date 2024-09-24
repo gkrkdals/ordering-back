@@ -1,4 +1,4 @@
 export interface OrderHistory {
-  status: number;
+  status: string;
   time: string;
 }

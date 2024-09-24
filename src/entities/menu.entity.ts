@@ -18,4 +18,7 @@ export class Menu {
 
   @Column({ name: 'sold_out' })
   soldOut: number;
+
+  @Column()
+  withdrawn: number;
 }

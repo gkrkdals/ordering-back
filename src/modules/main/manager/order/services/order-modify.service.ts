@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { UpdateOrderDto } from "@src/modules/main/manager/order/dto/update-order.dto";
 import { InjectRepository } from "@nestjs/typeorm";
 import { OrderStatus } from "@src/entities/order-status.entity";
-import { Repository } from "typeorm";
+import { LessThan, Repository } from "typeorm";
 import { StatusEnum } from "@src/types/enum/StatusEnum";
 import { Order } from "@src/entities/order.entity";
 import { CustomerCredit } from "@src/entities/customer-credit.entity";
@@ -11,6 +11,7 @@ import { Pending } from "@src/types/models/Pending";
 import { OrderSql } from "@src/modules/main/manager/order/sql/order.sql";
 import { UpdateOrderMenuDto } from "@src/modules/main/manager/order/dto/update-order-menu.dto";
 import { OrderChange } from "@src/entities/order-change.entity";
+import { User } from "@src/entities/user.entity";
 
 @Injectable()
 export class OrderModifyService {
@@ -50,10 +51,10 @@ export class OrderModifyService {
     if(order.newStatus === StatusEnum.InPreparation && order.menu === 0) {
       const originalOrder = await this.orderRepository.findOneBy({ id: currentOrderStatus.orderCode });
       originalOrder.price = order.paidAmount;
-      originalOrder.request = order.menuName;
       await this.orderRepository.save(originalOrder);
 
       const newCreditInfo = new CustomerCredit();
+      newCreditInfo.orderCode = currentOrderStatus.orderCode;
       newCreditInfo.creditDiff = order.paidAmount * -1;
       newCreditInfo.customer = currentOrderStatus.orderJoin.customer;
 
@@ -61,6 +62,7 @@ export class OrderModifyService {
 
     } else if(order.newStatus === StatusEnum.AwaitingPickup && !order.postpaid) { // 음식 수령 후 금액을 바로 지불하였을 시 저장
       const newCreditInfo = new CustomerCredit();
+      newCreditInfo.orderCode = currentOrderStatus.orderCode;
       newCreditInfo.creditDiff = order.paidAmount;
       newCreditInfo.customer = currentOrderStatus.orderJoin.customer;
 
@@ -79,7 +81,7 @@ export class OrderModifyService {
     await this.cancelRingingIfNoPending();
   }
 
-  async updateOrderMenu(body: UpdateOrderMenuDto) {
+  async updateOrderMenu(body: UpdateOrderMenuDto, user: User) {
     const { orderCode, from, to, price } = body;
 
     const currentOrder = await this.orderRepository.findOneBy({ id: orderCode });
@@ -90,16 +92,18 @@ export class OrderModifyService {
     newOrderChange.orderCode = orderCode;
     newOrderChange.from = from;
     newOrderChange.to = to;
+    newOrderChange.by = user.id;
     await this.orderChangeRepository.save(newOrderChange);
 
-    const adjustPrice = new CustomerCredit();
-    adjustPrice.customer = currentOrder.customer;
-    adjustPrice.creditDiff = currentOrder.price;
-    await this.customerCreditRepository.save(adjustPrice);
+    await this.customerCreditRepository.delete({
+      orderCode: orderCode,
+      creditDiff: LessThan(0)
+    });
 
     const newDebt = new CustomerCredit();
     newDebt.customer = currentOrder.customer;
-    adjustPrice.creditDiff = price * -1;
+    newDebt.orderCode = orderCode;
+    newDebt.creditDiff = price * -1;
     await this.customerCreditRepository.save(newDebt);
   }
 
@@ -135,6 +139,7 @@ export class OrderModifyService {
 
     if (!pendingCook || parseInt(pendingCook.count) === 0) {
       this.orderGateway.removeEventCook();
+      this.orderGateway.removeEventRider();
     }
 
     if (!pendingRider || parseInt(pendingRider.count) === 0) {

@@ -3,4 +3,5 @@ import { OrderStatusRaw } from "@src/types/models/OrderStatusRaw";
 
 export class GetOrderResponseDto extends BasicDto {
   data: OrderStatusRaw[];
+
 }

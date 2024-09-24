@@ -25,8 +25,8 @@ export class MenuService {
         menuCategory: true,
       },
       where: [
-        { menuCategory: { name: like } },
-        { name: like },
+        { menuCategory: { name: like }, withdrawn: Not(1) },
+        { name: like, withdrawn: Not(1) },
       ],
     });
 
@@ -34,11 +34,12 @@ export class MenuService {
       currentPage: page,
       totalPage: countToTotalPage(count),
       data,
+      count,
     }
   }
 
   async getAll(): Promise<Menu[]> {
-    return this.menuRepository.find({ relations: { menuCategory: true }});
+    return this.menuRepository.find({ relations: { menuCategory: true }, where: { withdrawn: Not(1) }});
   }
 
   async getMenuCategoryAll(): Promise<MenuCategory[]> {
@@ -64,6 +65,8 @@ export class MenuService {
   }
 
   async deleteFood(id: number): Promise<void> {
-    await this.menuRepository.delete(id);
+    const foundMenu = await this.menuRepository.findOneBy({ id });
+    foundMenu.withdrawn = 1;
+    await this.menuRepository.save(foundMenu);
   }
 }

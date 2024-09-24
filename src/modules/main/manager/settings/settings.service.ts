@@ -49,7 +49,6 @@ export class SettingsService {
     const calcTitle = this.getTitle(b, s, additional);
 
     if (s === 1) {
-      console.log(getYesterday(nowString), nowString);
       where.time = Between(getYesterday(nowString), nowString);
     } else {
       if (s === 2) {

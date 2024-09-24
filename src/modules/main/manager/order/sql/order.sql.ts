@@ -13,6 +13,7 @@ export class OrderSql {
                  f.id customer,
                  g.id customer_category,
                  f.name customer_name,
+                 f.memo customer_memo,
                  c.request,
                  a.status,
                  e.name status_name,
@@ -47,6 +48,7 @@ export class OrderSql {
          OR t.status_name LIKE ?
          OR t.price LIKE ?)
          AND (t.status >= ? AND t.status <= ?)
+         AND ((t.time >= ? AND t.time <= ?) OR t.status = ? OR t.status = ?)
       ORDER BY t.time DESC
       LIMIT ?, 20`;
 
@@ -62,7 +64,8 @@ export class OrderSql {
                  c.request,
                  e.status,
                  e.name status_name,
-                 c.price
+                 c.price,
+                 c.time
               FROM
                   (SELECT
                       order_code,
@@ -86,7 +89,8 @@ export class OrderSql {
          OR t.request LIKE ?
          OR t.status_name LIKE ?
          OR t.price LIKE ?)
-         AND (t.status >= ? AND t.status <= ?)`;
+         AND (t.status >= ? AND t.status <= ?)
+         AND ((t.time >= ? AND t.time <= ?) OR t.status = ? OR t.status = ?)`;
 
   static getRemainingPendingRequestCount = `
     SELECT
@@ -100,4 +104,30 @@ export class OrderSql {
     WHERE t.status = 1 OR t.status = 3
     GROUP BY t.status;
   `;
+
+  static getOrderHistory = `
+    SELECT * FROM (
+        SELECT
+            (SELECT name FROM order_category WHERE status = a.status) status,
+            time
+        FROM order_status a
+        WHERE order_code = ?
+    
+        UNION ALL
+    
+        SELECT
+            CONCAT(
+                '메뉴변경: ',
+                (SELECT nickname FROM user WHERE id=a.\`by\`),
+                ' (',
+                (SELECT name FROM menu WHERE id=a.\`from\`),
+                ' -> ',
+                (SELECT name FROM menu WHERE id=a.to),
+                ')'
+            ) status,
+            time
+        FROM order_change a
+        WHERE order_code = ?) t
+    ORDER BY t.time
+  `
 }

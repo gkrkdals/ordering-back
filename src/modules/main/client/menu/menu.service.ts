@@ -10,7 +10,7 @@ export class MenuService {
   ) {}
 
   findAll(): Promise<Menu[]> {
-    return this.menuRepository.find({ relations: { menuCategory: true }, where: { id: Not(0) } });
+    return this.menuRepository.find({ relations: { menuCategory: true }, where: { id: Not(0), withdrawn: Not(1) } });
   }
 
   findOne(id: number): Promise<Menu | null> {

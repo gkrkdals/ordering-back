@@ -15,6 +15,8 @@ import { Customer } from "@src/entities/customer.entity";
 import { CustomerPrice } from "@src/entities/customer-price";
 import { OrderGateway } from "@src/websocket/order.gateway";
 import { Pending } from "@src/types/models/Pending";
+import { dateToString } from "@src/utils/date";
+import { OrderHistory } from "@src/types/models/OrderHistory";
 
 @Injectable()
 export class OrderService {
@@ -48,14 +50,34 @@ export class OrderService {
     const likes = new Array(5).fill(like);
 
     const [firstStatus, lastStatus] = this.getFirstAndLastStatus(user);
+    const [firstTime, lastTime] = this.getOrderStatusTimes();
 
     const data: OrderStatusRaw[] = await this
       .orderStatusRepository
-      .query(OrderSql.getOrderStatus, [...likes, firstStatus, lastStatus, countSkip(page)]);
+      .query(
+        OrderSql.getOrderStatus,
+        [
+          ...likes,
+          firstStatus, lastStatus,
+          firstTime, lastTime,
+          StatusEnum.AwaitingPickup, StatusEnum.InPickingUp,
+          countSkip(page)
+        ]
+      );
 
     const { count } = (await this
       .orderStatusRepository
-      .query(OrderSql.getOrderStatusCount, [...likes, firstStatus, lastStatus]))[0];
+      .query(
+        OrderSql.getOrderStatusCount,
+        [
+          ...likes,
+          firstStatus,
+          lastStatus,
+          firstTime,
+          lastTime,
+          StatusEnum.AwaitingPickup, StatusEnum.InPickingUp,
+        ]
+      ))[0];
 
     // 각 주문 상태에 잔금 매핑
     for (const status of data) {
@@ -74,7 +96,8 @@ export class OrderService {
     return {
       data,
       currentPage: page,
-      totalPage: countToTotalPage(count)
+      totalPage: countToTotalPage(count),
+      count,
     }
   }
 
@@ -82,11 +105,13 @@ export class OrderService {
     return this.orderCategoryRepository.find();
   }
 
-  async getOrderHistory(orderCode: number) {
-    return this.orderStatusRepository.find({ where: { orderCode }, order: { time: "asc" } });
+  async getOrderHistory(orderCode: number): Promise<OrderHistory[]> {
+    return this
+      .orderStatusRepository
+      .query(OrderSql.getOrderHistory, [orderCode, orderCode]);
   }
 
-  async createNewOrder(menu: Menu, customer: Customer) {
+  async createNewOrder(menu: Menu, customer: Customer, request: string) {
     const newOrder = new Order();
     const customPrices = await this.customerPriceRepository.findBy({ customer: customer.id });
 
@@ -96,29 +121,50 @@ export class OrderService {
       const customPrice = customPrices.find(price => price.category === menu.category);
 
       if(customPrice) {
-        newOrder.price = customPrice.price + 1000;
+        newOrder.price = customPrice.price;
       } else {
-        newOrder.price = menu.menuCategory.price + 1000;
+        newOrder.price = menu.menuCategory.price;
       }
     }
 
     newOrder.customer = customer.id;
     newOrder.menu = menu.id;
+    newOrder.request = request;
     await this.orderRepository.save(newOrder);
 
     this.orderGateway.refreshClient();
     this.orderGateway.refresh();
     this.orderGateway.newEventCook();
+    this.orderGateway.newEventRider();
   }
 
   private getFirstAndLastStatus(user: UserType) {
     switch (user) {
       case 'manager':
       case 'rider':
-        return [StatusEnum.PendingReceipt, StatusEnum.InPickingUp];
+        return [StatusEnum.PendingReceipt, StatusEnum.PickupComplete];
 
       case "cook":
-        return [StatusEnum.PendingReceipt, StatusEnum.InPreparation];
+        return [StatusEnum.PendingReceipt, StatusEnum.PickupComplete];
     }
+  }
+
+  private getOrderStatusTimes() {
+    const now = new Date();
+    const ret1 = new Date();
+    const ret2 = new Date();
+
+    ret1.setHours(9);
+    ret1.setMinutes(0);
+    ret1.setSeconds(0);
+    ret1.setMilliseconds(0);
+
+    if (now.getHours() < 9) {
+      ret1.setDate(ret1.getDate() - 1);
+    } else {
+      ret2.setDate(ret2.getDate() + 1);
+    }
+
+    return [dateToString(ret1), dateToString(ret2)];
   }
 }

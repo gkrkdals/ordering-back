@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Customer } from "@src/entities/customer.entity";
-import { Repository } from "typeorm";
+import { Not, Repository } from "typeorm";
 import { User } from "@src/entities/user.entity";
 
 @Injectable()
@@ -14,7 +14,7 @@ export class UserService {
   ) {}
 
   async findCustomer(id: number): Promise<Customer> {
-    return this.customerRepository.findOneBy({ id });
+    return this.customerRepository.findOneBy({ id, withdrawn: Not(1) });
   }
 
   async findUser(username: string, password: string): Promise<User> {

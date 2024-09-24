@@ -1,18 +1,22 @@
 import { Body, Controller, Delete, Get, Post, Put, Query } from "@nestjs/common";
-import { CustomerService } from "@src/modules/main/manager/customer/customer.service";
+import { CustomerService } from "@src/modules/main/manager/customer/services/customer.service";
 import { Customer } from "@src/entities/customer.entity";
 import { GetCustomerResponseDto } from "@src/modules/main/manager/customer/dto/response/get-customer-response.dto";
 import { UpdateCustomerPriceDto } from "@src/modules/main/manager/customer/dto/update-customer-price.dto";
+import { CreditService } from "@src/modules/main/manager/customer/services/credit.service";
 
 @Controller('manager/customer')
 export class CustomerController {
-  constructor(private readonly customerService: CustomerService) {}
+  constructor(
+    private readonly customerService: CustomerService,
+    private readonly creditService: CreditService,
+  ) {}
 
   @Get()
   async getCustomer(
     @Query('page') page: number | undefined,
     @Query('query') query: string | undefined,
-  ): Promise<Customer[] | GetCustomerResponseDto> {
+  ): Promise<GetCustomerResponseDto> {
     return this.customerService.getCustomer(page, query);
   }
 
@@ -49,5 +53,14 @@ export class CustomerController {
   @Put('price')
   async updateCustomerPrice(@Body() body: UpdateCustomerPriceDto) {
     return this.customerService.updateCustomerPrice(body);
+  }
+
+  @Post('credit')
+  async addCustomerCredit(
+    @Body('mode') mode: number,
+    @Body('customer') customer: number,
+    @Body('price') price: number,
+  ) {
+    return this.creditService.addCredit(mode, customer, price);
   }
 }

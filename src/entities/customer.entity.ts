@@ -29,4 +29,7 @@ Customer {
 
   @OneToMany(() => CustomerPrice, (category) => category.customerJoin)
   customerPriceJoin: CustomerPrice[];
+
+  @Column()
+  withdrawn: number;
 }

@@ -10,4 +10,7 @@ export class OrderCategory {
 
   @Column()
   name: string;
+
+  @Column({ nullable: true })
+  hex: string | null;
 }
