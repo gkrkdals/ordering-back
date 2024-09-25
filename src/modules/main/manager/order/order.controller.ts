@@ -53,13 +53,13 @@ export class OrderController {
   }
 
   @Put()
-  async updateOrder(@Body() body: UpdateOrderDto) {
-    return this.orderModifyService.updateOrder(body);
+  async updateOrder(@UserData() user: User, @Body() body: UpdateOrderDto) {
+    return this.orderModifyService.updateOrder(user, body);
   }
 
   @Delete(':id')
-  async cancelOrder(@Param('id') id: number) {
-    return this.orderModifyService.cancelOrder(id);
+  async cancelOrder(@UserData() user: User, @Param('id') id: number) {
+    return this.orderModifyService.cancelOrder(user, id);
   }
 
   @Put('menu')

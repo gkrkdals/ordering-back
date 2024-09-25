@@ -14,7 +14,7 @@ export function dateToString(origin: Date) {
 export function getYesterday(origin: string) {
   const now = new Date(origin);
   now.setDate(now.getDate() - 1);
-  now.setHours(12, 0, 0, 0);
+  now.setHours(9, 0, 0, 0);
   return dateToString(now);
 }
 

@@ -34,9 +34,10 @@ export class OrderModifyService {
    *
    * 주문이 업데이트 될 시,
    * 조리원이나 배달원의 알람이 울리거나 취소되도록 합니다.
+   * @param user 상태 변경자 정보
    * @param order 주문정보
    */
-  async updateOrder(order: UpdateOrderDto) {
+  async updateOrder(user: User, order: UpdateOrderDto) {
     // 상태변경을 일으킨 주문상태의 엔티티를 받아옴
     const currentOrderStatus = await this.orderStatusRepository.findOne({
       where: { id: order.orderId },
@@ -47,6 +48,7 @@ export class OrderModifyService {
     const newOrderStatus = new OrderStatus();
     newOrderStatus.status = order.newStatus;
     newOrderStatus.orderCode = currentOrderStatus.orderCode;
+    newOrderStatus.by = user.id;
 
     // 관리자 메뉴에서 추가메뉴 항목의 상태를 조리중으로 변경 시 받아온 메뉴명/금액 적용
     if(order.newStatus === StatusEnum.InPreparation && order.menu === 0) {
@@ -55,14 +57,19 @@ export class OrderModifyService {
       await this.orderRepository.save(originalOrder);
 
       const newCreditInfo = new CustomerCredit();
+      newCreditInfo.by = user.id;
       newCreditInfo.orderCode = currentOrderStatus.orderCode;
       newCreditInfo.creditDiff = order.paidAmount * -1;
       newCreditInfo.customer = currentOrderStatus.orderJoin.customer;
 
       await this.customerCreditRepository.save(newCreditInfo);
 
-    } else if(order.newStatus === StatusEnum.AwaitingPickup && !order.postpaid) { // 음식 수령 후 금액을 바로 지불하였을 시 저장
+    } else if(
+      (order.newStatus === StatusEnum.AwaitingPickup || order.newStatus === StatusEnum.PickupComplete) &&
+      !order.postpaid
+    ) { // 음식 수령 후 금액을 바로 지불하였을 시 저장
       const newCreditInfo = new CustomerCredit();
+      newCreditInfo.by = user.id;
       newCreditInfo.orderCode = currentOrderStatus.orderCode;
       newCreditInfo.creditDiff = order.paidAmount;
       newCreditInfo.customer = currentOrderStatus.orderJoin.customer;
@@ -111,18 +118,23 @@ export class OrderModifyService {
   /**
    * 주문을 취소합니다.
    *
+   * @param user 상태 변경자 id
    * @param id 클라이언트에서 받아온 주문정보의 id
    */
-  async cancelOrder(id: number) {
+  async cancelOrder(user: User, id: number) {
     const canceledOrder = await this.orderStatusRepository.findOne({
       where: { id },
     });
     const newOrderStatus = new OrderStatus();
-
+    newOrderStatus.by = user.id;
     newOrderStatus.orderCode = canceledOrder.orderCode;
     newOrderStatus.status = StatusEnum.Canceled;
-
     await this.orderStatusRepository.save(newOrderStatus);
+
+    await this.customerCreditRepository.delete({
+      orderCode: canceledOrder.orderCode
+    });
+
     this.orderGateway.refreshClient();
     this.orderGateway.refresh();
   }

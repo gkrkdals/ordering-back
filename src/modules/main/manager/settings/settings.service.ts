@@ -1,17 +1,21 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Between, FindOptionsWhere, Repository } from "typeorm";
+import { Repository } from "typeorm";
 import { GetCalculationDto } from "@src/modules/main/manager/settings/dto/get-calculation.dto";
 import { Order } from "@src/entities/order.entity";
 import { dateToString, getYesterday } from "@src/utils/date";
-import { Customer } from "@src/entities/customer.entity";
-import { Menu } from "@src/entities/menu.entity";
+import { SettingsSql } from "@src/modules/main/manager/settings/sql/settings.sql";
+import { ExcelData } from "@src/types/models/ExcelData";
 
 interface CalcXLSXColumns {
   고객명: string;
   메뉴: string;
   가격: number;
   시간: string;
+  입금배달원: string;
+  입금시간: string;
+  입금액: number;
+  잔금: number;
 }
 
 @Injectable()
@@ -19,62 +23,55 @@ export class SettingsService {
   constructor(
     @InjectRepository(Order)
     private readonly orderRepository: Repository<Order>,
-    @InjectRepository(Customer)
-    private readonly customerRepository: Repository<Customer>,
-    @InjectRepository(Menu)
-    private readonly menuRepository: Repository<Menu>,
   ) {}
 
   async getCalculation(params: GetCalculationDto) {
-    const { menu, customer } = params;
-    const { big, sml } = params;
+    const { menu, customer, big, sml } = params;
     const now = new Date();
     const nowString = dateToString(now);
-    const where: FindOptionsWhere<Order> = {}
-    let additional: string | undefined;
 
     const b = parseInt(big);
     const s = parseInt(sml);
 
+    let menuParam = null, customerParam = null;
+    let startTime: string;
+    const endTime: string = nowString;
 
     if (b === 2) {
-      where.menu = menu;
-      additional = (await this.menuRepository.findOneBy({ id: menu })).name;
+      menuParam = menu;
     } else if (b === 3) {
-      where.customer = customer;
-      additional = (await this.customerRepository.findOneBy({ id: customer })).name;
+      customerParam = customer;
     }
 
-    const calcTitle = this.getTitle(b, s, additional);
-
     if (s === 1) {
-      where.time = Between(getYesterday(nowString), nowString);
+      startTime = getYesterday(nowString);
     } else {
       if (s === 2) {
         now.setDate(now.getDate() - 7);
       } else {
         now.setMonth(now.getMonth() - 1);
       }
-      now.setHours(12, 0, 0, 0);
-      where.time = Between(dateToString(now), nowString);
+      now.setHours(9, 0, 0, 0);
+      startTime = dateToString(now);
     }
 
-    const orders = await this.orderRepository.find({
-      where,
-      relations: {
-        menuJoin: true,
-        customerJoin: true,
-      }
-    });
+    const excelData: ExcelData[] = await this.orderRepository.query(
+      SettingsSql.getExcelData,
+      [startTime, endTime, customerParam, customerParam, menuParam, menuParam]
+    );
 
-    const xlsxJson: CalcXLSXColumns[] = orders.map(order => ({
-      고객명: order.customerJoin.name,
-      메뉴: order.menuJoin.name,
-      가격: order.price,
-      시간: order.time,
+    const xlsxJson: CalcXLSXColumns[] = excelData.map(row => ({
+      고객명: row.customer_name,
+      메뉴: row.menu_name,
+      가격: row.price,
+      시간: row.time,
+      입금배달원: row.credit_by,
+      입금시간: row.credit_time,
+      입금액: row.credit_in,
+      잔금: row.credit_total
     }));
 
-    return { data: xlsxJson, title: calcTitle };
+    return xlsxJson;
   }
 
   private getTitle(big: number, sml: number, additional?: string) {

@@ -13,11 +13,11 @@ export class SettingsController {
   @Header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
   @Header('Content-Disposition', 'attachment; filename=calculation.xlsx')
   async getCalculation(@Query() dto: GetCalculationDto, @Res() res: Response) {
-    const { data, title } = await this.settingService.getCalculation(dto);
+    const data = await this.settingService.getCalculation(dto);
     const wb = XLSX.utils.book_new();
     const newWorksheet = XLSX.utils.json_to_sheet(data);
 
-    XLSX.utils.book_append_sheet(wb, newWorksheet, title);
+    XLSX.utils.book_append_sheet(wb, newWorksheet, 'calculation');
 
     const filename = 'calculation.xlsx';
     XLSX.writeFile(wb, filename, { bookType: 'xlsx', type: 'binary' });
