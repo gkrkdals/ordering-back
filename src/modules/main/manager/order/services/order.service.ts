@@ -15,11 +15,12 @@ import { Customer } from "@src/entities/customer.entity";
 import { CustomerPrice } from "@src/entities/customer-price";
 import { OrderGateway } from "@src/websocket/order.gateway";
 import { Pending } from "@src/types/models/Pending";
-import { dateToString } from "@src/utils/date";
+import { getOrderStatusTimes } from "@src/utils/date";
 import { OrderHistory } from "@src/types/models/OrderHistory";
 
 @Injectable()
 export class OrderService {
+
   constructor(
     @InjectRepository(OrderStatus)
     private readonly orderStatusRepository: Repository<OrderStatus>,
@@ -37,10 +38,15 @@ export class OrderService {
   ) {}
 
   async pendingStatusForManager(user: UserType) {
-    const pending: Pending[] = await this.orderStatusRepository.query(OrderSql.getRemainingPendingRequestCount);
+    const [firstDate, lastDate] = getOrderStatusTimes();
+
+    const pending: Pending[] = await this.orderStatusRepository.query(
+      OrderSql.getRemainingPendingRequestCount,
+      [firstDate, lastDate, StatusEnum.PendingReceipt, StatusEnum.WaitingForDelivery]
+    );
 
     const cookPending = pending.some(p => p.status === StatusEnum.PendingReceipt);
-    const riderPending = pending.some(p => p.status === StatusEnum.WaitingForDelivery || p.status === StatusEnum.AwaitingPickup);
+    const riderPending = pending.some(p => p.status === StatusEnum.PendingReceipt || p.status === StatusEnum.WaitingForDelivery);
 
     return (user === 'cook' && cookPending) || (user === 'rider' && riderPending);
   }
@@ -50,7 +56,7 @@ export class OrderService {
     const likes = new Array(5).fill(like);
 
     const [firstStatus, lastStatus] = this.getFirstAndLastStatus(user);
-    const [firstTime, lastTime] = this.getOrderStatusTimes();
+    const [firstTime, lastTime] = getOrderStatusTimes();
 
     const data: OrderStatusRaw[] = await this
       .orderStatusRepository
@@ -147,24 +153,5 @@ export class OrderService {
       case "cook":
         return [StatusEnum.PendingReceipt, StatusEnum.PickupComplete];
     }
-  }
-
-  private getOrderStatusTimes() {
-    const now = new Date();
-    const ret1 = new Date();
-    const ret2 = new Date();
-
-    ret1.setHours(9);
-    ret1.setMinutes(0);
-    ret1.setSeconds(0);
-    ret1.setMilliseconds(0);
-
-    if (now.getHours() < 9) {
-      ret1.setDate(ret1.getDate() - 1);
-    } else {
-      ret2.setDate(ret2.getDate() + 1);
-    }
-
-    return [dateToString(ret1), dateToString(ret2)];
   }
 }

@@ -1,3 +1,5 @@
+import { DEADLINE } from "@src/config/constants";
+
 export function dateToString(origin: Date) {
   const year = origin.getFullYear();
   const month = origin.getMonth() + 1;
@@ -14,4 +16,23 @@ export function getYesterday(origin: string) {
   now.setDate(now.getDate() - 1);
   now.setHours(12, 0, 0, 0);
   return dateToString(now);
+}
+
+export function getOrderStatusTimes() {
+  const now = new Date();
+  const ret1 = new Date();
+  const ret2 = new Date();
+
+  ret1.setHours(DEADLINE);
+  ret1.setMinutes(0);
+  ret1.setSeconds(0);
+  ret1.setMilliseconds(0);
+
+  if (now.getHours() < DEADLINE) {
+    ret1.setDate(ret1.getDate() - 1);
+  } else {
+    ret2.setDate(ret2.getDate() + 1);
+  }
+
+  return [dateToString(ret1), dateToString(ret2)];
 }

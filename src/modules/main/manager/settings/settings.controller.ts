@@ -16,6 +16,7 @@ export class SettingsController {
     const { data, title } = await this.settingService.getCalculation(dto);
     const wb = XLSX.utils.book_new();
     const newWorksheet = XLSX.utils.json_to_sheet(data);
+
     XLSX.utils.book_append_sheet(wb, newWorksheet, title);
 
     const filename = 'calculation.xlsx';

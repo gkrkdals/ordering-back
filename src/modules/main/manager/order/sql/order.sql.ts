@@ -99,9 +99,10 @@ export class OrderSql {
     FROM (
             SELECT MAX(status) status
               FROM order_status
+             WHERE time BETWEEN ? AND ?
              GROUP BY order_code
          ) t
-    WHERE t.status = 1 OR t.status = 3
+    WHERE t.status = ? OR t.status = ?
     GROUP BY t.status;
   `;
 

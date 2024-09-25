@@ -12,6 +12,7 @@ import { OrderSql } from "@src/modules/main/manager/order/sql/order.sql";
 import { UpdateOrderMenuDto } from "@src/modules/main/manager/order/dto/update-order-menu.dto";
 import { OrderChange } from "@src/entities/order-change.entity";
 import { User } from "@src/entities/user.entity";
+import { getOrderStatusTimes } from "@src/utils/date";
 
 @Injectable()
 export class OrderModifyService {
@@ -132,10 +133,14 @@ export class OrderModifyService {
    * @private
    */
   private async cancelRingingIfNoPending() {
-    const pendingArray: Pending[] = await this.orderStatusRepository.query(OrderSql.getRemainingPendingRequestCount);
+    const [firstDate, lastDate] = getOrderStatusTimes();
+    const pendingArray: Pending[] = await this.orderStatusRepository.query(
+      OrderSql.getRemainingPendingRequestCount,
+      [firstDate, lastDate, StatusEnum.PendingReceipt, StatusEnum.WaitingForDelivery]
+    );
     const pendingCook = pendingArray.find(pending => pending.status === StatusEnum.PendingReceipt);
     const pendingRider = pendingArray
-      .find(pending => pending.status === StatusEnum.WaitingForDelivery || pending.status === StatusEnum.AwaitingPickup);
+      .find(pending => pending.status === StatusEnum.PendingReceipt || pending.status === StatusEnum.WaitingForDelivery);
 
     if (!pendingCook || parseInt(pendingCook.count) === 0) {
       this.orderGateway.removeEventCook();

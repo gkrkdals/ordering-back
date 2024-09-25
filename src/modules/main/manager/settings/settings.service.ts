@@ -4,7 +4,6 @@ import { Between, FindOptionsWhere, Repository } from "typeorm";
 import { GetCalculationDto } from "@src/modules/main/manager/settings/dto/get-calculation.dto";
 import { Order } from "@src/entities/order.entity";
 import { dateToString, getYesterday } from "@src/utils/date";
-import XLSX from "xlsx";
 import { Customer } from "@src/entities/customer.entity";
 import { Menu } from "@src/entities/menu.entity";
 
