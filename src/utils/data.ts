@@ -4,7 +4,10 @@ export function classToObject(origin: any) {
 }
 
 export function countToTotalPage(count: number) {
-  return Math.floor(count / 20) + 1;
+  if (count === 0) {
+    count += 1;
+  }
+  return Math.floor((count - 1)/ 20) + 1;
 }
 
 export function countSkip(page: number) {
