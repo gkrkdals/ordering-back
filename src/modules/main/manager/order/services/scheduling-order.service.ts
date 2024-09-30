@@ -20,7 +20,7 @@ export class SchedulingOrderService {
     private readonly orderGateway: OrderGateway
   ) {}
 
-  @Cron(CronExpression.EVERY_5_SECONDS)
+  @Cron(CronExpression.EVERY_5_MINUTES)
   async handleCron() {
     const [first, last] = getOrderAvailableTimes();
     const nowString = dateToString(new Date());

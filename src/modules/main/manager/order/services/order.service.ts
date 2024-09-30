@@ -42,7 +42,7 @@ export class OrderService {
     const [firstDate, lastDate] = getOrderAvailableTimes();
 
     const pending: Pending[] = await this.orderStatusRepository.query(
-      OrderSql.getRemainingPendingRequestCount,
+      OrderSql.getRemainingPendingReceipt,
       [
         firstDate, lastDate,
         StatusEnum.PendingReceipt, StatusEnum.WaitingForDelivery, StatusEnum.InPickingUp,
@@ -70,12 +70,11 @@ export class OrderService {
     const orderingMode: number | null = isRemaining ? null : 1;
     const remainingMode: number | null = isRemaining ? 1: null;
 
-    const [firstStatus, lastStatus] = this.getFirstAndLastStatus(user);
     const [firstTime, lastTime] = getOrderAvailableTimes();
 
     let orderBy: string;
     if (order === '') {
-      orderBy = 'ORDER BY t.time DESC'
+      orderBy = 'ORDER BY t.time'
     } else {
       orderBy = `ORDER BY ${column} ${order}`;
     }
@@ -86,7 +85,7 @@ export class OrderService {
         OrderSql.getOrderStatus.replace('^', orderBy),
         [
           ...likes,
-          firstStatus, lastStatus,
+          StatusEnum.PendingReceipt, StatusEnum.PickupComplete,
           orderingMode, firstTime, lastTime,
           remainingMode, StatusEnum.AwaitingPickup, StatusEnum.InPickingUp,
           countSkip(page)
@@ -99,8 +98,7 @@ export class OrderService {
         OrderSql.getOrderStatusCount,
         [
           ...likes,
-          firstStatus,
-          lastStatus,
+          StatusEnum.PendingReceipt, StatusEnum.PickupComplete,
           orderingMode, firstTime, lastTime,
           remainingMode, StatusEnum.AwaitingPickup, StatusEnum.InPickingUp,
         ]
@@ -122,11 +120,15 @@ export class OrderService {
       );
     }
 
+    const { limit, name } = this.getModificationLimitAndItsName(user);
+
     return {
       data,
       currentPage: page,
       totalPage: countToTotalPage(count),
       count,
+      limit,
+      name
     }
   }
 
@@ -166,14 +168,17 @@ export class OrderService {
     this.orderGateway.newOrderAlarm();
   }
 
-  private getFirstAndLastStatus(user: User) {
-    switch (user.permission) {
-      case PermissionEnum.Manager:
-      case PermissionEnum.Rider:
-        return [StatusEnum.PendingReceipt, StatusEnum.PickupComplete];
-
+  private getModificationLimitAndItsName(user: User) {
+    switch(user.permission) {
       case PermissionEnum.Cook:
-        return [StatusEnum.PendingReceipt, StatusEnum.InPreparation];
+        return { limit: StatusEnum.WaitingForDelivery, name: '조리완료' };
+
+      case PermissionEnum.Rider:
+      case PermissionEnum.Manager:
+        return { limit: StatusEnum.PickupComplete, name: '요청완료' };
+
+      default:
+        return { limit: 1, name: '' };
     }
   }
 }

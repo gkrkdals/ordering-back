@@ -77,8 +77,8 @@ export class OrderModifyService {
     }
     await this.orderStatusRepository.save(newOrderStatus);
 
-    // 상태 점검 후 벨 울리기 취소
-    await this.decideAlarm();
+    await this.clearAlarm();
+    this.raiseAlarm(newOrderStatus.status);
 
     this.orderGateway.refreshClient();
     this.orderGateway.refresh();
@@ -136,10 +136,11 @@ export class OrderModifyService {
       orderCode: canceledOrder.orderCode
     });
 
+    await this.clearAlarm();
+    this.raiseAlarm(newOrderStatus.status);
+
     this.orderGateway.refreshClient();
     this.orderGateway.refresh();
-
-    await this.decideAlarm();
   }
 
   /**
@@ -147,26 +148,25 @@ export class OrderModifyService {
    *
    * @private
    */
-  private async decideAlarm() {
+  private async clearAlarm() {
     const [firstDate, lastDate] = getOrderAvailableTimes();
     const pendingArray: Pending[] = await this.orderStatusRepository.query(
-      OrderSql.getRemainingPendingRequestCount,
-      [firstDate, lastDate, StatusEnum.PendingReceipt, StatusEnum.WaitingForDelivery, StatusEnum.InPickingUp]
+      OrderSql.getRemainingPendingReceipt,
+      [firstDate, lastDate, StatusEnum.PendingReceipt]
     );
 
-    const first: Pending | undefined = pendingArray.at(0);
-
-    if (pendingArray.filter(p => p.status === StatusEnum.PendingReceipt).length === 0) {
+    if (pendingArray.length === 0) {
       this.orderGateway.clearCookAlarm();
+      this.orderGateway.clearRiderAlarm();
+    }
+  }
+
+  private raiseAlarm(newStatus: StatusEnum) {
+    if(newStatus === StatusEnum.WaitingForDelivery) {
+      this.orderGateway.newDeliveryAlarm();
     }
 
-    if (!first) {
-      this.orderGateway.clearRiderAlarm();
-    } else if (first.status === StatusEnum.PendingReceipt) {
-      this.orderGateway.newOrderAlarm();
-    } else if (first.status === StatusEnum.WaitingForDelivery) {
-      this.orderGateway.newDeliveryAlarm();
-    } else if (first.status === StatusEnum.InPickingUp) {
+    if(newStatus === StatusEnum.InPickingUp) {
       this.orderGateway.newDishDisposal();
     }
   }

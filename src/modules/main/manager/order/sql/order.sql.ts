@@ -94,7 +94,7 @@ export class OrderSql {
          AND (ISNULL(?) OR (t.time >= ? AND t.time <= ?))
          AND (ISNULL(?) OR (t.status = ? OR t.status = ?))`;
 
-  static getRemainingPendingRequestCount = `
+  static getRemainingPendingReceipt = `
     SELECT
         t.*, a.time
     FROM (
@@ -104,7 +104,7 @@ export class OrderSql {
          GROUP BY order_code
          ) t
     LEFT JOIN order_status a ON a.order_code = t.order_code AND a.status = t.status
-    WHERE t.status = ? OR t.status = ? OR t.status = ?
+    WHERE t.status = ?
     ORDER BY time DESC
   `;
 
