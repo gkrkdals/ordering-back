@@ -48,8 +48,9 @@ export class OrderSql {
          OR t.status_name LIKE ?
          OR t.price LIKE ?)
          AND (t.status >= ? AND t.status <= ?)
-         AND ((t.time >= ? AND t.time <= ?) OR t.status = ? OR t.status = ?)
-      ORDER BY t.time DESC
+         AND (ISNULL(?) OR (t.time >= ? AND t.time <= ?))
+         AND (ISNULL(?) OR (t.status = ? OR t.status = ?))
+      ^
       LIMIT ?, 20`;
 
   static getOrderStatusCount = `
@@ -90,20 +91,21 @@ export class OrderSql {
          OR t.status_name LIKE ?
          OR t.price LIKE ?)
          AND (t.status >= ? AND t.status <= ?)
-         AND ((t.time >= ? AND t.time <= ?) OR t.status = ? OR t.status = ?)`;
+         AND (ISNULL(?) OR (t.time >= ? AND t.time <= ?))
+         AND (ISNULL(?) OR (t.status = ? OR t.status = ?))`;
 
   static getRemainingPendingRequestCount = `
     SELECT
-        t.status,
-        COUNT(t.status) count
+        t.*, a.time
     FROM (
-            SELECT MAX(status) status
-              FROM order_status
-             WHERE time BETWEEN ? AND ?
-             GROUP BY order_code
+        SELECT MAX(status) status, order_code
+          FROM order_status
+         WHERE time BETWEEN ? AND ?
+         GROUP BY order_code
          ) t
-    WHERE t.status = ? OR t.status = ?
-    GROUP BY t.status;
+    LEFT JOIN order_status a ON a.order_code = t.order_code AND a.status = t.status
+    WHERE t.status = ? OR t.status = ? OR t.status = ?
+    ORDER BY time DESC
   `;
 
   static getOrderHistory = `
@@ -130,5 +132,23 @@ export class OrderSql {
         FROM order_change a
         WHERE order_code = ?) t
     ORDER BY t.time
+  `
+
+  static getOrdersExceeded = `
+    SELECT
+        t.*,
+        a.time
+    FROM (
+        SELECT
+            order_code,
+            MAX(status) AS status
+        FROM order_status
+        WHERE (time >= ? AND time <= ?)
+        GROUP BY order_code) t,
+        order_status a
+    WHERE
+        a.order_code = t.order_code
+    AND a.status = t.status
+    AND (((a.time + INTERVAL ? MINUTE) <= ? AND a.status = ?) OR ((a.time + INTERVAL ? MINUTE) <= ? AND a.status = ?))
   `
 }

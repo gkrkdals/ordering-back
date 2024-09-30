@@ -1,4 +1,4 @@
-import { Controller, Get, Header, Query, Res } from "@nestjs/common";
+import { Body, Controller, Get, Header, Put, Query, Res } from "@nestjs/common";
 import { SettingsService } from "@src/modules/main/manager/settings/settings.service";
 import { GetCalculationDto } from "@src/modules/main/manager/settings/dto/get-calculation.dto";
 import * as XLSX from "xlsx";
@@ -8,6 +8,16 @@ import * as fs from "node:fs";
 @Controller('manager/settings')
 export class SettingsController {
   constructor(private readonly settingService: SettingsService) {}
+
+  @Get()
+  async getSettings() {
+    return this.settingService.getSettings();
+  }
+
+  @Put()
+  async updateSettings(@Body('1') cookExceed: number, @Body('2') deliverDelay: number) {
+    return this.settingService.updateSettings(cookExceed, deliverDelay)
+  }
 
   @Get('calculation')
   @Header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')

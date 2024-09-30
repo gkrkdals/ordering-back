@@ -1,15 +1,15 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Customer } from "@src/entities/customer.entity";
-import { Like, Not, Repository } from "typeorm";
+import { Not, Repository } from "typeorm";
 import { GetCustomerResponseDto } from "@src/modules/main/manager/customer/dto/response/get-customer-response.dto";
 import { countSkip, countToTotalPage } from "@src/utils/data";
 import { CustomerCategory } from "@src/entities/customer-category.entity";
 import { CustomerPrice } from "@src/entities/customer-price";
 import { UpdateCustomerPriceDto } from "@src/modules/main/manager/customer/dto/update-customer-price.dto";
 import { MenuCategory } from "@src/entities/menu-category.entity";
-import { CustomerWithCredit } from "@src/types/models/CustomerWithCredit";
 import { CustomerSql } from "@src/modules/main/manager/customer/sql/CustomerSql";
+import { CustomerRaw } from "@src/types/models/CustomerRaw";
 
 @Injectable()
 export class CustomerService {
@@ -24,45 +24,50 @@ export class CustomerService {
     private readonly menuCategoryRepository: Repository<MenuCategory>,
   ) {}
 
-  async getCustomer(page: number, query: string): Promise<GetCustomerResponseDto> {
-    const like = Like(`%${query}%`)
+  async getCustomer(
+    column: keyof Customer,
+    order: '' | 'asc' | 'desc',
+    page: number,
+    query: string
+  ): Promise<GetCustomerResponseDto> {
+    const like = `%${query}%`
 
-    const [data, count] = await this.customerRepository.findAndCount({
-      take: 20,
-      skip: countSkip(page),
-      where: [
-        { name: like, withdrawn: Not(1) },
-        { address: like, withdrawn: Not(1) },
-        { memo: like, withdrawn: Not(1) },
-      ],
-      relations: {
-        categoryJoin: true,
-        customerPriceJoin: true,
-      }
-    });
-
-    const dataWithCredit: CustomerWithCredit[] = [];
-
-    for (const customer of data) {
-      const credit: number = parseInt((await this.customerRepository.query(CustomerSql.getCustomerCredit, [customer.id])).at(0).credit);
-
-      dataWithCredit.push({
-        ...customer,
-        credit
-      });
+    let orderBy = ``;
+    if (order !== '') {
+      orderBy = `ORDER BY ${column} ${order}`;
     }
+
+    const { count } = (await this.customerRepository.query(
+      CustomerSql.getCustomerCount,
+      new Array(3).fill(like)
+    ))[0];
+
+    const customers: CustomerRaw[] = await this.customerRepository.query(
+      CustomerSql.getCustomer.replace('^', orderBy),
+      [like, like, like, countSkip(page)]
+    );
 
     return {
       currentPage: page,
       totalPage: countToTotalPage(count),
       count,
-      data: dataWithCredit,
+      data: customers,
     }
   }
 
   async getAll() { return this.customerRepository.findBy({ withdrawn: Not(1) }); }
 
   async getCategories() { return this.customerCategoryRepository.find(); }
+
+  async getCustomerPrice(id: number) {
+    return (await this.customerPriceRepository.find({
+      where: { customer: id },
+      order: { category: 'ASC' }
+    })).map(customerPrice => ({
+      ...customerPrice,
+      price: customerPrice.price / 1000,
+    }));
+  }
 
   async createCustomer(customer: Customer) {
     const newCustomer = new Customer();
@@ -82,6 +87,7 @@ export class CustomerService {
       updatedCustomer.address = customer.address;
       updatedCustomer.memo = customer.memo;
       updatedCustomer.category = customer.category;
+      updatedCustomer.floor = customer.floor;
       await this.customerRepository.save(updatedCustomer);
     }
   }
@@ -90,13 +96,6 @@ export class CustomerService {
     const foundCustomer = await this.customerRepository.findOneBy({ id });
     foundCustomer.withdrawn = 1;
     await this.customerRepository.save(foundCustomer);
-  }
-
-  async getCustomerPrice(id: number) {
-    return this.customerPriceRepository.find({
-      where: { customer: id },
-      order: { category: 'ASC' }
-    });
   }
 
   async updateCustomerPrice(body: UpdateCustomerPriceDto) {
@@ -110,18 +109,22 @@ export class CustomerService {
 
       if(!isNaN(price)) {
         if (currentPrice) {
-          currentPrice.price = price;
+          currentPrice.price = price * 1000;
           await this.customerPriceRepository.save(currentPrice);
         } else {
           const newCustomerPrice = new CustomerPrice();
           newCustomerPrice.customer = body.customer;
           newCustomerPrice.category = category.id;
-          newCustomerPrice.price = price;
+          newCustomerPrice.price = price * 1000;
 
           await this.customerPriceRepository.save(newCustomerPrice);
         }
+      } else {
+        await this.customerPriceRepository.delete({
+          customer: body.customer,
+          category: category.id,
+        });
       }
     }
   }
-
 }

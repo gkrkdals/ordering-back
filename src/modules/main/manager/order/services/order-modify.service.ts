@@ -6,13 +6,13 @@ import { LessThan, Repository } from "typeorm";
 import { StatusEnum } from "@src/types/enum/StatusEnum";
 import { Order } from "@src/entities/order.entity";
 import { CustomerCredit } from "@src/entities/customer-credit.entity";
-import { OrderGateway } from "@src/websocket/order.gateway";
+import { OrderGateway } from "@src/socket/order.gateway";
 import { Pending } from "@src/types/models/Pending";
 import { OrderSql } from "@src/modules/main/manager/order/sql/order.sql";
 import { UpdateOrderMenuDto } from "@src/modules/main/manager/order/dto/update-order-menu.dto";
 import { OrderChange } from "@src/entities/order-change.entity";
 import { User } from "@src/entities/user.entity";
-import { getOrderStatusTimes } from "@src/utils/date";
+import { getOrderAvailableTimes } from "@src/utils/date";
 
 @Injectable()
 export class OrderModifyService {
@@ -43,52 +43,53 @@ export class OrderModifyService {
       where: { id: order.orderId },
       relations: { orderJoin: true, }
     });
+    const { orderCode, orderJoin: { customer } } = currentOrderStatus;
 
     // 새 주문상태 엔티티 생성, 새로운 주문상태와 해당 주문 코드 매핑
     const newOrderStatus = new OrderStatus();
     newOrderStatus.status = order.newStatus;
-    newOrderStatus.orderCode = currentOrderStatus.orderCode;
+    newOrderStatus.orderCode = orderCode;
     newOrderStatus.by = user.id;
 
+    // 새 잔금 엔티티 생성, 매핑
+    const newCreditInfo = new CustomerCredit();
+    newCreditInfo.by = user.id;
+    newCreditInfo.orderCode = orderCode;
+    newCreditInfo.creditDiff = order.paidAmount;
+    newCreditInfo.customer = customer;
+
     // 관리자 메뉴에서 추가메뉴 항목의 상태를 조리중으로 변경 시 받아온 메뉴명/금액 적용
+    // 만일 새 상태가 조리중이고 메뉴가 추가메뉴이면 body의 paidAmount 값으로 가격 설정
     if(order.newStatus === StatusEnum.InPreparation && order.menu === 0) {
-      const originalOrder = await this.orderRepository.findOneBy({ id: currentOrderStatus.orderCode });
+      // 기존 주문의 새 가격 설정
+      const originalOrder = await this.orderRepository.findOneBy({ id: orderCode });
       originalOrder.price = order.paidAmount;
       await this.orderRepository.save(originalOrder);
 
-      const newCreditInfo = new CustomerCredit();
-      newCreditInfo.by = user.id;
-      newCreditInfo.orderCode = currentOrderStatus.orderCode;
-      newCreditInfo.creditDiff = order.paidAmount * -1;
-      newCreditInfo.customer = currentOrderStatus.orderJoin.customer;
-
+      newCreditInfo.creditDiff = newCreditInfo.creditDiff * -1;
       await this.customerCreditRepository.save(newCreditInfo);
-
     } else if(
       (order.newStatus === StatusEnum.AwaitingPickup || order.newStatus === StatusEnum.PickupComplete) &&
       !order.postpaid
-    ) { // 음식 수령 후 금액을 바로 지불하였을 시 저장
-      const newCreditInfo = new CustomerCredit();
-      newCreditInfo.by = user.id;
-      newCreditInfo.orderCode = currentOrderStatus.orderCode;
-      newCreditInfo.creditDiff = order.paidAmount;
-      newCreditInfo.customer = currentOrderStatus.orderJoin.customer;
-
+    ) {
+      // 음식 수령 후 금액을 바로 지불하였을 시 저장
       await this.customerCreditRepository.save(newCreditInfo);
     }
-
     await this.orderStatusRepository.save(newOrderStatus);
 
-    if (order.newStatus === StatusEnum.WaitingForDelivery) {
-      this.orderGateway.newEventRider();
-    }
+    // 상태 점검 후 벨 울리기 취소
+    await this.decideAlarm();
+
     this.orderGateway.refreshClient();
     this.orderGateway.refresh();
-
-    // 전부 조리중으로 바뀌면 벨 울리기 취소
-    await this.cancelRingingIfNoPending();
   }
 
+  /**
+   * 주문 메뉴를 업데이트 합니다.
+   *
+   * @param body 주문 코드, 바뀌기 전과 후의 메뉴
+   * @param user 관리자 정보
+   */
   async updateOrderMenu(body: UpdateOrderMenuDto, user: User) {
     const { orderCode, from, to, price } = body;
 
@@ -137,6 +138,8 @@ export class OrderModifyService {
 
     this.orderGateway.refreshClient();
     this.orderGateway.refresh();
+
+    await this.decideAlarm();
   }
 
   /**
@@ -144,23 +147,46 @@ export class OrderModifyService {
    *
    * @private
    */
-  private async cancelRingingIfNoPending() {
-    const [firstDate, lastDate] = getOrderStatusTimes();
+  private async decideAlarm() {
+    const [firstDate, lastDate] = getOrderAvailableTimes();
     const pendingArray: Pending[] = await this.orderStatusRepository.query(
       OrderSql.getRemainingPendingRequestCount,
-      [firstDate, lastDate, StatusEnum.PendingReceipt, StatusEnum.WaitingForDelivery]
+      [firstDate, lastDate, StatusEnum.PendingReceipt, StatusEnum.WaitingForDelivery, StatusEnum.InPickingUp]
     );
-    const pendingCook = pendingArray.find(pending => pending.status === StatusEnum.PendingReceipt);
-    const pendingRider = pendingArray
-      .find(pending => pending.status === StatusEnum.PendingReceipt || pending.status === StatusEnum.WaitingForDelivery);
 
-    if (!pendingCook || parseInt(pendingCook.count) === 0) {
-      this.orderGateway.removeEventCook();
-      this.orderGateway.removeEventRider();
+    const first: Pending | undefined = pendingArray.at(0);
+
+    if (pendingArray.filter(p => p.status === StatusEnum.PendingReceipt).length === 0) {
+      this.orderGateway.clearCookAlarm();
     }
 
-    if (!pendingRider || parseInt(pendingRider.count) === 0) {
-      this.orderGateway.removeEventRider();
+    if (!first) {
+      this.orderGateway.clearRiderAlarm();
+    } else if (first.status === StatusEnum.PendingReceipt) {
+      this.orderGateway.newOrderAlarm();
+    } else if (first.status === StatusEnum.WaitingForDelivery) {
+      this.orderGateway.newDeliveryAlarm();
+    } else if (first.status === StatusEnum.InPickingUp) {
+      this.orderGateway.newDishDisposal();
     }
+
+
+
+    // const pendingReceipt = pendingArray.some(pending => pending.status === StatusEnum.PendingReceipt);
+    // const waitingForDelivery = pendingArray.some(pending => pending.status === StatusEnum.WaitingForDelivery);
+    // const inPickingUp = pendingArray.some(pending => pending.status === StatusEnum.InPickingUp);
+    //
+    // switch (user.permission) {
+    //   case PermissionEnum.Cook:
+    //     if (!pendingReceipt) {
+    //       this.orderGateway.clearAlarm();
+    //     }
+    //     break;
+    //
+    //   case PermissionEnum.Rider:
+    //     if (!pendingReceipt && !waitingForDelivery && !inPickingUp) {
+    //       this.orderGateway.clearAlarm();
+    //     }
+    // }
   }
 }

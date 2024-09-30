@@ -18,7 +18,7 @@ export function getYesterday(origin: string) {
   return dateToString(now);
 }
 
-export function getOrderStatusTimes() {
+export function getOrderAvailableTimes() {
   const now = new Date();
   const ret1 = new Date();
   const ret2 = new Date();

@@ -3,7 +3,6 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { OrderStatus } from "@src/entities/order-status.entity";
 import { Repository } from "typeorm";
 import { Order } from "@src/entities/order.entity";
-import { UserType } from "@src/types/UserType";
 import { OrderSql } from "@src/modules/main/manager/order/sql/order.sql";
 import { StatusEnum } from "@src/types/enum/StatusEnum";
 import { GetOrderResponseDto } from "@src/modules/main/manager/order/dto/response/get-order-response.dto";
@@ -13,10 +12,12 @@ import { OrderCategory } from "@src/entities/order-category.entity";
 import { Menu } from "@src/entities/menu.entity";
 import { Customer } from "@src/entities/customer.entity";
 import { CustomerPrice } from "@src/entities/customer-price";
-import { OrderGateway } from "@src/websocket/order.gateway";
+import { OrderGateway } from "@src/socket/order.gateway";
 import { Pending } from "@src/types/models/Pending";
-import { getOrderStatusTimes } from "@src/utils/date";
+import { getOrderAvailableTimes } from "@src/utils/date";
 import { OrderHistory } from "@src/types/models/OrderHistory";
+import { User } from "@src/entities/user.entity";
+import { PermissionEnum } from "@src/types/enum/PermissionEnum";
 
 @Injectable()
 export class OrderService {
@@ -37,36 +38,57 @@ export class OrderService {
     private readonly orderGateway: OrderGateway,
   ) {}
 
-  async pendingStatusForManager(user: UserType) {
-    const [firstDate, lastDate] = getOrderStatusTimes();
+  async pendingStatusForManager() {
+    const [firstDate, lastDate] = getOrderAvailableTimes();
 
     const pending: Pending[] = await this.orderStatusRepository.query(
       OrderSql.getRemainingPendingRequestCount,
-      [firstDate, lastDate, StatusEnum.PendingReceipt, StatusEnum.WaitingForDelivery]
+      [
+        firstDate, lastDate,
+        StatusEnum.PendingReceipt, StatusEnum.WaitingForDelivery, StatusEnum.InPickingUp,
+      ]
     );
 
-    const cookPending = pending.some(p => p.status === StatusEnum.PendingReceipt);
-    const riderPending = pending.some(p => p.status === StatusEnum.PendingReceipt || p.status === StatusEnum.WaitingForDelivery);
+    const pendingReceipt = pending.some(p => p.status === StatusEnum.PendingReceipt);
+    const waitingForDelivery = pending.some(p => p.status === StatusEnum.WaitingForDelivery);
+    const inPickingUp = pending.some(p => p.status === StatusEnum.InPickingUp);
 
-    return (user === 'cook' && cookPending) || (user === 'rider' && riderPending);
+    return { pendingReceipt, waitingForDelivery, inPickingUp };
   }
 
-  async getOrders(page: number, query: string, user: UserType): Promise<GetOrderResponseDto> {
+  async getOrders(
+    column: keyof OrderStatusRaw,
+    order: '' | 'asc' | 'desc',
+    page: number,
+    query: string,
+    user: User,
+    isRemaining: boolean
+  ): Promise<GetOrderResponseDto> {
     const like = `%${query}%`;
     const likes = new Array(5).fill(like);
 
+    const orderingMode: number | null = isRemaining ? null : 1;
+    const remainingMode: number | null = isRemaining ? 1: null;
+
     const [firstStatus, lastStatus] = this.getFirstAndLastStatus(user);
-    const [firstTime, lastTime] = getOrderStatusTimes();
+    const [firstTime, lastTime] = getOrderAvailableTimes();
+
+    let orderBy: string;
+    if (order === '') {
+      orderBy = 'ORDER BY t.time'
+    } else {
+      orderBy = `ORDER BY ${column} ${order}`;
+    }
 
     const data: OrderStatusRaw[] = await this
       .orderStatusRepository
       .query(
-        OrderSql.getOrderStatus,
+        OrderSql.getOrderStatus.replace('^', orderBy),
         [
           ...likes,
           firstStatus, lastStatus,
-          firstTime, lastTime,
-          StatusEnum.AwaitingPickup, StatusEnum.InPickingUp,
+          orderingMode, firstTime, lastTime,
+          remainingMode, StatusEnum.AwaitingPickup, StatusEnum.InPickingUp,
           countSkip(page)
         ]
       );
@@ -79,9 +101,8 @@ export class OrderService {
           ...likes,
           firstStatus,
           lastStatus,
-          firstTime,
-          lastTime,
-          StatusEnum.AwaitingPickup, StatusEnum.InPickingUp,
+          orderingMode, firstTime, lastTime,
+          remainingMode, StatusEnum.AwaitingPickup, StatusEnum.InPickingUp,
         ]
       ))[0];
 
@@ -140,18 +161,17 @@ export class OrderService {
 
     this.orderGateway.refreshClient();
     this.orderGateway.refresh();
-    this.orderGateway.newEventCook();
-    this.orderGateway.newEventRider();
+    this.orderGateway.newOrderAlarm();
   }
 
-  private getFirstAndLastStatus(user: UserType) {
-    switch (user) {
-      case 'manager':
-      case 'rider':
+  private getFirstAndLastStatus(user: User) {
+    switch (user.permission) {
+      case PermissionEnum.Manager:
+      case PermissionEnum.Rider:
         return [StatusEnum.PendingReceipt, StatusEnum.PickupComplete];
 
-      case "cook":
-        return [StatusEnum.PendingReceipt, StatusEnum.PickupComplete];
+      case PermissionEnum.Cook:
+        return [StatusEnum.PendingReceipt, StatusEnum.InPreparation];
     }
   }
 }

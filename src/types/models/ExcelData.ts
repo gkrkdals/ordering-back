@@ -7,4 +7,5 @@ export interface ExcelData {
   credit_time: string;
   credit_by: string;
   credit_total: number;
+  memo: string;
 }

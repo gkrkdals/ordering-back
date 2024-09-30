@@ -5,12 +5,14 @@ import { OrderStatus } from "@src/entities/order-status.entity";
 import { OrderCategory } from "@src/entities/order-category.entity";
 import { OrderController } from "@src/modules/main/manager/order/order.controller";
 import { CustomerCredit } from "@src/entities/customer-credit.entity";
-import { OrderGateway } from "@src/websocket/order.gateway";
+import { OrderGateway } from "@src/socket/order.gateway";
 import { CustomerPrice } from "@src/entities/customer-price";
 import { OrderChange } from "@src/entities/order-change.entity";
 import { OrderService } from "@src/modules/main/manager/order/services/order.service";
 import { OrderModifyService } from "@src/modules/main/manager/order/services/order-modify.service";
 import { JwtService } from "@nestjs/jwt";
+import { Settings } from "@src/entities/settings.entity";
+import { SchedulingOrderService } from "@src/modules/main/manager/order/services/scheduling-order.service";
 
 @Module({
   imports: [
@@ -20,13 +22,15 @@ import { JwtService } from "@nestjs/jwt";
       OrderCategory,
       CustomerCredit,
       CustomerPrice,
-      OrderChange
+      OrderChange,
+      Settings,
     ]),
   ],
   controllers: [OrderController],
   providers: [
     OrderService,
     OrderModifyService,
+    SchedulingOrderService,
     OrderGateway,
     JwtService
   ],

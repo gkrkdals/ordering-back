@@ -46,19 +46,36 @@ export class OrderGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
     this.broadcastEvent('refresh_client');
   }
 
-  newEventCook() {
-    this.broadcastEvent('new_event_cook');
+  clearCookAlarm() {
+    this.broadcastEvent('clear_cook_alarm');
   }
 
-  newEventRider() {
-    this.broadcastEvent('new_event_rider');
+  clearRiderAlarm() {
+    this.broadcastEvent('clear_rider_alarm');
   }
 
-  removeEventCook() {
-    this.broadcastEvent('remove_event_cook');
+  // 새로운 주문 건 알림
+  newOrderAlarm() {
+    this.broadcastEvent('new_order_alarm');
   }
 
-  removeEventRider() {
-    this.broadcastEvent('remove_event_rider');
+  // 조리시간 초과 알림
+  cookExceeded() {
+    this.broadcastEvent('cook_exceeded');
+  }
+
+  // 새로운 픽업요청 알림
+  newDeliveryAlarm() {
+    this.broadcastEvent('new_delivery_alarm');
+  }
+
+  // 배달 지연 알림
+  deliverDelayed() {
+    this.broadcastEvent('deliver_delayed');
+  }
+
+  // 그릇 수거 요청
+  newDishDisposal() {
+    this.broadcastEvent('new_dish_disposal');
   }
 }

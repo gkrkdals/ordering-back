@@ -6,7 +6,7 @@ import { Repository } from "typeorm";
 import { CreateDishDisposalDto } from "@src/modules/main/client/order/dto/create-dish-disposal.dto";
 import { DisposalSql } from "@src/modules/main/client/order/sql/DisposalSql";
 import { StatusEnum } from "@src/types/enum/StatusEnum";
-import { OrderGateway } from "@src/websocket/order.gateway";
+import { OrderGateway } from "@src/socket/order.gateway";
 import { Disposal } from "@src/types/models/Disposal";
 
 @Injectable()
@@ -30,6 +30,7 @@ export class DishDisposalService {
 
     await this.orderStatusRepository.save(newOrderStatus);
 
+    this.orderGateway.newDishDisposal();
     this.orderGateway.refresh();
   }
 }

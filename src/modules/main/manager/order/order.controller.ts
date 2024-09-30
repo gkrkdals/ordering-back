@@ -1,15 +1,16 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Post, Put, Query, Req, UseGuards } from "@nestjs/common";
 import { OrderService } from "@src/modules/main/manager/order/services/order.service";
 import { GetOrderResponseDto } from "@src/modules/main/manager/order/dto/response/get-order-response.dto";
 import { Menu } from "@src/entities/menu.entity";
 import { Customer } from "@src/entities/customer.entity";
 import { UpdateOrderDto } from "@src/modules/main/manager/order/dto/update-order.dto";
-import { UserType } from "@src/types/UserType";
 import { UpdateOrderMenuDto } from "@src/modules/main/manager/order/dto/update-order-menu.dto";
 import { OrderModifyService } from "@src/modules/main/manager/order/services/order-modify.service";
 import { AuthGuard } from "@src/modules/auth/auth.guard";
 import { UserData } from "@src/modules/user/customer.decorator";
 import { User } from "@src/entities/user.entity";
+import { OrderStatusRaw } from "@src/types/models/OrderStatusRaw";
+import { Request } from "express";
 
 @Controller('manager/order')
 @UseGuards(AuthGuard)
@@ -20,8 +21,8 @@ export class OrderController {
   ) {}
 
   @Get('pending')
-  async pendingStatusForManager(@Query('user') user: UserType) {
-    return this.orderService.pendingStatusForManager(user);
+  async pendingStatusForManager() {
+    return this.orderService.pendingStatusForManager();
   }
 
   @Get('category')
@@ -29,13 +30,17 @@ export class OrderController {
     return this.orderService.getOrderCategories();
   }
 
-  @Get()
+  @Get(['', 'remaining'])
   async getOrderStatus(
+    @Req() req: Request,
+    @Query('column') column: keyof OrderStatusRaw,
+    @Query('order') order: '' | 'asc' | 'desc',
     @Query('page') page: number,
     @Query('query') query: string | undefined,
-    @Query('user') user: UserType,
+    @UserData() user: User
   ): Promise<GetOrderResponseDto> {
-    return this.orderService.getOrders(page, query, user);
+    const isRemaining = req.originalUrl.includes('remaining');
+    return this.orderService.getOrders(column, order, page, query, user, isRemaining);
   }
 
   @Get('history')

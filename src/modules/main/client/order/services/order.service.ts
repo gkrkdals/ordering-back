@@ -8,7 +8,7 @@ import { Customer } from "@src/entities/customer.entity";
 import { StatusEnum } from "@src/types/enum/StatusEnum";
 import { OrderSql } from "@src/modules/main/client/order/sql/OrderSql";
 import { OrderSummaryResponseDto } from "@src/modules/main/client/order/dto/response/order-summary-response.dto";
-import { OrderGateway } from "@src/websocket/order.gateway";
+import { OrderGateway } from "@src/socket/order.gateway";
 import { CustomerPrice } from "@src/entities/customer-price";
 
 @Injectable()
@@ -58,8 +58,7 @@ export class OrderService {
       await this.orderRepository.save(newOrder);
     }
 
-    this.orderGateway.newEventCook();
-    this.orderGateway.newEventRider();
+    this.orderGateway.newOrderAlarm();
     this.orderGateway.refresh();
   }
 }

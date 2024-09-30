@@ -8,10 +8,12 @@ export class MenuController {
 
   @Get()
   async getMenus(
+    @Query('column') column: keyof Menu,
+    @Query('order') order: '' | 'asc' | 'desc',
     @Query('page') page: number,
     @Query('query') query: string | undefined
   ) {
-    return this.menuService.getMenus(page, query);
+    return this.menuService.getMenus(column, order, page, query);
   }
 
   @Get('all')
@@ -25,17 +27,29 @@ export class MenuController {
   }
 
   @Post()
-  async createFood(@Body() body: Menu) {
-    return this.menuService.createFood(body);
+  async createMenu(@Body() body: Menu) {
+    return this.menuService.createMenu(body);
   }
 
   @Put()
-  async updateFood(@Body() body: Menu) {
-    return this.menuService.updateFood(body);
+  async updateMenu(@Body() body: Menu) {
+    return this.menuService.updateMenu(body);
+  }
+
+  @Put('sold-out')
+  async toggleSoldOut(@Body('menu') menu: number, @Body('soldOut') soldOut: boolean) {
+    return this.menuService.toggleSoldOut(menu, soldOut);
+  }
+
+  @Put('sold-out/all')
+  async toggleSoldOutAll(@Body('soldOut') soldOut: boolean) {
+    return this.menuService.toggleSoldOutAll(soldOut);
   }
 
   @Delete()
-  async deleteFood(@Query('id') id: number) {
-    return this.menuService.deleteFood(id);
+  async deleteMenu(@Query('id') id: number) {
+    return this.menuService.deleteMenu(id);
   }
+
+
 }

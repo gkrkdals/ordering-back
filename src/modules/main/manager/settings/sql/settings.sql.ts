@@ -8,7 +8,8 @@ export class SettingsSql {
         user.nickname credit_by,
         p.credit_time,
         IFNULL(p.credit, 0) credit_in,
-        sum_table.credit_sum credit_total
+        sum_table.credit_sum credit_total,
+        IF(st.status = 8, '취소됨', '') memo
     FROM (
         SELECT
             a.id order_code,
@@ -25,6 +26,7 @@ export class SettingsSql {
         WHERE
             b.id = a.customer
         AND c.id = a.menu) t
+    LEFT JOIN order_status st ON st.status = 8 AND st.order_code = t.order_code
     LEFT JOIN
         (SELECT
              SUM(credit_diff) credit,

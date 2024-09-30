@@ -14,10 +14,12 @@ export class CustomerController {
 
   @Get()
   async getCustomer(
+    @Query('column') column: keyof Customer,
+    @Query('order') order: '' | 'asc' | 'desc',
     @Query('page') page: number | undefined,
     @Query('query') query: string | undefined,
   ): Promise<GetCustomerResponseDto> {
-    return this.customerService.getCustomer(page, query);
+    return this.customerService.getCustomer(column, order, page, query);
   }
 
   @Get('all')

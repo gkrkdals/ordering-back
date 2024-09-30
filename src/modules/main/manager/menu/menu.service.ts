@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Menu } from "@src/entities/menu.entity";
-import { LessThan, Like, Not, Repository } from "typeorm";
+import { FindOptionsOrder, LessThan, Like, Not, Repository } from "typeorm";
 import { countSkip, countToTotalPage } from "@src/utils/data";
 import { GetMenuResponseDto } from "@src/modules/main/manager/menu/dto/response/get-menu-response.dto";
 import { MenuCategory } from "@src/entities/menu-category.entity";
@@ -15,8 +15,18 @@ export class MenuService {
     private readonly foodCategoryRepository: Repository<MenuCategory>
   ) {}
 
-  async getMenus(page: number, query: string | undefined): Promise<GetMenuResponseDto> {
+  async getMenus(
+    column: keyof Menu,
+    order: '' | 'asc' | 'desc',
+    page: number,
+    query: string | undefined
+  ): Promise<GetMenuResponseDto> {
     const like = Like(`%${query}%`);
+    const findOrder: FindOptionsOrder<Menu> = {}
+
+    if (order !== '') {
+      findOrder[column] = order;
+    }
 
     const [data, count] = await this.menuRepository.findAndCount({
       take: 20,
@@ -28,6 +38,7 @@ export class MenuService {
         { menuCategory: { name: like }, withdrawn: Not(1) },
         { name: like, withdrawn: Not(1) },
       ],
+      order: findOrder
     });
 
     return {
@@ -46,14 +57,14 @@ export class MenuService {
     return this.foodCategoryRepository.find({ where: { id: LessThan(4) } });
   }
 
-  async createFood(body: Menu) {
+  async createMenu(body: Menu) {
     const newMenu = new Menu();
     newMenu.name = body.name;
     newMenu.category = body.category;
     await this.menuRepository.save(newMenu);
   }
 
-  async updateFood(menu: Menu): Promise<void> {
+  async updateMenu(menu: Menu): Promise<void> {
     const updatedMenu = await this.menuRepository.findOneBy({ id: menu.id });
 
     if (updatedMenu) {
@@ -64,7 +75,15 @@ export class MenuService {
     }
   }
 
-  async deleteFood(id: number): Promise<void> {
+  async toggleSoldOut(menu: number, soldOut: boolean) {
+    await this.menuRepository.update({ id: menu }, { soldOut: !soldOut ? 1 : 0 });
+  }
+
+  async toggleSoldOutAll(soldOut: boolean) {
+    await this.menuRepository.update({}, { soldOut: soldOut ? 1 : 0 });
+  }
+
+  async deleteMenu(id: number): Promise<void> {
     const foundMenu = await this.menuRepository.findOneBy({ id });
     foundMenu.withdrawn = 1;
     await this.menuRepository.save(foundMenu);

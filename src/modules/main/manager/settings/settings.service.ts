@@ -6,6 +6,7 @@ import { Order } from "@src/entities/order.entity";
 import { dateToString, getYesterday } from "@src/utils/date";
 import { SettingsSql } from "@src/modules/main/manager/settings/sql/settings.sql";
 import { ExcelData } from "@src/types/models/ExcelData";
+import { Settings } from "@src/entities/settings.entity";
 
 interface CalcXLSXColumns {
   고객명: string;
@@ -16,6 +17,7 @@ interface CalcXLSXColumns {
   입금시간: string;
   입금액: number;
   잔금: number;
+  비고: string;
 }
 
 @Injectable()
@@ -23,7 +25,23 @@ export class SettingsService {
   constructor(
     @InjectRepository(Order)
     private readonly orderRepository: Repository<Order>,
+    @InjectRepository(Settings)
+    private readonly settingsRepository: Repository<Settings>,
   ) {}
+
+  async getSettings() {
+    return (await this.settingsRepository.find()).map(setting => ({
+      ...setting,
+      value: setting.value.toString(),
+    }));
+  }
+
+  async updateSettings(cookExceed: number, deliverDelay: number) {
+    const settings = await this.settingsRepository.find();
+    settings[0].value = cookExceed;
+    settings[1].value = deliverDelay;
+    settings.forEach(setting => this.settingsRepository.save(setting));
+  }
 
   async getCalculation(params: GetCalculationDto) {
     const { menu, customer, big, sml } = params;
@@ -68,27 +86,10 @@ export class SettingsService {
       입금배달원: row.credit_by,
       입금시간: row.credit_time,
       입금액: row.credit_in,
-      잔금: row.credit_total
+      잔금: row.credit_total,
+      비고: row.memo,
     }));
 
     return xlsxJson;
-  }
-
-  private getTitle(big: number, sml: number, additional?: string) {
-    let title = ''
-
-    if (sml === 1) {
-      title = title.concat('일일 매출');
-    } else if (sml === 2) {
-      title = title.concat(`주 매출`);
-    } else if (sml === 3) {
-      title = title.concat('월 매출');
-    }
-
-    if (big === 2 || big === 3) {
-      title = title.concat(`(${additional})`);
-    }
-
-    return title;
   }
 }

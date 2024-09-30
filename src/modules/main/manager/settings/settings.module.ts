@@ -3,11 +3,13 @@ import { SettingsController } from "@src/modules/main/manager/settings/settings.
 import { SettingsService } from "@src/modules/main/manager/settings/settings.service";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { Order } from "@src/entities/order.entity";
+import { Settings } from "@src/entities/settings.entity";
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       Order,
+      Settings
     ])
   ],
   controllers: [SettingsController],

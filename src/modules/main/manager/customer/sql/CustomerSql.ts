@@ -1,9 +1,28 @@
 export class CustomerSql {
-  static getCustomerCredit =
-    `
-    SELECT IFNULL(t.credit, 0) AS credit
-    FROM (SELECT 1) AS dummy
-    LEFT JOIN (SELECT SUM(credit_diff) credit, customer FROM customer_credit GROUP BY customer) t
-    ON t.customer = ?
-    `;
+  static getCustomer = `
+    SELECT
+        a.*,
+        IFNULL(credit_sum, 0) credit
+    FROM customer a
+    LEFT JOIN
+        (SELECT SUM(credit_diff) credit_sum, customer FROM customer_credit GROUP BY customer) b
+    ON b.customer = a.id
+    WHERE
+        withdrawn != 1
+    AND (name LIKE ? OR address LIKE ? OR memo LIKE ?)
+    ^
+    LIMIT ?, 20;
+  `
+
+  static getCustomerCount = `
+    SELECT
+        COUNT(*) count
+    FROM customer a
+    LEFT JOIN
+        (SELECT SUM(credit_diff) credit_sum, customer FROM customer_credit GROUP BY customer) b
+    ON b.customer = a.id
+    WHERE
+        withdrawn != 1
+    AND (name LIKE ? OR address LIKE ? OR memo LIKE ?);
+  `;
 }

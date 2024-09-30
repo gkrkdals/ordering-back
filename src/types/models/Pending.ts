@@ -1,4 +1,5 @@
 export interface Pending {
   status: number;
-  count: string;
+  order_code: number;
+  time: number;
 }
