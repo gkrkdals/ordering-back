@@ -4,12 +4,11 @@ export function classToObject(origin: any) {
 }
 
 export function countToTotalPage(count: number) {
-  if (count === 0) {
-    count += 1;
-  }
-  return Math.floor((count - 1)/ 20) + 1;
+  const c = count === 0 ? 1 : count;
+  return Math.floor((c - 1)/ 20) + 1;
 }
 
 export function countSkip(page: number) {
+
   return (page - 1) * 20;
 }

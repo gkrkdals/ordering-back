@@ -93,7 +93,7 @@ export class OrderService {
         ]
       );
 
-    const { count } = (await this
+    let { count } = (await this
       .orderStatusRepository
       .query(
         OrderSql.getOrderStatusCount,
@@ -105,6 +105,8 @@ export class OrderService {
           remainingMode, StatusEnum.AwaitingPickup, StatusEnum.InPickingUp,
         ]
       ))[0];
+
+    count = parseInt(count);
 
     // 각 주문 상태에 잔금 매핑
     for (const status of data) {
