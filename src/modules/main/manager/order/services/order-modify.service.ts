@@ -169,24 +169,5 @@ export class OrderModifyService {
     } else if (first.status === StatusEnum.InPickingUp) {
       this.orderGateway.newDishDisposal();
     }
-
-
-
-    // const pendingReceipt = pendingArray.some(pending => pending.status === StatusEnum.PendingReceipt);
-    // const waitingForDelivery = pendingArray.some(pending => pending.status === StatusEnum.WaitingForDelivery);
-    // const inPickingUp = pendingArray.some(pending => pending.status === StatusEnum.InPickingUp);
-    //
-    // switch (user.permission) {
-    //   case PermissionEnum.Cook:
-    //     if (!pendingReceipt) {
-    //       this.orderGateway.clearAlarm();
-    //     }
-    //     break;
-    //
-    //   case PermissionEnum.Rider:
-    //     if (!pendingReceipt && !waitingForDelivery && !inPickingUp) {
-    //       this.orderGateway.clearAlarm();
-    //     }
-    // }
   }
 }
