@@ -100,30 +100,25 @@ export class CustomerService {
 
   async updateCustomerPrice(body: UpdateCustomerPriceDto) {
     const customerPrices = await this.customerPriceRepository.findBy({ customer: body.customer });
-    const menuCategories = await this.menuCategoryRepository.findBy({ name: Not('커스텀') });
 
-    for (const category of menuCategories) {
-      const i = menuCategories.indexOf(category);
-      const currentPrice = customerPrices.find((price) => price.category === category.id);
-      const price = parseInt(body[i] as string);
+    const { data, customer } = body;
+    for (const priceData of data) {
+      const category = priceData.id, price = parseInt(priceData.price) * 1000;
+      const currentPrice = customerPrices.find(price => price.category === priceData.id);
 
-      if(!isNaN(price)) {
+      if (!isNaN(price)) {
         if (currentPrice) {
-          currentPrice.price = price * 1000;
+          currentPrice.price = price;
           await this.customerPriceRepository.save(currentPrice);
         } else {
           const newCustomerPrice = new CustomerPrice();
-          newCustomerPrice.customer = body.customer;
-          newCustomerPrice.category = category.id;
-          newCustomerPrice.price = price * 1000;
-
-          await this.customerPriceRepository.save(newCustomerPrice);
+          newCustomerPrice.customer = customer;
+          newCustomerPrice.category = category;
+          newCustomerPrice.price = price;
+          await this.customerPriceRepository.save(newCustomerPrice)
         }
       } else {
-        await this.customerPriceRepository.delete({
-          customer: body.customer,
-          category: category.id,
-        });
+        await this.customerPriceRepository.delete({ customer, category })
       }
     }
   }

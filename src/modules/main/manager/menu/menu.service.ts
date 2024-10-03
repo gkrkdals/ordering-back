@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Menu } from "@src/entities/menu.entity";
-import { FindOptionsOrder, LessThan, Like, Not, Repository } from "typeorm";
+import { FindOptionsOrder, LessThan, Like, MoreThan, Not, Repository } from "typeorm";
 import { countSkip, countToTotalPage } from "@src/utils/data";
 import { GetMenuResponseDto } from "@src/modules/main/manager/menu/dto/response/get-menu-response.dto";
 import { MenuCategory } from "@src/entities/menu-category.entity";
@@ -54,7 +54,7 @@ export class MenuService {
   }
 
   async getMenuCategoryAll(): Promise<MenuCategory[]> {
-    return this.foodCategoryRepository.find({ where: { id: LessThan(4) } });
+    return this.foodCategoryRepository.findBy({ id: MoreThan(0) });
   }
 
   async createMenu(body: Menu) {
