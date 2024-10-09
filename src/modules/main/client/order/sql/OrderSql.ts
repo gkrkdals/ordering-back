@@ -30,10 +30,10 @@ export class OrderSql {
         SELECT
             MAX(status) status
         FROM order_status
-        WHERE status < ?
-        AND (time >= ? AND time <= ?)
+        WHERE (time >= ? AND time <= ?)
         GROUP BY order_code
         ) t
+    WHERE status < ?
     GROUP BY status
   `;
 }

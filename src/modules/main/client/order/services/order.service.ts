@@ -61,7 +61,7 @@ export class OrderService {
 
   async getSummaryCount() {
     const [first, last] = getOrderAvailableTimes();
-    return this.orderStatusRepository.query(OrderSql.getOrderStatusCounts, [StatusEnum.AwaitingPickup, first, last]);
+    return this.orderStatusRepository.query(OrderSql.getOrderStatusCounts, [first, last, StatusEnum.AwaitingPickup]);
   }
 
   getOrderSummaries(customer: Customer): Promise<OrderSummaryResponseDto[]> {
