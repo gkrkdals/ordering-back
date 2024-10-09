@@ -21,4 +21,19 @@ export class OrderSql {
       AND d.id = a.status
       AND a.status < 5
     ORDER BY status DESC`;
+
+  static getOrderStatusCounts = `
+    SELECT
+        t.status,
+        COUNT(t.status) count
+    FROM (
+        SELECT
+            MAX(status) status
+        FROM order_status
+        WHERE status < ?
+        AND (time >= ? AND time <= ?)
+        GROUP BY order_code
+        ) t
+    GROUP BY status
+  `;
 }

@@ -39,5 +39,28 @@ export class SettingsSql {
       AND t.order_time <= ?
       AND (t.customer = ? OR ISNULL(?))
       AND (t.menu = ? OR ISNULL(?))
+    
+    UNION ALL
+      
+    SELECT '', '', '', null, null, null, '', null, null, ''
+    
+    UNION ALL
+    
+    SELECT
+        customer.name customer_name,
+        '' menu,
+        '' menu_name,
+        null price,
+        null order_time,
+        null delivered_time,
+        '최고관리자' credit_by,
+        customer_credit.time credit_time,
+        customer_credit.credit_diff credit_in,
+        '최고관리자 입금' memo
+    from customer_credit
+    LEFT JOIN user ON customer_credit.\`by\` = user.id
+    LEFT JOIN customer ON customer_credit.customer = customer.id
+    WHERE (customer_credit.time >= ? AND customer_credit.time <= ?)
+      AND order_code = 0
   `
 }

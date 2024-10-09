@@ -33,6 +33,11 @@ export class OrderController {
     return this.orderService.getCredit(customer);
   }
 
+  @Get('summary/count')
+  getSummaryCount() {
+    return this.orderService.getSummaryCount();
+  }
+
   @Get('summary')
   getOrderSummaries(@CustomerData() customer: Customer): Promise<OrderSummaryResponseDto[]> {
     return this.orderService.getOrderSummaries(customer);

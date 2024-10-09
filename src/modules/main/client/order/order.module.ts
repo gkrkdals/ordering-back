@@ -18,7 +18,7 @@ import { CustomerCredit } from "@src/entities/customer-credit.entity";
       OrderStatus,
       OrderCategory,
       CustomerPrice,
-      CustomerCredit
+      CustomerCredit,
     ]),
   ],
   controllers: [OrderController],

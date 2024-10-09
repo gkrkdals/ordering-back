@@ -11,6 +11,8 @@ import { OrderSummaryResponseDto } from "@src/modules/main/client/order/dto/resp
 import { OrderGateway } from "@src/socket/order.gateway";
 import { CustomerPrice } from "@src/entities/customer-price";
 import { CustomerCredit } from "@src/entities/customer-credit.entity";
+import { OrderStatus } from "@src/entities/order-status.entity";
+import { getOrderAvailableTimes } from "@src/utils/date";
 
 @Injectable()
 export class OrderService {
@@ -19,6 +21,8 @@ export class OrderService {
     private orderCategoryRepository: Repository<OrderCategory>,
     @InjectRepository(Order)
     private orderRepository: Repository<Order>,
+    @InjectRepository(OrderStatus)
+    private orderStatusRepository: Repository<OrderStatus>,
     @InjectRepository(CustomerPrice)
     private readonly customerPriceRepository: Repository<CustomerPrice>,
     @InjectRepository(CustomerCredit)
@@ -57,6 +61,11 @@ export class OrderService {
     return parseInt(result.credit);
   }
 
+  async getSummaryCount() {
+    const [first, last] = getOrderAvailableTimes();
+    return this.orderStatusRepository.query(OrderSql.getOrderStatusCounts, [StatusEnum.AwaitingPickup, first, last]);
+  }
+
   getOrderSummaries(customer: Customer): Promise<OrderSummaryResponseDto[]> {
     return this.datasource.query(OrderSql.getOrderStatus, [customer.id]);
   }
@@ -88,5 +97,6 @@ export class OrderService {
 
     this.orderGateway.newOrderAlarm();
     this.orderGateway.refresh();
+    this.orderGateway.refreshClient();
   }
 }

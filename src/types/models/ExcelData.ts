@@ -2,7 +2,7 @@ export interface ExcelData {
   customer_name: string;
   menu: number;
   menu_name: string;
-  price: number;
+  price: string;
   order_time: string;
   delivered_time: string;
   credit_in: string;

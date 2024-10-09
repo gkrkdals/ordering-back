@@ -91,7 +91,7 @@ export class SettingsService {
 
     const excelData: ExcelData[] = await this.orderRepository.query(
       SettingsSql.getExcelData,
-      [startString, endString, customerParam, customerParam, menuParam, menuParam]
+      [startString, endString, customerParam, customerParam, menuParam, menuParam, startString, endString]
     );
 
     const data: any[][] = excelData.map((row, i) => {
@@ -104,12 +104,12 @@ export class SettingsService {
         { v: i + 1, t: "s", s: p },
         { v: row.customer_name, t: "s", s: p },
         { v: row.menu_name, t: "s", s: t },
-        { v: row.price.toLocaleString('ko-KR'), t: "s", s: q },
-        { v: dateToString(new Date(row.order_time)), t: "s", s: p },
+        { v: row.price === null ? '' : parseInt(row.price).toLocaleString('ko-KR'), t: "s", s: q },
+        { v: row.order_time === null ? '' : dateToString(new Date(row.order_time)), t: "s", s: p },
         { v: row.delivered_time === null ? '' : dateToString(new Date(row.delivered_time)), t: "s", s: p },
         { v: row.credit_by ?? '', t: "s", s: p },
         { v: row.credit_time === null ? '' : dateToString(new Date(row.credit_time)), t: "s", s: p },
-        { v: parseInt(row.credit_in).toLocaleString('ko-KR'), t: "s", s: q },
+        { v: row.credit_in === null ? '' : parseInt(row.credit_in).toLocaleString('ko-KR'), t: "s", s: q },
         { v: row.memo, t: "s", s: p }
       ]
     })
