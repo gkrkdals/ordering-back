@@ -36,3 +36,4 @@ export function getOrderAvailableTimes() {
 
   return [dateToString(ret1), dateToString(ret2)];
 }
+

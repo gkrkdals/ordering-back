@@ -7,13 +7,15 @@ import { MenuCategory } from "@src/entities/menu-category.entity";
 import { Customer } from "@src/entities/customer.entity";
 import { JwtService } from "@nestjs/jwt";
 import { CustomerPrice } from "@src/entities/customer-price";
+import { Order } from "@src/entities/order.entity";
 
 @Module({
   imports: [TypeOrmModule.forFeature([
     Menu,
     MenuCategory,
     Customer,
-    CustomerPrice
+    CustomerPrice,
+    Order
   ])],
   controllers: [MenuController],
   providers: [MenuService, JwtService],

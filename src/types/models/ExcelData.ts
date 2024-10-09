@@ -1,11 +1,12 @@
 export interface ExcelData {
   customer_name: string;
+  menu: number;
   menu_name: string;
   price: number;
-  time: string;
-  credit_in: number;
+  order_time: string;
+  delivered_time: string;
+  credit_in: string;
   credit_time: string;
   credit_by: string;
-  credit_total: number;
   memo: string;
 }

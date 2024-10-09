@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
 import { OrderCategory } from "@src/entities/order-category.entity";
-import { DataSource, LessThan, Repository } from "typeorm";
+import { DataSource, LessThan, Not, Repository } from "typeorm";
 import { OrderedMenuDto } from "@src/modules/main/client/order/dto/ordered-menu.dto";
 import { Order } from "@src/entities/order.entity";
 import { Customer } from "@src/entities/customer.entity";
@@ -10,6 +10,7 @@ import { OrderSql } from "@src/modules/main/client/order/sql/OrderSql";
 import { OrderSummaryResponseDto } from "@src/modules/main/client/order/dto/response/order-summary-response.dto";
 import { OrderGateway } from "@src/socket/order.gateway";
 import { CustomerPrice } from "@src/entities/customer-price";
+import { CustomerCredit } from "@src/entities/customer-credit.entity";
 
 @Injectable()
 export class OrderService {
@@ -20,6 +21,8 @@ export class OrderService {
     private orderRepository: Repository<Order>,
     @InjectRepository(CustomerPrice)
     private readonly customerPriceRepository: Repository<CustomerPrice>,
+    @InjectRepository(CustomerCredit)
+    private readonly customerCreditRepository: Repository<CustomerCredit>,
     @InjectDataSource()
     private readonly datasource: DataSource,
     private readonly orderGateway: OrderGateway,
@@ -27,6 +30,31 @@ export class OrderService {
 
   getOrderCategories(): Promise<OrderCategory[]> {
     return this.orderCategoryRepository.findBy({ status: LessThan(StatusEnum.AwaitingPickup) });
+  }
+
+  async getRecentRequests(customer: Customer) {
+    const recentRequests = await this.orderRepository.find({
+      where: {
+        customer: customer.id,
+        request: Not('')
+      },
+      order: { id: 'desc' },
+      take: 2
+    });
+    return recentRequests.map(req => req.request);
+  }
+
+  async getCredit(customer: Customer) {
+    const result = await this.customerCreditRepository
+      .createQueryBuilder()
+      .select('SUM(credit_diff)', 'credit')
+      .where('customer = :customer', { customer: customer.id })
+      .groupBy('customer')
+      .getRawOne<{ credit: string }>();
+
+    console.log(result);
+
+    return parseInt(result.credit);
   }
 
   getOrderSummaries(customer: Customer): Promise<OrderSummaryResponseDto[]> {

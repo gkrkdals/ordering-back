@@ -1,23 +1,32 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, StreamableFile } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { GetCalculationDto } from "@src/modules/main/manager/settings/dto/get-calculation.dto";
 import { Order } from "@src/entities/order.entity";
-import { dateToString, getYesterday } from "@src/utils/date";
+import { dateToString } from "@src/utils/date";
 import { SettingsSql } from "@src/modules/main/manager/settings/sql/settings.sql";
 import { ExcelData } from "@src/types/models/ExcelData";
 import { Settings } from "@src/entities/settings.entity";
+import { Response } from "express";
+import { createReadStream } from "fs";
+import Path from "path";
 
-interface CalcXLSXColumns {
-  고객명: string;
-  메뉴: string;
-  가격: number;
-  시간: string;
-  입금배달원: string;
-  입금시간: string;
-  입금액: number;
-  잔금: number;
-  비고: string;
+function getTheme(isCancelled: boolean, isMenuZero?: boolean, alignRight?: boolean) {
+  const theme: any = { font: {}, alignment: {} }
+
+  if (isCancelled) {
+    theme.font.color = { rgb: "FFAA0000" }
+  }
+
+  if(isMenuZero) {
+    theme.font.bold = true;
+  }
+
+  if(alignRight) {
+    theme.alignment.horizontal = "right";
+  }
+
+  return theme;
 }
 
 @Injectable()
@@ -29,31 +38,50 @@ export class SettingsService {
     private readonly settingsRepository: Repository<Settings>,
   ) {}
 
-  async getSettings() {
-    return (await this.settingsRepository.find()).map(setting => ({
+  async getExceedSettings() {
+    return (await this.settingsRepository.findBy({ big: 1 })).map(setting => ({
       ...setting,
-      value: setting.value.toString(),
+      value: setting.value?.toString(),
     }));
   }
 
-  async updateSettings(cookExceed: number, deliverDelay: number) {
+  async updateExceedSettings(cookExceed: number, deliverDelay: number) {
     const settings = await this.settingsRepository.find();
     settings[0].value = cookExceed;
     settings[1].value = deliverDelay;
     settings.forEach(setting => this.settingsRepository.save(setting));
   }
 
-  async getCalculation(params: GetCalculationDto) {
-    const { menu, customer, big, sml } = params;
-    const now = new Date();
-    const nowString = dateToString(now);
+  async getStandardInfo() {
+    return (await this.settingsRepository.findBy({ big: 2 }))
+      .map(setting => ({
+        ...setting,
+        stringValue: setting.stringValue ?? ''
+      }));
+  }
 
-    const b = parseInt(big);
-    const s = parseInt(sml);
+  async updateStandardInfo(settings: Settings[]) {
+    for(const setting of settings.filter(setting => setting.sml !== 1)) {
+      const currentSetting = await this.settingsRepository.findOneBy({ id: setting.id });
+      currentSetting.stringValue = setting.stringValue;
+      await this.settingsRepository.save(currentSetting);
+    }
+  }
+
+  async getCalculation(params: GetCalculationDto) {
+    const { menu, customer, type, start, end } = params;
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+
+    startDate.setHours(9, 0, 0, 0);
+    endDate.setHours(8, 59, 59, 999);
+
+    const startString = dateToString(startDate);
+    const endString = dateToString(endDate);
+
+    const b = parseInt(type);
 
     let menuParam = null, customerParam = null;
-    let startTime: string;
-    const endTime: string = nowString;
 
     if (b === 2) {
       menuParam = menu;
@@ -61,35 +89,47 @@ export class SettingsService {
       customerParam = customer;
     }
 
-    if (s === 1) {
-      startTime = getYesterday(nowString);
-    } else {
-      if (s === 2) {
-        now.setDate(now.getDate() - 7);
-      } else {
-        now.setMonth(now.getMonth() - 1);
-      }
-      now.setHours(9, 0, 0, 0);
-      startTime = dateToString(now);
-    }
-
     const excelData: ExcelData[] = await this.orderRepository.query(
       SettingsSql.getExcelData,
-      [startTime, endTime, customerParam, customerParam, menuParam, menuParam]
+      [startString, endString, customerParam, customerParam, menuParam, menuParam]
     );
 
-    const xlsxJson: CalcXLSXColumns[] = excelData.map(row => ({
-      고객명: row.customer_name,
-      메뉴: row.menu_name,
-      가격: row.price,
-      시간: row.time,
-      입금배달원: row.credit_by,
-      입금시간: row.credit_time,
-      입금액: row.credit_in,
-      잔금: row.credit_total,
-      비고: row.memo,
-    }));
+    const data: any[][] = excelData.map((row, i) => {
+      const p = getTheme(row.memo === '취소됨');
+      const t = getTheme(row.memo === '취소됨', row.menu === 0);
+      const q = getTheme(row.memo === '취소됨', row.menu === 0, true);
 
-    return xlsxJson;
+
+      return [
+        { v: i + 1, t: "s", s: p },
+        { v: row.customer_name, t: "s", s: p },
+        { v: row.menu_name, t: "s", s: t },
+        { v: row.price.toLocaleString('ko-KR'), t: "s", s: q },
+        { v: dateToString(new Date(row.order_time)), t: "s", s: p },
+        { v: row.delivered_time === null ? '' : dateToString(new Date(row.delivered_time)), t: "s", s: p },
+        { v: row.credit_by ?? '', t: "s", s: p },
+        { v: row.credit_time === null ? '' : dateToString(new Date(row.credit_time)), t: "s", s: p },
+        { v: parseInt(row.credit_in).toLocaleString('ko-KR'), t: "s", s: q },
+        { v: row.memo, t: "s", s: p }
+      ]
+    })
+
+    return data;
+  }
+
+  async getLogo(res: Response) {
+    const filename = (await this.settingsRepository.findOneBy({ big: 2, sml: 1 })).stringValue;
+    const ext = filename.split('.').at(1);
+    const file = createReadStream(Path.join(process.cwd(), 'logo', filename));
+    res.set({
+      'Content-Type': `image/${ext}`
+    })
+    return new StreamableFile(file);
+  }
+
+  async updateLogo(name: string) {
+    const logoSetting = await this.settingsRepository.findOneBy({ big: 2, sml: 1 });
+    logoSetting.stringValue = name;
+    await this.settingsRepository.save(logoSetting);
   }
 }

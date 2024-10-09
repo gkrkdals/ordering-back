@@ -5,6 +5,7 @@ import { Response } from "express";
 import { Customer } from "@src/entities/customer.entity";
 import { ManagerSignInDto } from "@src/modules/auth/dto/manager-sign-in.dto";
 import { CreateAccountDto } from "@src/modules/auth/dto/create-account.dto";
+import { CustomerData } from "@src/modules/user/customer.decorator";
 
 @Controller('auth')
 export class AuthController {
@@ -16,11 +17,21 @@ export class AuthController {
     @Body() signInDto: Record<string, any>,
     @Res({ passthrough: true }) res: Response
   ): Promise<Customer> {
-    const token = await this.authService.clientSignIn(signInDto.id);
-    res.setHeader("Authorization", `Bearer ${token.access_token}`)
-    res.cookie("jwt", token.access_token, { httpOnly: true });
+    const data = await this.authService.clientSignIn(signInDto.id);
+    res.setHeader("Authorization", `Bearer ${data.access_token}`)
+    res.cookie("jwt", data.access_token, { httpOnly: true });
 
-    return token.payload
+    return data.payload
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('profile')
+  async getProfile(@CustomerData() customer: Customer, @Res({ passthrough: true }) res: Response) {
+    const data = await this.authService.clientSignIn(customer.id);
+    res.setHeader("Authorization", `Bearer ${data.access_token}`)
+    res.cookie("jwt", data.access_token, { httpOnly: true });
+
+    return data.payload
   }
 
   @HttpCode(HttpStatus.OK)
@@ -43,8 +54,8 @@ export class AuthController {
   }
 
   @UseGuards(AuthGuard)
-  @Get('profile') 
-  getProfile(
+  @Get('manager/profile')
+  getManagerProfile(
     @Req() req: any,
     @Query('permission') permission: 'manager' | 'rider' | 'cook' | undefined
   ) {

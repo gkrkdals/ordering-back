@@ -1,22 +1,37 @@
-import { Body, Controller, Get, Header, Put, Query, Res } from "@nestjs/common";
+import { Body, Controller, Get, Header, Post, Put, Query, Res, UploadedFile, UseInterceptors } from "@nestjs/common";
 import { SettingsService } from "@src/modules/main/manager/settings/settings.service";
 import { GetCalculationDto } from "@src/modules/main/manager/settings/dto/get-calculation.dto";
-import * as XLSX from "xlsx";
+import * as XLSX from "xlsx-js-style";
 import { Response } from "express";
 import * as fs from "node:fs";
+import { FileInterceptor } from "@nestjs/platform-express";
+import { Settings } from "@src/entities/settings.entity";
+import { diskStorage } from "multer";
+import * as Path from "path";
+import { header } from "@src/config/xlsx";
 
 @Controller('manager/settings')
 export class SettingsController {
   constructor(private readonly settingService: SettingsService) {}
 
-  @Get()
-  async getSettings() {
-    return this.settingService.getSettings();
+  @Get('exceed')
+  async getExceedSettings() {
+    return this.settingService.getExceedSettings();
   }
 
-  @Put()
-  async updateSettings(@Body('1') cookExceed: number, @Body('2') deliverDelay: number) {
-    return this.settingService.updateSettings(cookExceed, deliverDelay)
+  @Put('exceed')
+  async updateExceedSettings(@Body('1') cookExceed: number, @Body('2') deliverDelay: number) {
+    return this.settingService.updateExceedSettings(cookExceed, deliverDelay)
+  }
+
+  @Get('standard')
+  async getStandardInfo() {
+    return this.settingService.getStandardInfo();
+  }
+
+  @Put('standard')
+  async updateStandardInfo(@Body() settings: Settings[]) {
+    return this.settingService.updateStandardInfo(settings);
   }
 
   @Get('calculation')
@@ -25,7 +40,8 @@ export class SettingsController {
   async getCalculation(@Query() dto: GetCalculationDto, @Res() res: Response) {
     const data = await this.settingService.getCalculation(dto);
     const wb = XLSX.utils.book_new();
-    const newWorksheet = XLSX.utils.json_to_sheet(data);
+    const newWorksheet = XLSX.utils.aoa_to_sheet([header, ...data]);
+    newWorksheet['!cols'] = this.fitToColumn([header, ...data])
 
     XLSX.utils.book_append_sheet(wb, newWorksheet, 'calculation');
 
@@ -34,5 +50,28 @@ export class SettingsController {
 
     const stream = fs.createReadStream(filename);
     stream.pipe(res);
+  }
+
+  @Get('logo')
+  async getLogo(@Res({ passthrough: true }) res: Response) {
+    return this.settingService.getLogo(res);
+  }
+
+  @Post('logo')
+  @UseInterceptors(FileInterceptor('logo', {
+    storage: diskStorage({
+      destination: Path.join(__dirname, '../../../../../logo'),
+      filename(_, file, callback): void {
+        return callback(null, `logo.${file.originalname.split('.')[1]}`)
+      }
+    })
+  }))
+  async updateLogo(@UploadedFile() file: Express.Multer.File) {
+    return this.settingService.updateLogo(`logo.${file.originalname.split('.')[1]}`)
+  }
+
+  private fitToColumn(arrayOfArray: any[][]) {
+    // get maximum character of each column
+    return arrayOfArray[0].map((a, i) => ({ wch: Math.max(...arrayOfArray.map(a2 => a2[i] ? a2[i].toString().length : 0)) * 1.2 }));
   }
 }

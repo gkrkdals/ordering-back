@@ -1,6 +1,7 @@
 export class GetCalculationDto {
-  big: string;
-  sml: string;
+  type: string;
+  start: string;
+  end: string;
   menu: number;
   customer: number;
 }

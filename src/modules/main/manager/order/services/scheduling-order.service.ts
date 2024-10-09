@@ -28,8 +28,8 @@ export class SchedulingOrderService {
       { id: 1 },
       { id: 2 }
     ]);
-    const cookExceededTime = settings[0].value;
-    const deliverExceededTime = settings[1].value;
+    const cookExceededTime = settings[0].value ?? 0;
+    const deliverExceededTime = settings[1].value ?? 0;
 
     const currentOrderStatus: { order_code: number; status: number; }[] =
       await this.orderStatusRepository.query(

@@ -3,8 +3,7 @@ import { CustomerCategory } from "@src/entities/customer-category.entity";
 import { CustomerPrice } from "@src/entities/customer-price";
 
 @Entity()
-export class
-Customer {
+export class Customer {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -32,4 +31,10 @@ Customer {
 
   @Column()
   withdrawn: number;
+
+  @Column({ name: 'show_price' })
+  showPrice: number;
+
+  @Column({ name: 'hide_order_status' })
+  hideOrderStatus: number;
 }

@@ -23,6 +23,16 @@ export class OrderController {
     return this.orderService.getOrderCategories();
   }
 
+  @Get('recent-request')
+  getRecentRequests(@CustomerData() customer: Customer) {
+    return this.orderService.getRecentRequests(customer);
+  }
+
+  @Get('credit')
+  getCredit(@CustomerData() customer: Customer) {
+    return this.orderService.getCredit(customer);
+  }
+
   @Get('summary')
   getOrderSummaries(@CustomerData() customer: Customer): Promise<OrderSummaryResponseDto[]> {
     return this.orderService.getOrderSummaries(customer);

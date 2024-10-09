@@ -2,11 +2,15 @@ import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Menu } from "@src/entities/menu.entity";
 import { Like, Not, Repository } from "typeorm";
+import { Customer } from "@src/entities/customer.entity";
+import { Order } from "@src/entities/order.entity";
+import { RecentMenu } from "@src/types/models/RecentMenu";
 
 @Injectable()
 export class MenuService {
   constructor(
     @InjectRepository(Menu) private menuRepository: Repository<Menu>,
+    @InjectRepository(Order) private orderRepository: Repository<Order>,
   ) {}
 
   findAll(): Promise<Menu[]> {
@@ -22,5 +26,23 @@ export class MenuService {
     return this.menuRepository.findBy({
       name: Like(`%${name}%`)
     })
+  }
+
+  async findRecentMenus(customer: Customer) {
+    return (await this.orderRepository.find({
+      where: { customer: customer.id },
+      relations: {
+        menuJoin: {
+          menuCategory: true
+        }
+      },
+      take: 4,
+      order: { id: 'desc' }
+    }))
+      .map<RecentMenu>(order => ({
+        ...order.menuJoin,
+        id: order.id,
+        time: order.time
+      }));
   }
 }
