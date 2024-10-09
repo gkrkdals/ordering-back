@@ -65,7 +65,8 @@ export class OrderService {
   }
 
   getOrderSummaries(customer: Customer): Promise<OrderSummaryResponseDto[]> {
-    return this.datasource.query(OrderSql.getOrderStatus, [customer.id]);
+    const [first, last] = getOrderAvailableTimes();
+    return this.datasource.query(OrderSql.getOrderStatus, [customer.id, first, last]);
   }
 
   async addOrder(customer: Customer, orderedMenus: OrderedMenuDto[]): Promise<void> {
