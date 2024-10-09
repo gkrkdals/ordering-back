@@ -38,7 +38,6 @@
     "rxjs": "^7.8.1",
     "typeorm": "^0.3.20",
     "ws": "^8.18.0",
-    "xlsx": "^0.18.5",
     "xlsx-js-style": "^1.2.0"
   },
   "devDependencies": {
