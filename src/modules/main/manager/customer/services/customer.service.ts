@@ -10,6 +10,7 @@ import { UpdateCustomerPriceDto } from "@src/modules/main/manager/customer/dto/u
 import { MenuCategory } from "@src/entities/menu-category.entity";
 import { CustomerSql } from "@src/modules/main/manager/customer/sql/CustomerSql";
 import { CustomerRaw } from "@src/types/models/CustomerRaw";
+import * as XLSX from "xlsx-js-style";
 
 @Injectable()
 export class CustomerService {
@@ -77,6 +78,34 @@ export class CustomerService {
     newCustomer.address = customer.address;
 
     await this.customerRepository.save(newCustomer);
+  }
+
+  async createCustomerFromExcel(excel: Express.Multer.File) {
+    const workbook = XLSX.read(excel.buffer, { type: 'buffer' });
+    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+    const data = XLSX.utils.sheet_to_json(worksheet);
+    for (const row of data) {
+      const customerName = row['고객명'];
+      const address = row['주소'];
+      const floor = row['층수'];
+      const memo = row['그릇 찾는곳/주의사항'];
+      const category = ((typeof row['카테고리'] === 'string') ? parseInt(row['카테고리']) : row['카테고리']) + 2;
+
+      if (customerName === undefined || customerName === null) {
+        continue;
+      }
+
+      if (!isNaN(category)) {
+        const newCustomer = new Customer();
+        newCustomer.name = customerName;
+        newCustomer.address = address;
+        newCustomer.floor = floor;
+        newCustomer.memo = memo;
+        newCustomer.category = category;
+
+        await this.customerRepository.save(newCustomer);
+      }
+    }
   }
 
   async updateCustomer(customer: Customer) {

@@ -1,9 +1,10 @@
-import { Body, Controller, Delete, Get, Post, Put, Query } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Post, Put, Query, UploadedFile, UseInterceptors } from "@nestjs/common";
 import { CustomerService } from "@src/modules/main/manager/customer/services/customer.service";
 import { Customer } from "@src/entities/customer.entity";
 import { GetCustomerResponseDto } from "@src/modules/main/manager/customer/dto/response/get-customer-response.dto";
 import { UpdateCustomerPriceDto } from "@src/modules/main/manager/customer/dto/update-customer-price.dto";
 import { CreditService } from "@src/modules/main/manager/customer/services/credit.service";
+import { FileInterceptor } from "@nestjs/platform-express";
 
 @Controller('manager/customer')
 export class CustomerController {
@@ -35,6 +36,12 @@ export class CustomerController {
   @Post()
   async createCustomer(@Body() body: Customer) {
     return this.customerService.createCustomer(body);
+  }
+
+  @Post('excel')
+  @UseInterceptors(FileInterceptor('excel'))
+  async createCustomerFromExcel(@UploadedFile() excel: Express.Multer.File) {
+    return this.customerService.createCustomerFromExcel(excel);
   }
 
   @Put()

@@ -1,10 +1,11 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Menu } from "@src/entities/menu.entity";
-import { FindOptionsOrder, LessThan, Like, MoreThan, Not, Repository } from "typeorm";
+import { FindOptionsOrder, Like, MoreThan, Not, Repository } from "typeorm";
 import { countSkip, countToTotalPage } from "@src/utils/data";
 import { GetMenuResponseDto } from "@src/modules/main/manager/menu/dto/response/get-menu-response.dto";
 import { MenuCategory } from "@src/entities/menu-category.entity";
+import * as XLSX from 'xlsx-js-style';
 
 @Injectable()
 export class MenuService {
@@ -62,6 +63,29 @@ export class MenuService {
     newMenu.name = body.name;
     newMenu.category = body.category;
     await this.menuRepository.save(newMenu);
+  }
+
+  async createMenuFromExcel(excel: Express.Multer.File) {
+    const workbook = XLSX.read(excel.buffer, { type: 'buffer' });
+    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+    const data = XLSX.utils.sheet_to_json(worksheet);
+
+    for (const row of data) {
+      const menuName = row['메뉴명'];
+      const category = typeof row['카테고리'] === "string" ? parseInt(row['카테고리']) : row['카테고리'];
+
+      if (menuName === undefined || menuName === null) {
+        continue;
+      }
+
+      if (!isNaN(category)) {
+        const newMenu = new Menu();
+        newMenu.name = menuName;
+        newMenu.category = category;
+
+        await this.menuRepository.save(newMenu);
+      }
+    }
   }
 
   async updateMenu(menu: Menu): Promise<void> {

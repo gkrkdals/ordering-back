@@ -1,6 +1,7 @@
-import { Body, Controller, Delete, Get, Post, Put, Query } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Post, Put, Query, UploadedFile, UseInterceptors } from "@nestjs/common";
 import { MenuService } from "@src/modules/main/manager/menu/menu.service";
 import { Menu } from "@src/entities/menu.entity";
+import { FileInterceptor } from "@nestjs/platform-express";
 
 @Controller('manager/menu')
 export class MenuController {
@@ -29,6 +30,12 @@ export class MenuController {
   @Post()
   async createMenu(@Body() body: Menu) {
     return this.menuService.createMenu(body);
+  }
+
+  @Post('excel')
+  @UseInterceptors(FileInterceptor('excel'))
+  async createMenuFromExcel(@UploadedFile() excel: Express.Multer.File) {
+    return this.menuService.createMenuFromExcel(excel);
   }
 
   @Put()
