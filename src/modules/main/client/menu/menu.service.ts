@@ -21,7 +21,7 @@ export class MenuService {
         withdrawn: Not(1)
       },
       order: {
-        seq: 'desc',
+        seq: 'asc',
       }
     });
   }
