@@ -10,6 +10,7 @@ import { DishDisposalService } from "@src/modules/main/client/order/services/dis
 import { OrderGateway } from "@src/socket/order.gateway";
 import { CustomerPrice } from "@src/entities/customer-price";
 import { CustomerCredit } from "@src/entities/customer-credit.entity";
+import { Menu } from "@src/entities/menu.entity";
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { CustomerCredit } from "@src/entities/customer-credit.entity";
       OrderCategory,
       CustomerPrice,
       CustomerCredit,
+      Menu,
     ]),
   ],
   controllers: [OrderController],

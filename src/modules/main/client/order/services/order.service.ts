@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable } from "@nestjs/common";
 import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
 import { OrderCategory } from "@src/entities/order-category.entity";
 import { DataSource, LessThan, Not, Repository } from "typeorm";
@@ -13,6 +13,7 @@ import { CustomerPrice } from "@src/entities/customer-price";
 import { CustomerCredit } from "@src/entities/customer-credit.entity";
 import { OrderStatus } from "@src/entities/order-status.entity";
 import { getOrderAvailableTimes } from "@src/utils/date";
+import { Menu } from "@src/entities/menu.entity";
 
 @Injectable()
 export class OrderService {
@@ -27,6 +28,8 @@ export class OrderService {
     private readonly customerPriceRepository: Repository<CustomerPrice>,
     @InjectRepository(CustomerCredit)
     private readonly customerCreditRepository: Repository<CustomerCredit>,
+    @InjectRepository(Menu)
+    private readonly menuRepository: Repository<Menu>,
     @InjectDataSource()
     private readonly datasource: DataSource,
     private readonly orderGateway: OrderGateway,
@@ -46,6 +49,19 @@ export class OrderService {
       take: 2
     });
     return recentRequests.map(req => req.request);
+  }
+
+  async getLastOrders(customer: Customer) {
+    return this.orderRepository.find({
+      where: {
+        customer: customer.id
+      },
+      relations: {
+        menuJoin: true
+      },
+      order: { id: 'desc' },
+      take: 4
+    });
   }
 
   async getCredit(customer: Customer) {
@@ -74,24 +90,30 @@ export class OrderService {
 
     for(const orderedMenu of orderedMenus) {
       const newOrder = new Order();
+      const currentMenu = await this.menuRepository.findOneBy({ id: orderedMenu.menu.id });
 
-      if (orderedMenu.menu.id === 0) {
-        newOrder.memo = orderedMenu.menu.name;
-        newOrder.price = 0;
+      // 메뉴가 품절이 된 경우
+      if (currentMenu.soldOut === 1) {
+        throw new BadRequestException();
       } else {
-        const customPrice = customPrices.find(price => price.category === orderedMenu.menu.category);
-
-        if(customPrice) {
-          newOrder.price = customPrice.price;
+        if (orderedMenu.menu.id === 0) {
+          newOrder.memo = orderedMenu.menu.name;
+          newOrder.price = 0;
         } else {
-          newOrder.price = orderedMenu.menu.menuCategory.price;
-        }
-      }
+          const customPrice = customPrices.find(price => price.category === orderedMenu.menu.category);
 
-      newOrder.customer = customer.id;
-      newOrder.menu = orderedMenu.menu.id;
-      newOrder.request = orderedMenu.request;
-      await this.orderRepository.save(newOrder);
+          if(customPrice) {
+            newOrder.price = customPrice.price;
+          } else {
+            newOrder.price = orderedMenu.menu.menuCategory.price;
+          }
+        }
+
+        newOrder.customer = customer.id;
+        newOrder.menu = orderedMenu.menu.id;
+        newOrder.request = orderedMenu.request;
+        await this.orderRepository.save(newOrder);
+      }
     }
 
     this.orderGateway.newOrderAlarm();

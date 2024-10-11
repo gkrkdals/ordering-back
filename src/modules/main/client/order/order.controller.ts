@@ -28,6 +28,11 @@ export class OrderController {
     return this.orderService.getRecentRequests(customer);
   }
 
+  @Get('last')
+  getLastOrders(@CustomerData() customer: Customer) {
+    return this.orderService.getLastOrders(customer);
+  }
+
   @Get('credit')
   getCredit(@CustomerData() customer: Customer) {
     return this.orderService.getCredit(customer);

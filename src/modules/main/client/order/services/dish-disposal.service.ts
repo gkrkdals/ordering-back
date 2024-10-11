@@ -18,7 +18,10 @@ export class DishDisposalService {
   ) {}
 
   async getDishDisposals(customer: Customer): Promise<Disposal[]> {
-    return this.orderStatusRepository.query(DisposalSql.getDisposals, [customer.id, StatusEnum.AwaitingPickup, StatusEnum.InPickingUp]);
+    return this.orderStatusRepository.query(
+      DisposalSql.getDisposals,
+      [StatusEnum.AwaitingPickup, StatusEnum.InPickingUp, customer.id]
+    );
   }
 
   async createDishDisposal(body: CreateDishDisposalDto) {

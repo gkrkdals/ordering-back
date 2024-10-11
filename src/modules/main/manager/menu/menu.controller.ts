@@ -53,6 +53,11 @@ export class MenuController {
     return this.menuService.toggleSoldOutAll(soldOut);
   }
 
+  @Put('seq')
+  async updateMenuSeq(@Body('seqArray') seqArray: { id: number, seq: number | null }[]) {
+    return this.menuService.updateMenuSeq(seqArray);
+  }
+
   @Delete()
   async deleteMenu(@Query('id') id: number) {
     return this.menuService.deleteMenu(id);

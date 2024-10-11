@@ -21,4 +21,7 @@ export class Menu {
 
   @Column()
   withdrawn: number;
+
+  @Column()
+  seq: number;
 }

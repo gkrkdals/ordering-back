@@ -27,6 +27,8 @@ export class MenuService {
 
     if (order !== '') {
       findOrder[column] = order;
+    } else {
+      findOrder.seq = 'asc';
     }
 
     const [data, count] = await this.menuRepository.findAndCount({
@@ -105,6 +107,14 @@ export class MenuService {
 
   async toggleSoldOutAll(soldOut: boolean) {
     await this.menuRepository.update({}, { soldOut: soldOut ? 1 : 0 });
+  }
+
+  async updateMenuSeq(seqArray: { id: number, seq: number | null }[]) {
+    for (const element of seqArray) {
+      const foundMenu = await this.menuRepository.findOneBy({ id: element.id });
+      foundMenu.seq = element.seq;
+      await this.menuRepository.save(foundMenu);
+    }
   }
 
   async deleteMenu(id: number): Promise<void> {

@@ -87,7 +87,7 @@ export class OrderService {
           ...likes,
           StatusEnum.PendingReceipt, StatusEnum.PickupComplete,
           orderingMode, firstTime, lastTime,
-          remainingMode, StatusEnum.AwaitingPickup, StatusEnum.InPickingUp,
+          remainingMode, StatusEnum.InPickingUp,
           countSkip(page)
         ]
       );
@@ -105,20 +105,6 @@ export class OrderService {
       ))[0];
 
     count = parseInt(count);
-
-    // 각 주문 상태에 잔금 매핑
-    for (const status of data) {
-      status.credit = parseInt(
-        (await this
-          .orderStatusRepository
-          .query(
-            `SELECT IFNULL(customer, ?), IFNULL(SUM(credit_diff), 0) credit FROM customer_credit WHERE customer = ?`,
-            [status.customer, status.customer]
-          ))
-          .at(0)
-          .credit
-      );
-    }
 
     const { limit, name } = this.getModificationLimitAndItsName(user);
 

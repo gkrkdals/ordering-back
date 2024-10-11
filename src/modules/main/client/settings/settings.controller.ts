@@ -1,7 +1,9 @@
-import { Body, Controller, Get, Put, Res } from "@nestjs/common";
+import { Body, Controller, Get, Put, Res, UseGuards } from "@nestjs/common";
 import { SettingsService } from "@src/modules/main/client/settings/settings.service";
 import { Response } from "express";
+import { AuthGuard } from "@src/modules/auth/auth.guard";
 
+@UseGuards(AuthGuard)
 @Controller('settings')
 export class SettingsController {
 
