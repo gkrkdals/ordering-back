@@ -29,6 +29,7 @@ export class MenuService {
       findOrder[column] = order;
     } else {
       findOrder.seq = 'asc';
+      findOrder.id = 'asc';
     }
 
     const [data, count] = await this.menuRepository.findAndCount({
