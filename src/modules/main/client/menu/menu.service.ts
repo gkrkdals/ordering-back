@@ -19,6 +19,9 @@ export class MenuService {
       where: {
         id: Not(0),
         withdrawn: Not(1)
+      },
+      order: {
+        seq: 'desc',
       }
     });
   }
