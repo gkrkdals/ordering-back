@@ -1,11 +1,17 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Post, Query, Req, Res, UseGuards } from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import { AuthGuard } from "./auth.guard";
-import { Response } from "express";
+import { CookieOptions, Response } from "express";
 import { Customer } from "@src/entities/customer.entity";
 import { ManagerSignInDto } from "@src/modules/auth/dto/manager-sign-in.dto";
 import { CreateAccountDto } from "@src/modules/auth/dto/create-account.dto";
 import { CustomerData } from "@src/modules/user/customer.decorator";
+
+const cookieOptions: CookieOptions = {
+  sameSite: "none",
+  httpOnly: true,
+  secure: true
+}
 
 @Controller('auth')
 export class AuthController {
@@ -19,7 +25,7 @@ export class AuthController {
   ): Promise<Customer> {
     const data = await this.authService.clientSignIn(signInDto.id);
     res.setHeader("Authorization", `Bearer ${data.access_token}`)
-    res.cookie("jwt", data.access_token, { httpOnly: true });
+    res.cookie("jwt", data.access_token, cookieOptions);
 
     return data.payload
   }
@@ -29,7 +35,7 @@ export class AuthController {
   async getProfile(@CustomerData() customer: Customer, @Res({ passthrough: true }) res: Response) {
     const data = await this.authService.clientSignIn(customer.id);
     res.setHeader("Authorization", `Bearer ${data.access_token}`)
-    res.cookie("jwt", data.access_token, { httpOnly: true });
+    res.cookie("jwt", data.access_token, cookieOptions);
 
     return data.payload
   }
@@ -43,7 +49,7 @@ export class AuthController {
     const { username, password } = signInDto;
     const token = await this.authService.managerSignIn(username, password);
     res.setHeader("Authorization", `Bearer ${token.access_token}`);
-    res.cookie("jwt", token.access_token, { httpOnly: true });
+    res.cookie("jwt", token.access_token, cookieOptions);
 
     return token.payload;
   }

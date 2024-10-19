@@ -6,7 +6,7 @@ import {
 } from "@nestjs/websockets";
 import { Server, Socket } from 'socket.io';
 
-@WebSocketGateway(8080, { cors: ['http://localhost:5173', 'http://34.47.98.56', 'http://yeonsu.kr'] })
+@WebSocketGateway(8080, { cors: ['http://localhost:5173', 'http://34.47.98.56', 'https://yeonsu.kr'] })
 export class OrderGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
 
   @WebSocketServer()
