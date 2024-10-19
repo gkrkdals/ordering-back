@@ -9,9 +9,8 @@ async function bootstrap() {
   app.enableCors({
     credentials: true,
     origin: [
+      'https://localhost',
       'http://localhost:5173',
-      'http://192.168.0.69:5173',
-      'http://34.47.98.56',
       'https://yeonsu.kr',
     ],
   });
