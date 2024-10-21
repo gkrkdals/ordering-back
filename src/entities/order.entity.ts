@@ -17,6 +17,9 @@ export class Order {
   @Column()
   menu: number;
 
+  @Column({ nullable: true })
+  path: number | null;
+
   @JoinColumn({ name: 'menu' })
   @OneToOne(() => Menu)
   menuJoin: Menu;

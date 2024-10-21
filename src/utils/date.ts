@@ -37,3 +37,6 @@ export function getOrderAvailableTimes() {
   return [dateToString(ret1), dateToString(ret2)];
 }
 
+export function isSameDay(day1: Date, day2: Date): boolean {
+  return (day1.getFullYear() === day2.getFullYear()) && (day1.getMonth() === day2.getMonth()) && (day1.getDate() === day2.getDate());
+}

@@ -3,7 +3,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { GetCalculationDto } from "@src/modules/main/manager/settings/dto/get-calculation.dto";
 import { Order } from "@src/entities/order.entity";
-import { dateToString } from "@src/utils/date";
+import { dateToString, isSameDay } from "@src/utils/date";
 import { SettingsSql } from "@src/modules/main/manager/settings/sql/settings.sql";
 import { ExcelData } from "@src/types/models/ExcelData";
 import { Settings } from "@src/entities/settings.entity";
@@ -27,6 +27,18 @@ function getTheme(isCancelled: boolean, isMenuZero?: boolean, alignRight?: boole
   }
 
   return theme;
+}
+
+function getPathName(path: number | null): string {
+  if (path === 1) {
+    return '고객페이지';
+  } else if (path === 2) {
+    return '최고관리자 페이지'
+  } else if (path === 3) {
+    return '배달원 페이지';
+  }
+
+  return '';
 }
 
 @Injectable()
@@ -74,7 +86,11 @@ export class SettingsService {
     const endDate = new Date(end);
 
     startDate.setHours(9, 0, 0, 0);
-    endDate.setHours(8, 59, 59, 999);
+    if (isSameDay(startDate, endDate)) {
+      endDate.setHours(23, 59, 59, 999);
+    } else {
+      endDate.setHours(8, 59, 59, 999);
+    }
 
     const startString = dateToString(startDate);
     const endString = dateToString(endDate);
@@ -89,10 +105,31 @@ export class SettingsService {
       customerParam = customer;
     }
 
-    const excelData: ExcelData[] = await this.orderRepository.query(
-      SettingsSql.getExcelData,
-      [startString, endString, customerParam, customerParam, menuParam, menuParam, startString, endString]
+    const ordinaryData: ExcelData[] = await this.orderRepository.query(
+      SettingsSql.getOrdinaryData,
+      [startString, endString, customerParam, customerParam, menuParam, menuParam]
     );
+
+    const extraData: ExcelData[] = await this.orderRepository.query(
+      SettingsSql.getExtraData,
+      [startString, endString]
+    );
+
+    console.log(extraData);
+
+    const excelData: ExcelData[] = ordinaryData.concat([{
+      customer_name: '',
+      menu: '',
+      menu_name: '',
+      path: null,
+      price: null,
+      order_time: null,
+      delivered_time: null,
+      credit_by: '',
+      credit_time: null,
+      credit_in: null,
+      memo: ''
+    }]).concat(extraData);
 
     const data: any[][] = excelData.map((row, i) => {
       const p = getTheme(row.memo === '취소됨');
@@ -100,19 +137,21 @@ export class SettingsService {
       const q = getTheme(row.memo === '취소됨', row.menu === 0, true);
 
 
+
       return [
         { v: i + 1, t: "s", s: p },
         { v: row.customer_name, t: "s", s: p },
         { v: row.menu_name, t: "s", s: t },
-        { v: row.price === null ? '' : parseInt(row.price).toLocaleString('ko-KR'), t: "s", s: q },
+        { v: row.price === null ? '' : parseInt(row.price), t: "n", s: q },
         { v: row.order_time === null ? '' : dateToString(new Date(row.order_time)), t: "s", s: p },
+        { v: getPathName(row.path), t: "s", s: p },
         { v: row.delivered_time === null ? '' : dateToString(new Date(row.delivered_time)), t: "s", s: p },
         { v: row.credit_by ?? '', t: "s", s: p },
         { v: row.credit_time === null ? '' : dateToString(new Date(row.credit_time)), t: "s", s: p },
-        { v: row.credit_in === null ? '' : parseInt(row.credit_in).toLocaleString('ko-KR'), t: "s", s: q },
+        { v: row.credit_in === null ? '' : parseInt(row.credit_in), t: "n", s: q },
         { v: row.memo, t: "s", s: p }
-      ]
-    })
+      ];
+    });
 
     return data;
   }

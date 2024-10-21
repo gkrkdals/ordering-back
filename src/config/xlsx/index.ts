@@ -4,6 +4,7 @@ export const header = [
   { v: '메뉴', t: 's', s: { font: { bold: true, } } },
   { v: '가격', t: 's', s: { font: { bold: true, } } },
   { v: '주문시간', t: 's', s: { font: { bold: true, } } },
+  { v: '주문경로', t: 's', s: { font: { bold: true, } } },
   { v: '배달완료시간', t: 's', s: { font: { bold: true, } } },
   { v: '입금인', t: 's', s: { font: { bold: true, } } },
   { v: '입금시간', t: 's', s: { font: { bold: true, } } },

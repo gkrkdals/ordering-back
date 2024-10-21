@@ -128,7 +128,7 @@ export class OrderService {
       .query(OrderSql.getOrderHistory, [orderCode, orderCode]);
   }
 
-  async createNewOrder(menu: Menu, customer: Customer, request: string) {
+  async createNewOrder(menu: Menu, customer: Customer, request: string, user: User) {
     const newOrder = new Order();
     const customPrices = await this.customerPriceRepository.findBy({ customer: customer.id });
 
@@ -144,6 +144,7 @@ export class OrderService {
       }
     }
 
+    newOrder.path = (user.permission === 1) ? 2 : 3;
     newOrder.customer = customer.id;
     newOrder.menu = menu.id;
     newOrder.request = request;

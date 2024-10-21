@@ -53,8 +53,9 @@ export class OrderController {
     @Body('menu') menu: Menu,
     @Body('customer') customer: Customer,
     @Body('request') request: string,
+    @UserData() user: User
   ) {
-    return this.orderService.createNewOrder(menu, customer, request);
+    return this.orderService.createNewOrder(menu, customer, request, user);
   }
 
   @Put()

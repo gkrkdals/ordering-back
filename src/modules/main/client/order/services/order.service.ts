@@ -57,7 +57,9 @@ export class OrderService {
         customer: customer.id
       },
       relations: {
-        menuJoin: true
+        menuJoin: {
+          menuCategory: true
+        }
       },
       order: { id: 'desc' },
       take: 4
@@ -109,6 +111,7 @@ export class OrderService {
           }
         }
 
+        newOrder.path = 1;
         newOrder.customer = customer.id;
         newOrder.menu = orderedMenu.menu.id;
         newOrder.request = orderedMenu.request;

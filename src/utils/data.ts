@@ -12,3 +12,8 @@ export function countSkip(page: number) {
 
   return (page - 1) * 20;
 }
+
+export function sleep(ms: number) {
+  const wakeUpTime = Date.now() + ms;
+  while (Date.now() < wakeUpTime) {}
+}

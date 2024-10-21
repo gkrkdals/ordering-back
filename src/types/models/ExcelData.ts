@@ -1,8 +1,9 @@
 export interface ExcelData {
   customer_name: string;
-  menu: number;
+  menu: number | string;
   menu_name: string;
   price: string;
+  path: number | null;
   order_time: string;
   delivered_time: string;
   credit_in: string;

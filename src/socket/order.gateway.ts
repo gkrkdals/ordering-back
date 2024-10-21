@@ -6,7 +6,9 @@ import {
 } from "@nestjs/websockets";
 import { Server, Socket } from 'socket.io';
 
-@WebSocketGateway(8080, { cors: ['http://localhost:5173', 'http://34.47.98.56', 'https://yeonsu.kr'] })
+@WebSocketGateway(8080, {
+    cors: ['http://localhost:5173', 'https://localhost', 'https://yeonsu.kr']
+})
 export class OrderGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
 
   @WebSocketServer()
@@ -57,6 +59,10 @@ export class OrderGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
   // 새로운 주문 건 알림
   newOrderAlarm() {
     this.broadcastEvent('new_order_alarm');
+  }
+
+  cookingStarted() {
+    this.broadcastEvent('cooking_started');
   }
 
   // 조리시간 초과 알림

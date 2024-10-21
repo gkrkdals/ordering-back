@@ -13,6 +13,7 @@ import { UpdateOrderMenuDto } from "@src/modules/main/manager/order/dto/update-o
 import { OrderChange } from "@src/entities/order-change.entity";
 import { User } from "@src/entities/user.entity";
 import { getOrderAvailableTimes } from "@src/utils/date";
+import { PermissionEnum } from "@src/types/enum/PermissionEnum";
 
 @Injectable()
 export class OrderModifyService {
@@ -38,6 +39,11 @@ export class OrderModifyService {
    * @param order 주문정보
    */
   async updateOrder(user: User, order: UpdateOrderDto) {
+
+    if (user.permission === PermissionEnum.Cook && order.newStatus > StatusEnum.WaitingForDelivery) {
+      return;
+    }
+
     // 상태변경을 일으킨 주문상태의 엔티티를 받아옴
     const currentOrderStatus = await this.orderStatusRepository.findOne({
       where: { id: order.orderId },
@@ -162,6 +168,10 @@ export class OrderModifyService {
   }
 
   private raiseAlarm(newStatus: StatusEnum) {
+    if(newStatus === StatusEnum.InPreparation) {
+      this.orderGateway.cookingStarted();
+    }
+
     if(newStatus === StatusEnum.WaitingForDelivery) {
       this.orderGateway.newDeliveryAlarm();
     }
