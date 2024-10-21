@@ -111,7 +111,7 @@ export class OrderService {
           }
         }
 
-        newOrder.path = 1;
+        newOrder.path = null;
         newOrder.customer = customer.id;
         newOrder.menu = orderedMenu.menu.id;
         newOrder.request = orderedMenu.request;

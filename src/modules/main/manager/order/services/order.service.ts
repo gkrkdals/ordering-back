@@ -144,7 +144,7 @@ export class OrderService {
       }
     }
 
-    newOrder.path = (user.permission === 1) ? 2 : 3;
+    newOrder.path = user.id;
     newOrder.customer = customer.id;
     newOrder.menu = menu.id;
     newOrder.request = request;

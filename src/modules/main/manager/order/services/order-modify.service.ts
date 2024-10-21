@@ -59,6 +59,7 @@ export class OrderModifyService {
 
     // 새 잔금 엔티티 생성, 매핑
     const newCreditInfo = new CustomerCredit();
+    newCreditInfo.status = order.newStatus;
     newCreditInfo.by = user.id;
     newCreditInfo.orderCode = orderCode;
     newCreditInfo.creditDiff = order.paidAmount;

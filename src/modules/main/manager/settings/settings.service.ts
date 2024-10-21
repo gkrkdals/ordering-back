@@ -11,6 +11,20 @@ import { Response } from "express";
 import { createReadStream } from "fs";
 import Path from "path";
 
+const empty: ExcelData = {
+  customer_name: '',
+  menu: '',
+  menu_name: '',
+  path: null,
+  price: null,
+  order_time: null,
+  delivered_time: null,
+  credit_by: '',
+  credit_time: null,
+  credit_in: null,
+  memo: ''
+}
+
 function getTheme(isCancelled: boolean, isMenuZero?: boolean, alignRight?: boolean) {
   const theme: any = { font: {}, alignment: {} }
 
@@ -29,17 +43,6 @@ function getTheme(isCancelled: boolean, isMenuZero?: boolean, alignRight?: boole
   return theme;
 }
 
-function getPathName(path: number | null): string {
-  if (path === 1) {
-    return '고객페이지';
-  } else if (path === 2) {
-    return '최고관리자 페이지'
-  } else if (path === 3) {
-    return '배달원 페이지';
-  }
-
-  return '';
-}
 
 @Injectable()
 export class SettingsService {
@@ -110,33 +113,22 @@ export class SettingsService {
       [startString, endString, customerParam, customerParam, menuParam, menuParam]
     );
 
+    const dishData: ExcelData[] = await this.orderRepository.query(
+      SettingsSql.getDishData,
+      [startString, endString]
+    );
+
     const extraData: ExcelData[] = await this.orderRepository.query(
       SettingsSql.getExtraData,
       [startString, endString]
     );
 
-    console.log(extraData);
-
-    const excelData: ExcelData[] = ordinaryData.concat([{
-      customer_name: '',
-      menu: '',
-      menu_name: '',
-      path: null,
-      price: null,
-      order_time: null,
-      delivered_time: null,
-      credit_by: '',
-      credit_time: null,
-      credit_in: null,
-      memo: ''
-    }]).concat(extraData);
+    const excelData: ExcelData[] = ordinaryData.concat([empty]).concat(dishData).concat([empty]).concat(extraData);
 
     const data: any[][] = excelData.map((row, i) => {
       const p = getTheme(row.memo === '취소됨');
       const t = getTheme(row.memo === '취소됨', row.menu === 0);
       const q = getTheme(row.memo === '취소됨', row.menu === 0, true);
-
-
 
       return [
         { v: i + 1, t: "s", s: p },
@@ -144,7 +136,7 @@ export class SettingsService {
         { v: row.menu_name, t: "s", s: t },
         { v: row.price === null ? '' : parseInt(row.price), t: "n", s: q },
         { v: row.order_time === null ? '' : dateToString(new Date(row.order_time)), t: "s", s: p },
-        { v: getPathName(row.path), t: "s", s: p },
+        { v: row.path ?? '', t: "s", s: p },
         { v: row.delivered_time === null ? '' : dateToString(new Date(row.delivered_time)), t: "s", s: p },
         { v: row.credit_by ?? '', t: "s", s: p },
         { v: row.credit_time === null ? '' : dateToString(new Date(row.credit_time)), t: "s", s: p },

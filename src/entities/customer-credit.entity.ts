@@ -18,6 +18,9 @@ export class CustomerCredit {
   customerJoin: Customer;
 
   @Column({ nullable: true })
+  status: number | null;
+
+  @Column({ nullable: true })
   by: number;
 
   @JoinColumn({ name: 'by' })
