@@ -60,7 +60,14 @@ export class OrderService {
     const recentMenus: Menu[] = [];
 
     for (const menuKey of recentMenuOnDigit) {
-      const menu = await this.menuRepository.findOneBy({ id: menuKey.menu });
+      const menu = await this.menuRepository.findOne({
+        where: {
+          id: menuKey.menu
+        },
+        relations: {
+          menuCategory: true
+        }
+      });
       recentMenus.push(menu);
     }
 
