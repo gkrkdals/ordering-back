@@ -52,18 +52,19 @@ export class OrderService {
   }
 
   async getLastOrders(customer: Customer) {
-    return this.orderRepository.find({
-      where: {
-        customer: customer.id
-      },
-      relations: {
-        menuJoin: {
-          menuCategory: true
-        }
-      },
-      order: { id: 'desc' },
-      take: 4
-    });
+    const recentMenuOnDigit: { id: number; menu: number }[] = await this.orderRepository.query(
+      'SELECT MIN(id) AS id, menu FROM `order` WHERE customer = ? GROUP BY menu ORDER BY id ASC',
+      [customer.id]
+    );
+
+    const recentMenus: Menu[] = [];
+
+    for (const menuKey of recentMenuOnDigit) {
+      const menu = await this.menuRepository.findOneBy({ id: menuKey.menu });
+      recentMenus.push(menu);
+    }
+
+    return recentMenus
   }
 
   async getCredit(customer: Customer) {
