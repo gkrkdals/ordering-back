@@ -5,6 +5,7 @@ import {
   WebSocketServer
 } from "@nestjs/websockets";
 import { Server, Socket } from 'socket.io';
+import { Cron, CronExpression } from "@nestjs/schedule";
 
 @WebSocketGateway(8080, {
     cors: ['http://localhost:5173', 'https://localhost', 'https://yeonsu.kr']
@@ -83,5 +84,10 @@ export class OrderGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
   // 그릇 수거 요청
   newDishDisposal() {
     this.broadcastEvent('new_dish_disposal');
+  }
+
+  @Cron(CronExpression.EVERY_30_SECONDS)
+  ping() {
+    this.broadcastEvent('ping');
   }
 }
