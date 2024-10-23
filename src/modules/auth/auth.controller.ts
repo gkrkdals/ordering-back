@@ -1,12 +1,11 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Post, Query, Req, Res, UseGuards } from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import { AuthGuard } from "./auth.guard";
-import { CookieOptions, Response } from "express";
+import { CookieOptions, Request, Response } from "express";
 import { Customer } from "@src/entities/customer.entity";
 import { ManagerSignInDto } from "@src/modules/auth/dto/manager-sign-in.dto";
 import { CreateAccountDto } from "@src/modules/auth/dto/create-account.dto";
-import { CustomerData, UserData } from "@src/modules/user/customer.decorator";
-import { User } from "@src/entities/user.entity";
+import { CustomerData } from "@src/modules/user/customer.decorator";
 
 const cookieOptions: CookieOptions = {
   sameSite: "none",
@@ -55,12 +54,13 @@ export class AuthController {
   }
 
   @Get('manager/logout')
-  async logout(@Res({ passthrough: true }) res: Response, @UserData() user: User) {
-    await this.authService.logout(res, user);
+  @UseGuards(AuthGuard)
+  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    await this.authService.logout(res, req['user']);
   }
 
-  @UseGuards(AuthGuard)
   @Get('manager/profile')
+  @UseGuards(AuthGuard)
   getManagerProfile(
     @Req() req: any,
     @Query('permission') permission: 'manager' | 'rider' | 'cook' | undefined
