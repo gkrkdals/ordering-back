@@ -64,8 +64,8 @@ export class FirebaseService {
 
   async cookingStarted() {
     const usersWithToken = await this.userRepository.findBy([
-      { permission: PermissionEnum.Cook, fcmToken: Not(null) },
-      { permission: PermissionEnum.Cook, fcmToken: Not('') }
+      { fcmToken: Not(null) },
+      { fcmToken: Not('') }
     ]);
 
     for (const user of usersWithToken) {
@@ -75,8 +75,8 @@ export class FirebaseService {
 
   async cookingExceeded() {
     const usersWithToken = await this.userRepository.findBy([
-      { fcmToken: Not(null) },
-      { fcmToken: Not('') }
+      { permission: PermissionEnum.Cook, fcmToken: Not(null) },
+      { permission: PermissionEnum.Cook, fcmToken: Not('') }
     ]);
 
     for (const user of usersWithToken) {
