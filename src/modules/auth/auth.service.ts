@@ -9,6 +9,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { Customer } from "@src/entities/customer.entity";
 import { ManagerSignInDto } from "@src/modules/auth/dto/manager-sign-in.dto";
+import { Response } from "express";
 
 @Injectable()
 export class AuthService {
@@ -98,5 +99,12 @@ export class AuthService {
     newUser.nickname = nickname;
     newUser.permission = permission;
     await this.userRepository.save(newUser);
+  }
+
+  async logout(res: Response, user: User) {
+    res.clearCookie('jwt');
+    const foundUser = await this.userRepository.findOneBy({ id: user.id });
+    foundUser.fcmToken = null;
+    await this.userRepository.save(foundUser);
   }
 }

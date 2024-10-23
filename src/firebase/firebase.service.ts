@@ -1,9 +1,8 @@
 import { Injectable } from "@nestjs/common";
-import admin, { messaging } from "firebase-admin";
+import admin from "firebase-admin";
 import { InjectRepository } from "@nestjs/typeorm";
 import { User } from "@src/entities/user.entity";
 import { Not, Repository } from "typeorm";
-import Message = messaging.Message;
 import { PermissionEnum } from "@src/types/enum/PermissionEnum";
 import * as fs from 'fs';
 import * as path from 'path';
@@ -34,13 +33,14 @@ export class FirebaseService {
     }
   }
 
-  async fcm(token: string, type: string, message: string) {
-    const payload: Message = {
+  async fcm(token: string, title: string, body: string, sound: string) {
+    const payload = {
       token,
-      data: {
-        type,
-        message,
-      }
+      notification: {
+        title,
+        body,
+        sound
+      },
     };
 
     return await admin
@@ -57,7 +57,7 @@ export class FirebaseService {
     console.log(usersWithToken.map(user => user.fcmToken));
 
     for (const user of usersWithToken) {
-      await this.fcm(user.fcmToken, "new_order", "new_order.mp3");
+      await this.fcm(user.fcmToken, "새로운 주문", "새로운 주문이 있습니다.", "new_order");
     }
   }
 
@@ -68,7 +68,7 @@ export class FirebaseService {
     ]);
 
     for (const user of usersWithToken) {
-      await this.fcm(user.fcmToken, "cooking_started", "cooking_started.mp3");
+      await this.fcm(user.fcmToken, "조리 시작", "조리가 시작되었습니다.", "cooking_started");
     }
   }
 
@@ -79,7 +79,7 @@ export class FirebaseService {
     ]);
 
     for (const user of usersWithToken) {
-      await this.fcm(user.fcmToken, "cooking_exceeded", "cooking_exceeded.mp3");
+      await this.fcm(user.fcmToken, "조리시간 초과", "조리시간이 초과되었습니다.", "cooking_exceeded");
     }
   }
 
@@ -90,7 +90,7 @@ export class FirebaseService {
     ]);
 
     for (const user of usersWithToken) {
-      await this.fcm(user.fcmToken, "new_delivery", "new_delivery.mp3");
+      await this.fcm(user.fcmToken, "새로운 배달", "새로운 배달이 있습니다.", "new_delivery");
     }
   }
 
@@ -101,7 +101,7 @@ export class FirebaseService {
     ]);
 
     for (const user of usersWithToken) {
-      await this.fcm(user.fcmToken, "deliver_delayed", "deliver_delayed.mp3");
+      await this.fcm(user.fcmToken, "배달시간 초과", "배달시간이 초과되었습니다.", "deliver_delayed");
     }
   }
 
@@ -112,18 +112,7 @@ export class FirebaseService {
     ]);
 
     for (const user of usersWithToken) {
-      await this.fcm(user.fcmToken, "new_dish_disposal", "new_dish_disposal.mp3");
-    }
-  }
-
-  async clearAlarm() {
-    const usersWithToken = await this.userRepository.findBy([
-      { fcmToken: Not(null) },
-      { fcmToken: Not('') }
-    ]);
-
-    for (const user of usersWithToken) {
-      await this.fcm(user.fcmToken, "clear_alarm", "");
+      await this.fcm(user.fcmToken, "새로운 그릇수거", "새로운 그릇수거가 있습니다.", "new_dish_disposal");
     }
   }
 }

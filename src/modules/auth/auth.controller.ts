@@ -5,7 +5,8 @@ import { CookieOptions, Response } from "express";
 import { Customer } from "@src/entities/customer.entity";
 import { ManagerSignInDto } from "@src/modules/auth/dto/manager-sign-in.dto";
 import { CreateAccountDto } from "@src/modules/auth/dto/create-account.dto";
-import { CustomerData } from "@src/modules/user/customer.decorator";
+import { CustomerData, UserData } from "@src/modules/user/customer.decorator";
+import { User } from "@src/entities/user.entity";
 
 const cookieOptions: CookieOptions = {
   sameSite: "none",
@@ -54,8 +55,8 @@ export class AuthController {
   }
 
   @Get('manager/logout')
-  async logout(@Res({ passthrough: true }) res: Response) {
-    res.clearCookie('jwt');
+  async logout(@Res({ passthrough: true }) res: Response, @UserData() user: User) {
+    await this.authService.logout(res, user);
   }
 
   @UseGuards(AuthGuard)
