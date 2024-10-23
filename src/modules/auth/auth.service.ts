@@ -103,8 +103,10 @@ export class AuthService {
 
   async logout(res: Response, user: User) {
     res.clearCookie('jwt');
-    const foundUser = await this.userRepository.findOneBy({ id: user.id });
-    foundUser.fcmToken = null;
-    await this.userRepository.save(foundUser);
+    if (user.id) {
+      const foundUser = await this.userRepository.findOneBy({ id: user.id });
+      foundUser.fcmToken = null;
+      await this.userRepository.save(foundUser);
+    }
   }
 }
