@@ -1,11 +1,12 @@
 import { Injectable } from "@nestjs/common";
 import admin, { messaging } from "firebase-admin";
-import serviceAccount from "../../firebase-cert.json";
 import { InjectRepository } from "@nestjs/typeorm";
 import { User } from "@src/entities/user.entity";
 import { Not, Repository } from "typeorm";
 import Message = messaging.Message;
 import { PermissionEnum } from "@src/types/enum/PermissionEnum";
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class FirebaseService {
@@ -14,13 +15,22 @@ export class FirebaseService {
     private readonly userRepository: Repository<User>,
   ) {
     if (admin.apps.length === 0) {
-      admin.initializeApp({
-        credential: admin.credential.cert({
-          projectId: serviceAccount.project_id,
-          clientEmail: serviceAccount.client_email,
-          privateKey: serviceAccount.private_key,
-        })
-      });
+      try {
+        const fullPath = path.join(__dirname, '../../firebase-cert.json');
+        const data = fs.readFileSync(fullPath, 'utf8');
+        const serviceAccount = JSON.parse(data);
+
+        admin.initializeApp({
+          credential: admin.credential.cert({
+            projectId: serviceAccount.project_id,
+            clientEmail: serviceAccount.client_email,
+            privateKey: serviceAccount.private_key,
+          })
+        });
+      } catch (e) {
+        console.error('Error reading JSON file: ', e);
+        throw new Error('Failed to read JSON file');
+      }
     }
   }
 
