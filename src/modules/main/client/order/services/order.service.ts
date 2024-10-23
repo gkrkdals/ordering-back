@@ -131,7 +131,7 @@ export class OrderService {
     }
 
     this.orderGateway.newOrderAlarm();
-    await this.fcmService.cookingStarted();
+    await this.fcmService.newOrder();
     this.orderGateway.refresh();
     this.orderGateway.refreshClient();
   }
