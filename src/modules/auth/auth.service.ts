@@ -1,6 +1,5 @@
 import { BadRequestException, Injectable, UnauthorizedException } from "@nestjs/common";
 import { UserService } from "@src/modules/user/user.service";
-import { Customer } from "@src/entities/customer.entity";
 import { JwtService } from "@nestjs/jwt";
 import { classToObject } from "@src/utils/data";
 import { User } from "@src/entities/user.entity";
@@ -8,6 +7,8 @@ import { PermissionEnum } from "@src/types/enum/PermissionEnum";
 import { CreateAccountDto } from "@src/modules/auth/dto/create-account.dto";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
+import { Customer } from "@src/entities/customer.entity";
+import { ManagerSignInDto } from "@src/modules/auth/dto/manager-sign-in.dto";
 
 @Injectable()
 export class AuthService {
@@ -20,6 +21,7 @@ export class AuthService {
 
   async clientSignIn(id: number): Promise<{ access_token: string; payload: Customer; }> {
     const customer = await this.usersService.findCustomer(id);
+
     if (!customer) {
       throw new UnauthorizedException();
     }
@@ -32,17 +34,23 @@ export class AuthService {
     };
   }
 
-  async managerSignIn(
-    username: string,
-    password: string
-  ): Promise<{ access_token: string; payload: User; }> {
-    const user = await this.usersService.findUser(username, password);
+  async managerSignIn(signInDto: ManagerSignInDto): Promise<{ access_token: string; payload: any; }> {
+    const user = await this.usersService.findUser(signInDto.username, signInDto.password);
+
     if (!user) {
       throw new BadRequestException();
     }
 
+    if (signInDto.token) {
+      user.fcmToken = signInDto.token;
+    }
+
     const payload = classToObject(user);
     delete payload.password;
+    delete payload.fcmToken;
+
+    const saved = await this.userRepository.save(user);
+    console.log(saved.fcmToken);
 
     return {
       access_token: await this.jwtService.signAsync(payload),

@@ -14,6 +14,8 @@ import { OrderChange } from "@src/entities/order-change.entity";
 import { User } from "@src/entities/user.entity";
 import { getOrderAvailableTimes } from "@src/utils/date";
 import { PermissionEnum } from "@src/types/enum/PermissionEnum";
+import { JwtUser } from "@src/types/jwt/JwtUser";
+import { FirebaseService } from "@src/firebase/firebase.service";
 
 @Injectable()
 export class OrderModifyService {
@@ -27,7 +29,8 @@ export class OrderModifyService {
     @InjectRepository(OrderChange)
     private readonly orderChangeRepository: Repository<OrderChange>,
 
-    private readonly orderGateway: OrderGateway
+    private readonly orderGateway: OrderGateway,
+    private readonly fcmService: FirebaseService
   ) {}
 
   /**
@@ -38,7 +41,7 @@ export class OrderModifyService {
    * @param user 상태 변경자 정보
    * @param order 주문정보
    */
-  async updateOrder(user: User, order: UpdateOrderDto) {
+  async updateOrder(user: JwtUser, order: UpdateOrderDto) {
 
     if (user.permission === PermissionEnum.Cook && order.newStatus > StatusEnum.WaitingForDelivery) {
       return;
@@ -85,7 +88,7 @@ export class OrderModifyService {
     await this.orderStatusRepository.save(newOrderStatus);
 
     await this.clearAlarm();
-    this.raiseAlarm(newOrderStatus.status);
+    await this.raiseAlarm(newOrderStatus.status);
 
     this.orderGateway.refreshClient();
     this.orderGateway.refresh();
@@ -129,7 +132,7 @@ export class OrderModifyService {
    * @param user 상태 변경자 id
    * @param id 클라이언트에서 받아온 주문정보의 id
    */
-  async cancelOrder(user: User, id: number) {
+  async cancelOrder(user: JwtUser, id: number) {
     const canceledOrder = await this.orderStatusRepository.findOne({
       where: { id },
     });
@@ -144,7 +147,7 @@ export class OrderModifyService {
     });
 
     await this.clearAlarm();
-    this.raiseAlarm(newOrderStatus.status);
+    await this.raiseAlarm(newOrderStatus.status);
 
     this.orderGateway.refreshClient();
     this.orderGateway.refresh();
@@ -168,17 +171,20 @@ export class OrderModifyService {
     }
   }
 
-  private raiseAlarm(newStatus: StatusEnum) {
+  private async raiseAlarm(newStatus: StatusEnum) {
     if(newStatus === StatusEnum.InPreparation) {
       this.orderGateway.cookingStarted();
+      await this.fcmService.cookingStarted();
     }
 
     if(newStatus === StatusEnum.WaitingForDelivery) {
       this.orderGateway.newDeliveryAlarm();
+      await this.fcmService.newDelivery();
     }
 
     if(newStatus === StatusEnum.InPickingUp) {
       this.orderGateway.newDishDisposal();
+      await this.fcmService.newDishDisposal();
     }
   }
 }

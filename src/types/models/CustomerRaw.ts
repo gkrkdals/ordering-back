@@ -6,5 +6,7 @@ export interface CustomerRaw {
   floor: string;
   category: number;
   withdrawn: number;
+  showPrice: number;
+  hideOrderStatus: number;
   credit: number;
 }

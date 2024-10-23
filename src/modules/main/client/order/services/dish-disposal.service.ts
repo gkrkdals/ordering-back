@@ -8,6 +8,7 @@ import { DisposalSql } from "@src/modules/main/client/order/sql/DisposalSql";
 import { StatusEnum } from "@src/types/enum/StatusEnum";
 import { OrderGateway } from "@src/socket/order.gateway";
 import { Disposal } from "@src/types/models/Disposal";
+import { FirebaseService } from "@src/firebase/firebase.service";
 
 @Injectable()
 export class DishDisposalService {
@@ -15,6 +16,7 @@ export class DishDisposalService {
     @InjectRepository(OrderStatus)
     private readonly orderStatusRepository: Repository<OrderStatus>,
     private readonly orderGateway: OrderGateway,
+    private readonly fcmService: FirebaseService,
   ) {}
 
   async getDishDisposals(customer: Customer): Promise<Disposal[]> {
@@ -34,6 +36,7 @@ export class DishDisposalService {
     await this.orderStatusRepository.save(newOrderStatus);
 
     this.orderGateway.newDishDisposal();
+    await this.fcmService.newDishDisposal();
     this.orderGateway.refresh();
   }
 }

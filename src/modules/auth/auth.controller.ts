@@ -46,8 +46,7 @@ export class AuthController {
     @Body() signInDto: ManagerSignInDto,
     @Res({ passthrough: true }) res: Response
   ) {
-    const { username, password } = signInDto;
-    const token = await this.authService.managerSignIn(username, password);
+    const token = await this.authService.managerSignIn(signInDto);
     res.setHeader("Authorization", `Bearer ${token.access_token}`);
     res.cookie("jwt", token.access_token, cookieOptions);
 

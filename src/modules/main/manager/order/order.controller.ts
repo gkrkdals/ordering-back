@@ -11,6 +11,8 @@ import { UserData } from "@src/modules/user/customer.decorator";
 import { User } from "@src/entities/user.entity";
 import { OrderStatusRaw } from "@src/types/models/OrderStatusRaw";
 import { Request } from "express";
+import { JwtUser } from "@src/types/jwt/JwtUser";
+import { JwtCustomer } from "@src/types/jwt/JwtCustomer";
 
 @Controller('manager/order')
 @UseGuards(AuthGuard)
@@ -51,7 +53,7 @@ export class OrderController {
   @Post()
   async createNewOrder(
     @Body('menu') menu: Menu,
-    @Body('customer') customer: Customer,
+    @Body('customer') customer: JwtCustomer,
     @Body('request') request: string,
     @UserData() user: User
   ) {
@@ -59,12 +61,12 @@ export class OrderController {
   }
 
   @Put()
-  async updateOrder(@UserData() user: User, @Body() body: UpdateOrderDto) {
+  async updateOrder(@UserData() user: JwtUser, @Body() body: UpdateOrderDto) {
     return this.orderModifyService.updateOrder(user, body);
   }
 
   @Delete(':id')
-  async cancelOrder(@UserData() user: User, @Param('id') id: number) {
+  async cancelOrder(@UserData() user: JwtUser, @Param('id') id: number) {
     return this.orderModifyService.cancelOrder(user, id);
   }
 

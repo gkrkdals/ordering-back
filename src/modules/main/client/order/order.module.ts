@@ -11,6 +11,8 @@ import { OrderGateway } from "@src/socket/order.gateway";
 import { CustomerPrice } from "@src/entities/customer-price";
 import { CustomerCredit } from "@src/entities/customer-credit.entity";
 import { Menu } from "@src/entities/menu.entity";
+import { FirebaseService } from "@src/firebase/firebase.service";
+import { User } from "@src/entities/user.entity";
 
 @Module({
   imports: [
@@ -20,6 +22,7 @@ import { Menu } from "@src/entities/menu.entity";
       OrderCategory,
       CustomerPrice,
       CustomerCredit,
+      User,
       Menu,
     ]),
   ],
@@ -29,6 +32,7 @@ import { Menu } from "@src/entities/menu.entity";
     DishDisposalService,
     JwtService,
     OrderGateway,
+    FirebaseService
   ],
 })
 export class OrderModule {}

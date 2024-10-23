@@ -13,6 +13,8 @@ import { OrderModifyService } from "@src/modules/main/manager/order/services/ord
 import { JwtService } from "@nestjs/jwt";
 import { Settings } from "@src/entities/settings.entity";
 import { SchedulingOrderService } from "@src/modules/main/manager/order/services/scheduling-order.service";
+import { FirebaseService } from "@src/firebase/firebase.service";
+import { User } from "@src/entities/user.entity";
 
 @Module({
   imports: [
@@ -24,6 +26,7 @@ import { SchedulingOrderService } from "@src/modules/main/manager/order/services
       CustomerPrice,
       OrderChange,
       Settings,
+      User,
     ]),
   ],
   controllers: [OrderController],
@@ -32,7 +35,8 @@ import { SchedulingOrderService } from "@src/modules/main/manager/order/services
     OrderModifyService,
     SchedulingOrderService,
     OrderGateway,
-    JwtService
+    JwtService,
+    FirebaseService
   ],
 })
 export class OrderModule {}

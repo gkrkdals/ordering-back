@@ -19,4 +19,7 @@ export class User {
 
   @Column()
   time: Date;
+
+  @Column({ nullable: true, name: "fcm_token" })
+  fcmToken: string | null;
 }

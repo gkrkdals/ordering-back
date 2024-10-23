@@ -14,6 +14,8 @@ import { CustomerCredit } from "@src/entities/customer-credit.entity";
 import { OrderStatus } from "@src/entities/order-status.entity";
 import { getOrderAvailableTimes } from "@src/utils/date";
 import { Menu } from "@src/entities/menu.entity";
+import { FirebaseService } from "@src/firebase/firebase.service";
+import { JwtCustomer } from "@src/types/jwt/JwtCustomer";
 
 @Injectable()
 export class OrderService {
@@ -33,6 +35,7 @@ export class OrderService {
     @InjectDataSource()
     private readonly datasource: DataSource,
     private readonly orderGateway: OrderGateway,
+    private readonly fcmService: FirebaseService
   ) {}
 
   getOrderCategories(): Promise<OrderCategory[]> {
@@ -95,7 +98,7 @@ export class OrderService {
     return this.datasource.query(OrderSql.getOrderStatus, [customer.id, first, last]);
   }
 
-  async addOrder(customer: Customer, orderedMenus: OrderedMenuDto[]): Promise<void> {
+  async addOrder(customer: JwtCustomer, orderedMenus: OrderedMenuDto[]): Promise<void> {
     const customPrices = await this.customerPriceRepository.findBy({ customer: customer.id });
 
     for(const orderedMenu of orderedMenus) {
@@ -128,6 +131,7 @@ export class OrderService {
     }
 
     this.orderGateway.newOrderAlarm();
+    await this.fcmService.cookingStarted();
     this.orderGateway.refresh();
     this.orderGateway.refreshClient();
   }

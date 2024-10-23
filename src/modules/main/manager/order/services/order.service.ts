@@ -10,7 +10,6 @@ import { OrderStatusRaw } from "@src/types/models/OrderStatusRaw";
 import { countSkip, countToTotalPage } from "@src/utils/data";
 import { OrderCategory } from "@src/entities/order-category.entity";
 import { Menu } from "@src/entities/menu.entity";
-import { Customer } from "@src/entities/customer.entity";
 import { CustomerPrice } from "@src/entities/customer-price";
 import { OrderGateway } from "@src/socket/order.gateway";
 import { Pending } from "@src/types/models/Pending";
@@ -18,6 +17,8 @@ import { getOrderAvailableTimes } from "@src/utils/date";
 import { OrderHistory } from "@src/types/models/OrderHistory";
 import { User } from "@src/entities/user.entity";
 import { PermissionEnum } from "@src/types/enum/PermissionEnum";
+import { FirebaseService } from "@src/firebase/firebase.service";
+import { JwtCustomer } from "@src/types/jwt/JwtCustomer";
 
 @Injectable()
 export class OrderService {
@@ -36,6 +37,8 @@ export class OrderService {
     private readonly customerPriceRepository: Repository<CustomerPrice>,
 
     private readonly orderGateway: OrderGateway,
+
+    private readonly fcmService: FirebaseService,
   ) {}
 
   async pendingStatusForManager() {
@@ -128,7 +131,7 @@ export class OrderService {
       .query(OrderSql.getOrderHistory, [orderCode, orderCode]);
   }
 
-  async createNewOrder(menu: Menu, customer: Customer, request: string, user: User) {
+  async createNewOrder(menu: Menu, customer: JwtCustomer, request: string, user: User) {
     const newOrder = new Order();
     const customPrices = await this.customerPriceRepository.findBy({ customer: customer.id });
 
@@ -153,6 +156,7 @@ export class OrderService {
     this.orderGateway.refreshClient();
     this.orderGateway.refresh();
     this.orderGateway.newOrderAlarm();
+    await this.fcmService.newOrder()
   }
 
   private getModificationLimitAndItsName(user: User) {

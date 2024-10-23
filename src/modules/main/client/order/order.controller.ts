@@ -9,6 +9,7 @@ import { DishDisposalService } from "@src/modules/main/client/order/services/dis
 import { OrderSummaryResponseDto } from "@src/modules/main/client/order/dto/response/order-summary-response.dto";
 import { CreateDishDisposalDto } from "@src/modules/main/client/order/dto/create-dish-disposal.dto";
 import { Disposal } from "@src/types/models/Disposal";
+import { JwtCustomer } from "@src/types/jwt/JwtCustomer";
 
 @UseGuards(AuthGuard)
 @Controller('order')
@@ -49,7 +50,7 @@ export class OrderController {
   }
 
   @Post()
-  async addOrder(@CustomerData() customer: Customer, @Body() orderedMenu: OrderedMenuDto[]): Promise<void> {
+  async addOrder(@CustomerData() customer: JwtCustomer, @Body() orderedMenu: OrderedMenuDto[]): Promise<void> {
     return this.orderService.addOrder(customer, orderedMenu);
   }
 
