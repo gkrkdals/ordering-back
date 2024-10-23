@@ -34,15 +34,12 @@ export class FirebaseService {
     }
   }
 
-  async fcm(token: string, title: string, message: string) {
+  async fcm(token: string, type: string, message: string) {
     const payload: Message = {
       token,
-      notification: {
-        title: title,
-        body: message,
-      },
       data: {
-        body: message,
+        type,
+        message,
       }
     };
 
@@ -52,7 +49,6 @@ export class FirebaseService {
   }
 
   async newOrder() {
-    console.log("new order");
     const usersWithToken = await this.userRepository.findBy([
       { fcmToken: Not(null) },
       { fcmToken: Not('') }
@@ -61,7 +57,7 @@ export class FirebaseService {
     console.log(usersWithToken.map(user => user.fcmToken));
 
     for (const user of usersWithToken) {
-      await this.fcm(user.fcmToken, "새로운 주문", "새로운 주문이 있습니다.");
+      await this.fcm(user.fcmToken, "new_order", "new_order.mp3");
     }
   }
 
@@ -72,7 +68,7 @@ export class FirebaseService {
     ]);
 
     for (const user of usersWithToken) {
-      await this.fcm(user.fcmToken, "조리 시작", "조리가 시작되었습니다.");
+      await this.fcm(user.fcmToken, "cooking_started", "cooking_started.mp3");
     }
   }
 
@@ -83,7 +79,7 @@ export class FirebaseService {
     ]);
 
     for (const user of usersWithToken) {
-      await this.fcm(user.fcmToken, "조리시간 초과", "조리시간이 초과되었습니다.");
+      await this.fcm(user.fcmToken, "cooking_exceeded", "cooking_exceeded.mp3");
     }
   }
 
@@ -94,7 +90,7 @@ export class FirebaseService {
     ]);
 
     for (const user of usersWithToken) {
-      await this.fcm(user.fcmToken, "새로운 배달", "새로운 배달 항목이 있습니다.");
+      await this.fcm(user.fcmToken, "new_delivery", "new_delivery.mp3");
     }
   }
 
@@ -105,7 +101,7 @@ export class FirebaseService {
     ]);
 
     for (const user of usersWithToken) {
-      await this.fcm(user.fcmToken, "배달시간 초과", "배달시간이 초과되었습니다.");
+      await this.fcm(user.fcmToken, "deliver_delayed", "deliver_delayed.mp3");
     }
   }
 
@@ -116,7 +112,18 @@ export class FirebaseService {
     ]);
 
     for (const user of usersWithToken) {
-      await this.fcm(user.fcmToken, "새로운 그릇수거", "새로운 그릇수거가 있습니다.");
+      await this.fcm(user.fcmToken, "new_dish_disposal", "new_dish_disposal.mp3");
+    }
+  }
+
+  async clearAlarm() {
+    const usersWithToken = await this.userRepository.findBy([
+      { fcmToken: Not(null) },
+      { fcmToken: Not('') }
+    ]);
+
+    for (const user of usersWithToken) {
+      await this.fcm(user.fcmToken, "clear_alarm", "");
     }
   }
 }

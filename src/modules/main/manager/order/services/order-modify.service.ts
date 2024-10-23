@@ -168,6 +168,7 @@ export class OrderModifyService {
     if (pendingArray.length === 0) {
       this.orderGateway.clearCookAlarm();
       this.orderGateway.clearRiderAlarm();
+      await this.fcmService.clearAlarm();
     }
   }
 
