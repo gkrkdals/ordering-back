@@ -33,13 +33,14 @@ export class FirebaseService {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async fcm(token: string, title: string, body: string, sound: string) {
     const payload = {
       token,
       notification: {
         title,
         body,
-        sound
+        // sound
       },
     };
 
