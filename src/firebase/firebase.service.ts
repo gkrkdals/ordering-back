@@ -1,11 +1,12 @@
 import { Injectable } from "@nestjs/common";
-import admin from "firebase-admin";
+import admin, { messaging } from "firebase-admin";
 import { InjectRepository } from "@nestjs/typeorm";
 import { User } from "@src/entities/user.entity";
 import { Not, Repository } from "typeorm";
 import { PermissionEnum } from "@src/types/enum/PermissionEnum";
 import * as fs from 'fs';
 import * as path from 'path';
+import Message = messaging.Message;
 
 @Injectable()
 export class FirebaseService {
@@ -33,15 +34,21 @@ export class FirebaseService {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async fcm(token: string, title: string, body: string, sound: string) {
-    const payload = {
+    const payload: Message = {
       token,
       notification: {
         title,
         body,
-        // sound
       },
+      android: {
+        notification: {
+          channelId: sound,
+          title,
+          body,
+          priority: "max"
+        }
+      }
     };
 
     return await admin
