@@ -115,12 +115,12 @@ export class SettingsService {
 
     const dishData: ExcelData[] = await this.orderRepository.query(
       SettingsSql.getDishData,
-      [startString, endString]
+      [startString, endString, customerParam, customerParam]
     );
 
     const extraData: ExcelData[] = await this.orderRepository.query(
       SettingsSql.getExtraData,
-      [startString, endString]
+      [startString, endString, customerParam, customerParam]
     );
 
     const excelData: ExcelData[] = ordinaryData.concat([empty]).concat(dishData).concat([empty]).concat(extraData);

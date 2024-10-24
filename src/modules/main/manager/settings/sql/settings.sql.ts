@@ -2,6 +2,7 @@ export class SettingsSql {
 
   static getOrdinaryData = `
   SELECT
+      t.customer,
       t.customer_name,
       t.menu,
       t.menu_name,
@@ -49,7 +50,9 @@ export class SettingsSql {
   `;
 
   static getDishData = `
-  SELECT customer.name customer_name,
+  SELECT 
+         customer.id customer,
+         customer.name customer_name,
          '' menu,
          '' menu_name,
          null path,
@@ -65,10 +68,12 @@ export class SettingsSql {
        LEFT JOIN customer on customer_credit.customer = customer.id
        WHERE status = 7 AND credit_diff > 0
          AND (customer_credit.time >= ? AND customer_credit.time <= ?)
+         AND (customer = ? OR ISNULL(?))
   `;
 
   static getExtraData = `
   SELECT
+      customer.id customer,
       customer.name customer_name,
       '' menu,
       '' menu_name,
@@ -84,6 +89,7 @@ export class SettingsSql {
   LEFT JOIN user ON customer_credit.\`by\` = user.id
   LEFT JOIN customer ON customer_credit.customer = customer.id
   WHERE (customer_credit.time >= ? AND customer_credit.time <= ?)
+    AND (customer = ? OR ISNULL(?))
     AND order_code = 0;
   `
 }
