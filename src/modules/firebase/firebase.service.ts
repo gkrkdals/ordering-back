@@ -8,12 +8,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import Message = messaging.Message;
 
-interface UserFcmToken {
-  id: number;
-  permission: PermissionEnum;
-  token: string;
-}
-
 @Injectable()
 export class FirebaseService {
   constructor(
@@ -124,7 +118,7 @@ export class FirebaseService {
           title,
           body,
           priority: "high",
-          sound
+          sound,
         }
       }
     };
