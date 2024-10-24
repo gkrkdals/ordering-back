@@ -35,7 +35,7 @@ export class CustomerService {
 
     let orderBy = ``;
     if (order !== '') {
-      orderBy = `ORDER BY ${column} ${order}`;
+      orderBy = `ORDER BY ${column} ${order}, id ${order}`;
     }
 
     const { count } = (await this.customerRepository.query(

@@ -136,6 +136,11 @@ export class OrderModifyService {
     const canceledOrder = await this.orderStatusRepository.findOne({
       where: { id },
     });
+
+    if (canceledOrder.status > StatusEnum.InPreparation) {
+      return;
+    }
+
     const newOrderStatus = new OrderStatus();
     newOrderStatus.by = user.id;
     newOrderStatus.orderCode = canceledOrder.orderCode;
