@@ -84,6 +84,7 @@ export class OrderService {
       .where('customer = :customer', { customer: customer.id })
       .groupBy('customer')
       .getRawOne<{ credit: string }>();
+    console.log(result);
 
     return parseInt(result.credit);
   }

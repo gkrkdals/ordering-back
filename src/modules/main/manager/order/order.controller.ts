@@ -2,7 +2,6 @@ import { Body, Controller, Delete, Get, Param, Post, Put, Query, Req, UseGuards 
 import { OrderService } from "@src/modules/main/manager/order/services/order.service";
 import { GetOrderResponseDto } from "@src/modules/main/manager/order/dto/response/get-order-response.dto";
 import { Menu } from "@src/entities/menu.entity";
-import { Customer } from "@src/entities/customer.entity";
 import { UpdateOrderDto } from "@src/modules/main/manager/order/dto/update-order.dto";
 import { UpdateOrderMenuDto } from "@src/modules/main/manager/order/dto/update-order-menu.dto";
 import { OrderModifyService } from "@src/modules/main/manager/order/services/order-modify.service";
