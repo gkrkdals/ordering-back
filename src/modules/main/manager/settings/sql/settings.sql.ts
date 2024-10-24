@@ -49,7 +49,7 @@ export class SettingsSql {
   `;
 
   static getDishData = `
-  SELECT '' customer_name,
+  SELECT customer.name customer_name,
          '' menu,
          '' menu_name,
          null path,
@@ -62,8 +62,9 @@ export class SettingsSql {
          '그릇수거 입금' memo
        FROM customer_credit
        LEFT JOIN user on customer_credit.by = user.id
+       LEFT JOIN customer on customer_credit.customer = customer.id
        WHERE status = 7 AND credit_diff > 0
-         AND (customer_credit.time >= ? AND customer_credit.time <= ?)  
+         AND (customer_credit.time >= ? AND customer_credit.time <= ?)
   `;
 
   static getExtraData = `
