@@ -46,7 +46,8 @@ export class FirebaseService {
           channelId: sound,
           title,
           body,
-          priority: "max"
+          priority: "max",
+          sound
         }
       }
     };
