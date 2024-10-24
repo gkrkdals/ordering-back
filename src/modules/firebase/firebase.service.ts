@@ -8,6 +8,12 @@ import * as fs from 'fs';
 import * as path from 'path';
 import Message = messaging.Message;
 
+interface UserFcmToken {
+  id: number;
+  permission: PermissionEnum;
+  token: string;
+}
+
 @Injectable()
 export class FirebaseService {
   constructor(
@@ -32,28 +38,7 @@ export class FirebaseService {
     }
   }
 
-  async fcm(token: string, title: string, body: string, sound: string) {
-    const payload: Message = {
-      token,
-      notification: {
-        title,
-        body,
-      },
-      android: {
-        notification: {
-          channelId: sound,
-          title,
-          body,
-          priority: "max",
-          sound
-        }
-      }
-    };
-
-    return await admin
-      .messaging()
-      .send(payload);
-  }
+  private MAX_RETRIES = 5;
 
   async newOrder() {
     const usersWithToken = await this.userRepository.findBy([
@@ -122,4 +107,48 @@ export class FirebaseService {
       await this.fcm(user.fcmToken, "새로운 그릇수거", "새로운 그릇수거가 있습니다.", "new_dish_disposal");
     }
   }
+
+  private async fcm(token: string, title: string, body: string, sound: string) {
+    let retryCount = 0;
+    let sent = false;
+
+    const payload: Message = {
+      token,
+      notification: {
+        title,
+        body,
+      },
+      android: {
+        notification: {
+          channelId: sound,
+          title,
+          body,
+          priority: "high",
+          sound
+        }
+      }
+    };
+
+    while (retryCount < this.MAX_RETRIES && !sent) {
+      try {
+        const response = await admin.messaging().send(payload);
+        console.log('Message sent successfully: ', response);
+        sent = true;
+        return response;
+      } catch (e) {
+        retryCount++;
+        console.error(`Failed to send message. Attempt ${retryCount}/${this.MAX_RETRIES}. Error: `, e);
+
+        if (retryCount >= this.MAX_RETRIES) {
+          console.error('Max retry attempts reached. Message not sent');
+          return null;
+        }
+
+        const waitTime = Math.pow(2, retryCount) * 1000;
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      }
+    }
+  }
+
+
 }
