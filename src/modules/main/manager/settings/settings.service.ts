@@ -129,13 +129,14 @@ export class SettingsService {
       const p = getTheme(row.memo === '취소됨');
       const t = getTheme(row.memo === '취소됨', row.menu === 0);
       const q = getTheme(row.memo === '취소됨', row.menu === 0, true);
+      const isRowEmpty = row.customer_name.length < 1
 
-      if (row.customer_name.length > 0) {
+      if (!isRowEmpty) {
         numbering++;
       }
 
       return [
-        { v: numbering, t: "s", s: p },
+        { v: isRowEmpty ? '' : numbering, t: "s", s: p },
         { v: row.customer_name, t: "s", s: p },
         { v: row.menu_name, t: "s", s: t },
         { v: row.price === null ? '' : parseInt(row.price), t: "n", s: q },
