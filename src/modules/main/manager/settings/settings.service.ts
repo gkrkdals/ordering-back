@@ -124,14 +124,18 @@ export class SettingsService {
     );
 
     const excelData: ExcelData[] = ordinaryData.concat([empty]).concat(dishData).concat([empty]).concat(extraData);
-
-    const data: any[][] = excelData.map((row, i) => {
+    let numbering = 0;
+    const data: any[][] = excelData.map((row) => {
       const p = getTheme(row.memo === '취소됨');
       const t = getTheme(row.memo === '취소됨', row.menu === 0);
       const q = getTheme(row.memo === '취소됨', row.menu === 0, true);
 
+      if (row.customer_name.length >= 0) {
+        numbering++;
+      }
+
       return [
-        { v: i + 1, t: "s", s: p },
+        { v: numbering, t: "s", s: p },
         { v: row.customer_name, t: "s", s: p },
         { v: row.menu_name, t: "s", s: t },
         { v: row.price === null ? '' : parseInt(row.price), t: "n", s: q },
