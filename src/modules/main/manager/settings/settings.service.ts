@@ -130,7 +130,7 @@ export class SettingsService {
       const t = getTheme(row.memo === '취소됨', row.menu === 0);
       const q = getTheme(row.memo === '취소됨', row.menu === 0, true);
 
-      if (row.customer_name.length >= 0) {
+      if (row.customer_name.length > 0) {
         numbering++;
       }
 
