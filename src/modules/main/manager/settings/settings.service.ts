@@ -88,11 +88,10 @@ export class SettingsService {
     const startDate = new Date(start);
     const endDate = new Date(end);
 
+    startDate.setHours(9, 0, 0, 0);
     if (isSameDay(startDate, endDate)) {
-      startDate.setHours(0, 0, 0, 0);
       endDate.setHours(23, 59, 59, 999);
     } else {
-      startDate.setHours(9, 0, 0, 0);
       endDate.setHours(8, 59, 59, 999);
     }
 
