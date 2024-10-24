@@ -14,23 +14,21 @@ export class FirebaseService {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
   ) {
-    if (admin.apps.length === 0) {
-      try {
-        const fullPath = path.join(__dirname, '../../firebase-cert.json');
-        const data = fs.readFileSync(fullPath, 'utf8');
-        const serviceAccount = JSON.parse(data);
+    try {
+      const fullPath = path.join(__dirname, '../../../firebase-cert.json');
+      const data = fs.readFileSync(fullPath, 'utf8');
+      const serviceAccount = JSON.parse(data);
 
-        admin.initializeApp({
-          credential: admin.credential.cert({
-            projectId: serviceAccount.project_id,
-            clientEmail: serviceAccount.client_email,
-            privateKey: serviceAccount.private_key,
-          })
-        });
-      } catch (e) {
-        console.error('Error reading JSON file: ', e);
-        throw new Error('Failed to read JSON file');
-      }
+      admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId: serviceAccount.project_id,
+          clientEmail: serviceAccount.client_email,
+          privateKey: serviceAccount.private_key,
+        })
+      });
+    } catch (e) {
+      console.error('Error reading JSON file: ', e);
+      throw new Error('Failed to read JSON file');
     }
   }
 

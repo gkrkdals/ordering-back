@@ -7,12 +7,12 @@ import { Order } from "@src/entities/order.entity";
 import { OrderStatus } from "@src/entities/order-status.entity";
 import { JwtService } from "@nestjs/jwt";
 import { DishDisposalService } from "@src/modules/main/client/order/services/dish-disposal.service";
-import { OrderGateway } from "@src/socket/order.gateway";
 import { CustomerPrice } from "@src/entities/customer-price";
 import { CustomerCredit } from "@src/entities/customer-credit.entity";
 import { Menu } from "@src/entities/menu.entity";
-import { FirebaseService } from "@src/firebase/firebase.service";
 import { User } from "@src/entities/user.entity";
+import { SocketModule } from "@src/modules/socket/socket.module";
+import { FirebaseModule } from "@src/modules/firebase/firebase.module";
 
 @Module({
   imports: [
@@ -25,14 +25,14 @@ import { User } from "@src/entities/user.entity";
       User,
       Menu,
     ]),
+    SocketModule,
+    FirebaseModule,
   ],
   controllers: [OrderController],
   providers: [
     OrderService,
     DishDisposalService,
     JwtService,
-    OrderGateway,
-    FirebaseService
   ],
 })
 export class OrderModule {}

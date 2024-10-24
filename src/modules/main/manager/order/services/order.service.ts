@@ -11,13 +11,13 @@ import { countSkip, countToTotalPage } from "@src/utils/data";
 import { OrderCategory } from "@src/entities/order-category.entity";
 import { Menu } from "@src/entities/menu.entity";
 import { CustomerPrice } from "@src/entities/customer-price";
-import { OrderGateway } from "@src/socket/order.gateway";
+import { OrderGateway } from "@src/modules/socket/order.gateway";
 import { Pending } from "@src/types/models/Pending";
 import { getOrderAvailableTimes } from "@src/utils/date";
 import { OrderHistory } from "@src/types/models/OrderHistory";
 import { User } from "@src/entities/user.entity";
 import { PermissionEnum } from "@src/types/enum/PermissionEnum";
-import { FirebaseService } from "@src/firebase/firebase.service";
+import { FirebaseService } from "@src/modules/firebase/firebase.service";
 import { JwtCustomer } from "@src/types/jwt/JwtCustomer";
 
 @Injectable()
@@ -155,7 +155,7 @@ export class OrderService {
 
     this.orderGateway.refreshClient();
     this.orderGateway.refresh();
-    this.orderGateway.newOrderAlarm();
+    this.orderGateway.newOrder();
     await this.fcmService.newOrder()
   }
 

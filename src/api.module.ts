@@ -4,7 +4,7 @@ import { ormConfig } from "./config/mysql";
 import { AuthModule } from "./modules/auth/auth.module";
 import { ClientModule } from "@src/modules/main/client/client.module";
 import { ManagerModule } from "@src/modules/main/manager/manager.module";
-import { OrderGateway } from "@src/socket/order.gateway";
+import { SocketModule } from "@src/modules/socket/socket.module";
 
 @Module({
   imports: [
@@ -12,9 +12,7 @@ import { OrderGateway } from "@src/socket/order.gateway";
     AuthModule,
     ClientModule,
     ManagerModule,
+    SocketModule,
   ],
-  providers: [
-    OrderGateway,
-  ]
 })
 export class ApiModule {}

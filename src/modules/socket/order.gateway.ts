@@ -49,17 +49,13 @@ export class OrderGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
     this.broadcastEvent('refresh_client');
   }
 
-  clearCookAlarm() {
-    this.broadcastEvent('clear_cook_alarm');
-  }
-
-  clearRiderAlarm() {
-    this.broadcastEvent('clear_rider_alarm');
+  clearAlarm() {
+    this.broadcastEvent('clear_alarm');
   }
 
   // 새로운 주문 건 알림
-  newOrderAlarm() {
-    this.broadcastEvent('new_order_alarm');
+  newOrder() {
+    this.broadcastEvent('new_order');
   }
 
   cookingStarted() {
@@ -67,13 +63,13 @@ export class OrderGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
   }
 
   // 조리시간 초과 알림
-  cookExceeded() {
-    this.broadcastEvent('cook_exceeded');
+  cookingExceeded() {
+    this.broadcastEvent('cooking_exceeded');
   }
 
   // 새로운 픽업요청 알림
-  newDeliveryAlarm() {
-    this.broadcastEvent('new_delivery_alarm');
+  newDelivery() {
+    this.broadcastEvent('new_delivery');
   }
 
   // 배달 지연 알림

@@ -6,7 +6,7 @@ import { LessThan, Repository } from "typeorm";
 import { StatusEnum } from "@src/types/enum/StatusEnum";
 import { Order } from "@src/entities/order.entity";
 import { CustomerCredit } from "@src/entities/customer-credit.entity";
-import { OrderGateway } from "@src/socket/order.gateway";
+import { OrderGateway } from "@src/modules/socket/order.gateway";
 import { Pending } from "@src/types/models/Pending";
 import { OrderSql } from "@src/modules/main/manager/order/sql/order.sql";
 import { UpdateOrderMenuDto } from "@src/modules/main/manager/order/dto/update-order-menu.dto";
@@ -15,7 +15,7 @@ import { User } from "@src/entities/user.entity";
 import { getOrderAvailableTimes } from "@src/utils/date";
 import { PermissionEnum } from "@src/types/enum/PermissionEnum";
 import { JwtUser } from "@src/types/jwt/JwtUser";
-import { FirebaseService } from "@src/firebase/firebase.service";
+import { FirebaseService } from "@src/modules/firebase/firebase.service";
 
 @Injectable()
 export class OrderModifyService {
@@ -166,8 +166,7 @@ export class OrderModifyService {
     );
 
     if (pendingArray.length === 0) {
-      this.orderGateway.clearCookAlarm();
-      this.orderGateway.clearRiderAlarm();
+      this.orderGateway.clearAlarm();
     }
   }
 
@@ -178,7 +177,7 @@ export class OrderModifyService {
     }
 
     if(newStatus === StatusEnum.WaitingForDelivery) {
-      this.orderGateway.newDeliveryAlarm();
+      this.orderGateway.newDelivery();
       await this.fcmService.newDelivery();
     }
 

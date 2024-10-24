@@ -6,9 +6,9 @@ import { Cron, CronExpression } from "@nestjs/schedule";
 import { dateToString, getOrderAvailableTimes } from "@src/utils/date";
 import { StatusEnum } from "@src/types/enum/StatusEnum";
 import { OrderStatus } from "@src/entities/order-status.entity";
-import { OrderGateway } from "@src/socket/order.gateway";
+import { OrderGateway } from "@src/modules/socket/order.gateway";
 import { OrderSql } from "@src/modules/main/manager/order/sql/order.sql";
-import { FirebaseService } from "@src/firebase/firebase.service";
+import { FirebaseService } from "@src/modules/firebase/firebase.service";
 
 @Injectable()
 export class SchedulingOrderService {
@@ -40,7 +40,7 @@ export class SchedulingOrderService {
       );
 
     if (currentOrderStatus.some(orderStatus => orderStatus.status === StatusEnum.InPreparation)) {
-      this.orderGateway.cookExceeded();
+      this.orderGateway.cookingExceeded();
       await this.fcmService.cookingExceeded();
     }
 

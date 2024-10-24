@@ -8,13 +8,13 @@ import { Customer } from "@src/entities/customer.entity";
 import { StatusEnum } from "@src/types/enum/StatusEnum";
 import { OrderSql } from "@src/modules/main/client/order/sql/OrderSql";
 import { OrderSummaryResponseDto } from "@src/modules/main/client/order/dto/response/order-summary-response.dto";
-import { OrderGateway } from "@src/socket/order.gateway";
+import { OrderGateway } from "@src/modules/socket/order.gateway";
 import { CustomerPrice } from "@src/entities/customer-price";
 import { CustomerCredit } from "@src/entities/customer-credit.entity";
 import { OrderStatus } from "@src/entities/order-status.entity";
 import { getOrderAvailableTimes } from "@src/utils/date";
 import { Menu } from "@src/entities/menu.entity";
-import { FirebaseService } from "@src/firebase/firebase.service";
+import { FirebaseService } from "@src/modules/firebase/firebase.service";
 import { JwtCustomer } from "@src/types/jwt/JwtCustomer";
 
 @Injectable()
@@ -130,7 +130,7 @@ export class OrderService {
       }
     }
 
-    this.orderGateway.newOrderAlarm();
+    this.orderGateway.newOrder();
     await this.fcmService.newOrder();
     this.orderGateway.refresh();
     this.orderGateway.refreshClient();

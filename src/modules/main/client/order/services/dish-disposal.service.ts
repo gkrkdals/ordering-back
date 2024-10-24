@@ -6,9 +6,9 @@ import { Repository } from "typeorm";
 import { CreateDishDisposalDto } from "@src/modules/main/client/order/dto/create-dish-disposal.dto";
 import { DisposalSql } from "@src/modules/main/client/order/sql/DisposalSql";
 import { StatusEnum } from "@src/types/enum/StatusEnum";
-import { OrderGateway } from "@src/socket/order.gateway";
+import { OrderGateway } from "@src/modules/socket/order.gateway";
 import { Disposal } from "@src/types/models/Disposal";
-import { FirebaseService } from "@src/firebase/firebase.service";
+import { FirebaseService } from "@src/modules/firebase/firebase.service";
 
 @Injectable()
 export class DishDisposalService {
