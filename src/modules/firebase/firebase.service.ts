@@ -103,9 +103,8 @@ export class FirebaseService {
   }
 
   private async fcm(token: string, title: string, body: string, sound: string) {
-    let retryCount = 0;
-    let sent = false;
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const payload: Message = {
       token,
       notification: {
@@ -123,25 +122,7 @@ export class FirebaseService {
       }
     };
 
-    while (retryCount < this.MAX_RETRIES && !sent) {
-      try {
-        const response = await admin.messaging().send(payload);
-        console.log('Message sent successfully: ', response);
-        sent = true;
-        return response;
-      } catch (e) {
-        retryCount++;
-        console.error(`Failed to send message. Attempt ${retryCount}/${this.MAX_RETRIES}. Error: `, e);
-
-        if (retryCount >= this.MAX_RETRIES) {
-          console.error('Max retry attempts reached. Message not sent');
-          return null;
-        }
-
-        const waitTime = Math.pow(2, retryCount) * 1000;
-        await new Promise(resolve => setTimeout(resolve, waitTime));
-      }
-    }
+    // await admin.messaging().send(payload);
   }
 
 
