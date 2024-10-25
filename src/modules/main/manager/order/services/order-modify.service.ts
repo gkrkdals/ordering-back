@@ -137,7 +137,7 @@ export class OrderModifyService {
       where: { id },
     });
 
-    if (canceledOrder.status > StatusEnum.InPreparation) {
+    if ((canceledOrder.status > StatusEnum.InPreparation) && (user.permission !== PermissionEnum.Manager)) {
       return;
     }
 
