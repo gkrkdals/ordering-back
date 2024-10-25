@@ -52,8 +52,7 @@ export class OrderSql {
      AND (t.status >= ? AND t.status <= ?)
      AND (ISNULL(?) OR (t.time >= ? AND t.time <= ?))
      AND (ISNULL(?) OR (t.status <= ?))
-  ^
-  LIMIT ?, 20`;
+  ^`;
 
   static getOrderStatusCount = `
       SELECT
