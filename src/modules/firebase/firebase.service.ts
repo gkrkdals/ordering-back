@@ -24,53 +24,47 @@ export class FirebaseService {
     }
   }
 
-  private ALL = ['manager', 'rider', 'cook'];
-  private MANAGER = ['manager', 'rider'];
-  private COOK = ['cook'];
-
   async newOrder() {
-    await this.fcm("새로운 주문", "새로운 주문이 있습니다.", "new_order", this.ALL);
+    await this.fcm("새로운 주문", "새로운 주문이 있습니다.", "new_order", 'all');
   }
 
   async cookingStarted() {
-    await this.fcm("조리 시작", "조리가 시작되었습니다.", "cooking_started", this.ALL);
+    await this.fcm("조리 시작", "조리가 시작되었습니다.", "cooking_started", 'all');
   }
 
   async cookingExceeded() {
-    await this.fcm("조리시간 초과", "조리시간이 초과되었습니다.", "cooking_exceeded", this.COOK);
+    await this.fcm("조리시간 초과", "조리시간이 초과되었습니다.", "cooking_exceeded", 'cook');
   }
 
   async newDelivery() {
-    await this.fcm("새로운 배달", "새로운 배달이 있습니다.", "new_delivery", this.MANAGER);
+    await this.fcm("새로운 배달", "새로운 배달이 있습니다.", "new_delivery", 'manager');
   }
 
   async deliverDelayed() {
-    await this.fcm("배달시간 초과", "배달시간이 초과되었습니다.", "deliver_delayed", this.MANAGER);
+    await this.fcm("배달시간 초과", "배달시간이 초과되었습니다.", "deliver_delayed", 'manager');
   }
 
   async newDishDisposal() {
-    await this.fcm("새로운 그릇수거", "새로운 그릇수거가 있습니다.", "new_dish_disposal", this.MANAGER);
+    await this.fcm("새로운 그릇수거", "새로운 그릇수거가 있습니다.", "new_dish_disposal", 'manager');
   }
 
-  private async fcm(title: string, body: string, sound: string, topics: string[]) {
-    for (const topic of topics) {
-      await admin.messaging().send({
-        topic,
+  private async fcm(title: string, body: string, sound: string, topic: string) {
+    await admin.messaging().send({
+      topic,
+      notification: {
+        title,
+        body,
+      },
+      android: {
         notification: {
+          channelId: sound,
           title,
           body,
-        },
-        android: {
-          notification: {
-            channelId: sound,
-            title,
-            body,
-            priority: "high",
-            sound,
-          }
+          priority: "high",
+          sound,
         }
-      })
-    }
+      }
+    })
 
     // await admin.messaging().send(payload);
   }
