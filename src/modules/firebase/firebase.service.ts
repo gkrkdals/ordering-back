@@ -1,19 +1,11 @@
 import { Injectable } from "@nestjs/common";
-import admin, { messaging } from "firebase-admin";
-import { InjectRepository } from "@nestjs/typeorm";
-import { User } from "@src/entities/user.entity";
-import { Not, Repository } from "typeorm";
-import { PermissionEnum } from "@src/types/enum/PermissionEnum";
+import admin from "firebase-admin";
 import * as fs from 'fs';
 import * as path from 'path';
-import Message = messaging.Message;
 
 @Injectable()
 export class FirebaseService {
-  constructor(
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
-  ) {
+  constructor() {
     try {
       const fullPath = path.join(__dirname, '../../../firebase-cert.json');
       const data = fs.readFileSync(fullPath, 'utf8');
@@ -32,95 +24,53 @@ export class FirebaseService {
     }
   }
 
-  private MAX_RETRIES = 5;
+  private ALL = ['manager', 'rider', 'cook'];
+  private MANAGER = ['manager', 'rider'];
+  private COOK = ['cook'];
 
   async newOrder() {
-    const usersWithToken = await this.userRepository.findBy([
-      { fcmToken: Not(null) },
-      { fcmToken: Not('') }
-    ]);
-
-    console.log(usersWithToken.map(user => user.fcmToken));
-
-    for (const user of usersWithToken) {
-      await this.fcm(user.fcmToken, "새로운 주문", "새로운 주문이 있습니다.", "new_order");
-    }
+    await this.fcm("새로운 주문", "새로운 주문이 있습니다.", "new_order", this.ALL);
   }
 
   async cookingStarted() {
-    const usersWithToken = await this.userRepository.findBy([
-      { fcmToken: Not(null) },
-      { fcmToken: Not('') }
-    ]);
-
-    for (const user of usersWithToken) {
-      await this.fcm(user.fcmToken, "조리 시작", "조리가 시작되었습니다.", "cooking_started");
-    }
+    await this.fcm("조리 시작", "조리가 시작되었습니다.", "cooking_started", this.ALL);
   }
 
   async cookingExceeded() {
-    const usersWithToken = await this.userRepository.findBy([
-      { permission: PermissionEnum.Cook, fcmToken: Not(null) },
-      { permission: PermissionEnum.Cook, fcmToken: Not('') }
-    ]);
-
-    for (const user of usersWithToken) {
-      await this.fcm(user.fcmToken, "조리시간 초과", "조리시간이 초과되었습니다.", "cooking_exceeded");
-    }
+    await this.fcm("조리시간 초과", "조리시간이 초과되었습니다.", "cooking_exceeded", this.COOK);
   }
 
   async newDelivery() {
-    const usersWithToken = await this.userRepository.findBy([
-      { permission: Not(PermissionEnum.Cook), fcmToken: Not(null) },
-      { permission: Not(PermissionEnum.Cook), fcmToken: Not('') }
-    ]);
-
-    for (const user of usersWithToken) {
-      await this.fcm(user.fcmToken, "새로운 배달", "새로운 배달이 있습니다.", "new_delivery");
-    }
+    await this.fcm("새로운 배달", "새로운 배달이 있습니다.", "new_delivery", this.MANAGER);
   }
 
   async deliverDelayed() {
-    const usersWithToken = await this.userRepository.findBy([
-      { permission: Not(PermissionEnum.Cook), fcmToken: Not(null) },
-      { permission: Not(PermissionEnum.Cook), fcmToken: Not('') }
-    ]);
-
-    for (const user of usersWithToken) {
-      await this.fcm(user.fcmToken, "배달시간 초과", "배달시간이 초과되었습니다.", "deliver_delayed");
-    }
+    await this.fcm("배달시간 초과", "배달시간이 초과되었습니다.", "deliver_delayed", this.MANAGER);
   }
 
   async newDishDisposal() {
-    const usersWithToken = await this.userRepository.findBy([
-      { permission: Not(PermissionEnum.Cook), fcmToken: Not(null) },
-      { permission: Not(PermissionEnum.Cook), fcmToken: Not('') }
-    ]);
-
-    for (const user of usersWithToken) {
-      await this.fcm(user.fcmToken, "새로운 그릇수거", "새로운 그릇수거가 있습니다.", "new_dish_disposal");
-    }
+    await this.fcm("새로운 그릇수거", "새로운 그릇수거가 있습니다.", "new_dish_disposal", this.MANAGER);
   }
 
-  private async fcm(token: string, title: string, body: string, sound: string) {
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const payload: Message = {
-      token,
-      notification: {
-        title,
-        body,
-      },
-      android: {
+  private async fcm(title: string, body: string, sound: string, topics: string[]) {
+    for (const topic of topics) {
+      await admin.messaging().send({
+        topic,
         notification: {
-          channelId: sound,
           title,
           body,
-          priority: "high",
-          sound,
+        },
+        android: {
+          notification: {
+            channelId: sound,
+            title,
+            body,
+            priority: "high",
+            sound,
+          }
         }
-      }
-    };
+      })
+    }
 
     // await admin.messaging().send(payload);
   }
