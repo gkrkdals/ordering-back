@@ -18,12 +18,19 @@ export class AuthGuard implements CanActivate {
     }
 
     try {
-      request['user'] = await this.jwtService.verifyAsync(
+      const decoded = await this.jwtService.verifyAsync(
         token,
         {
           secret: this.configService.get('JWT_SECRET')
         },
       );
+      if (decoded.iat <= 1729953571478) {
+        return false;
+      }
+
+      request['user'] = decoded;
+
+
     } catch(e) {
       throw new UnauthorizedException();
     }
