@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, UnauthorizedException } from "@nestjs/common";
 import { UserService } from "@src/modules/user/user.service";
-import { JwtService } from "@nestjs/jwt";
+import { JwtService, JwtSignOptions } from "@nestjs/jwt";
 import { classToObject } from "@src/utils/data";
 import { User } from "@src/entities/user.entity";
 import { PermissionEnum } from "@src/types/enum/PermissionEnum";
@@ -10,6 +10,11 @@ import { Repository } from "typeorm";
 import { Customer } from "@src/entities/customer.entity";
 import { ManagerSignInDto } from "@src/modules/auth/dto/manager-sign-in.dto";
 import { Response } from "express";
+import { ConfigService } from "@nestjs/config";
+
+const option: JwtSignOptions = {
+  expiresIn: "7d"
+}
 
 @Injectable()
 export class AuthService {
@@ -18,6 +23,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    private readonly configService: ConfigService,
   ) {}
 
   async clientSignIn(id: number): Promise<{ access_token: string; payload: Customer; }> {
@@ -30,7 +36,7 @@ export class AuthService {
     const payload = classToObject(customer);
 
     return {
-      access_token: await this.jwtService.signAsync(payload),
+      access_token: await this.jwtService.signAsync(payload, option),
       payload: customer,
     };
   }
@@ -54,9 +60,14 @@ export class AuthService {
     console.log(saved.fcmToken);
 
     return {
-      access_token: await this.jwtService.signAsync(payload),
+      access_token: await this.jwtService.signAsync(payload, option),
       payload,
     }
+  }
+
+  async managerAppSignIn(jwt: string) {
+    const data = await this.jwtService.verifyAsync<User>(jwt, { secret: this.configService.get('JWT_SECRET') });
+    return { access_token: jwt, payload: data };
   }
 
   checkProfile(req: any, permission: 'manager' | 'rider' | 'cook' | undefined) {

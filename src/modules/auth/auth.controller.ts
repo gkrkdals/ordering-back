@@ -10,7 +10,8 @@ import { CustomerData } from "@src/modules/user/customer.decorator";
 const cookieOptions: CookieOptions = {
   sameSite: "none",
   httpOnly: true,
-  secure: true
+  secure: true,
+  maxAge: 1000 * 60 * 60 * 24 * 7
 }
 
 @Controller('auth')
@@ -46,11 +47,24 @@ export class AuthController {
     @Body() signInDto: ManagerSignInDto,
     @Res({ passthrough: true }) res: Response
   ) {
-    const token = await this.authService.managerSignIn(signInDto);
-    res.setHeader("Authorization", `Bearer ${token.access_token}`);
-    res.cookie("jwt", token.access_token, cookieOptions);
+    const data = await this.authService.managerSignIn(signInDto);
+    res.setHeader("Authorization", `Bearer ${data.access_token}`);
+    res.cookie("jwt", data.access_token, cookieOptions);
 
-    return token.payload;
+    return { jwt: data.access_token, payload: data.payload };
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('manager/app/signin')
+  async managerAppSignIn(
+    @Body('jwt') jwt: string,
+    @Res({ passthrough: true }) res: Response
+  ) {
+    const data = await this.authService.managerAppSignIn(jwt);
+    res.setHeader("Authorization", `Bearer ${data.access_token}`);
+    res.cookie("jwt", data.access_token, cookieOptions);
+
+    return data.payload;
   }
 
   @Get('manager/logout')
