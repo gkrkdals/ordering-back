@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Menu } from "@src/entities/menu.entity";
 import { FindOptionsOrder, Like, MoreThan, Not, Repository } from "typeorm";
-import { countSkip, countToTotalPage } from "@src/utils/data";
+import { countToTotalPage } from "@src/utils/data";
 import { GetMenuResponseDto } from "@src/modules/main/manager/menu/dto/response/get-menu-response.dto";
 import { MenuCategory } from "@src/entities/menu-category.entity";
 import * as XLSX from 'xlsx-js-style';
@@ -33,8 +33,6 @@ export class MenuService {
     }
 
     const [data, count] = await this.menuRepository.findAndCount({
-      take: 20,
-      skip: countSkip(page),
       relations: {
         menuCategory: true,
       },

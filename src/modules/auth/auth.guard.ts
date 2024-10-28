@@ -24,9 +24,6 @@ export class AuthGuard implements CanActivate {
           secret: this.configService.get('JWT_SECRET')
         },
       );
-      if (decoded.iat <= 1729953571478) {
-        return false;
-      }
 
       request['user'] = decoded;
 

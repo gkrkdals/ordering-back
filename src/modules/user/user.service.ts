@@ -18,6 +18,6 @@ export class UserService {
   }
 
   async findUser(username: string, password: string): Promise<User> {
-    return this.userRepository.findOneBy({ username, password });
+    return this.userRepository.findOneBy({ username, password, withdrawn: Not(1) });
   }
 }

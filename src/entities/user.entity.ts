@@ -18,6 +18,9 @@ export class User {
   permission: number;
 
   @Column()
+  withdrawn: number;
+
+  @Column()
   time: Date;
 
   @Column({ nullable: true, name: "fcm_token" })

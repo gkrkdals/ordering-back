@@ -11,7 +11,6 @@ export class CustomerSql {
         withdrawn != 1
     AND (name LIKE ? OR address LIKE ? OR memo LIKE ?)
     ^
-    LIMIT ?, 20;
   `
 
   static getCustomerCount = `

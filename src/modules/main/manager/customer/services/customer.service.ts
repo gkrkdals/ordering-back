@@ -3,11 +3,10 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Customer } from "@src/entities/customer.entity";
 import { Not, Repository } from "typeorm";
 import { GetCustomerResponseDto } from "@src/modules/main/manager/customer/dto/response/get-customer-response.dto";
-import { countSkip, countToTotalPage } from "@src/utils/data";
+import { countToTotalPage } from "@src/utils/data";
 import { CustomerCategory } from "@src/entities/customer-category.entity";
 import { CustomerPrice } from "@src/entities/customer-price";
 import { UpdateCustomerPriceDto } from "@src/modules/main/manager/customer/dto/update-customer-price.dto";
-import { MenuCategory } from "@src/entities/menu-category.entity";
 import { CustomerSql } from "@src/modules/main/manager/customer/sql/CustomerSql";
 import { CustomerRaw } from "@src/types/models/CustomerRaw";
 import * as XLSX from "xlsx-js-style";
@@ -21,8 +20,6 @@ export class CustomerService {
     private readonly customerCategoryRepository: Repository<CustomerCategory>,
     @InjectRepository(CustomerPrice)
     private readonly customerPriceRepository: Repository<CustomerPrice>,
-    @InjectRepository(MenuCategory)
-    private readonly menuCategoryRepository: Repository<MenuCategory>,
   ) {}
 
   async getCustomer(
@@ -45,7 +42,7 @@ export class CustomerService {
 
     const customers: CustomerRaw[] = await this.customerRepository.query(
       CustomerSql.getCustomer.replace('^', orderBy),
-      [like, like, like, countSkip(page)]
+      [like, like, like]
     );
 
     return {

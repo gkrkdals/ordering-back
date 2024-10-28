@@ -81,10 +81,10 @@ export class SettingsSql {
       null price,
       null order_time,
       null delivered_time,
-      '최고관리자' credit_by,
+      '마스터' credit_by,
       customer_credit.time credit_time,
       customer_credit.credit_diff credit_in,
-      '최고관리자 입금' memo
+      '마스터 입금' memo
   from customer_credit
   LEFT JOIN user ON customer_credit.\`by\` = user.id
   LEFT JOIN customer ON customer_credit.customer = customer.id

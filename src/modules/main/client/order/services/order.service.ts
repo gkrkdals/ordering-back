@@ -56,7 +56,7 @@ export class OrderService {
 
   async getLastOrders(customer: Customer) {
     const recentMenuOnDigit: { id: number; menu: number }[] = await this.orderRepository.query(
-      'SELECT MAX(id) AS id, menu FROM `order` WHERE customer = ? AND menu != 0 GROUP BY menu ORDER BY id DESC LIMIT 4',
+      'SELECT MAX(id) AS id, menu FROM `order` WHERE customer = ? AND menu != 0 GROUP BY menu ORDER BY id DESC LIMIT 10',
       [customer.id]
     );
 
