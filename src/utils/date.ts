@@ -11,13 +11,6 @@ export function dateToString(origin: Date) {
   return `${year}-${('00' + month).slice(-2)}-${('00' + day).slice(-2)} ${('00' + hour).slice(-2)}:${('00' + minute).slice(-2)}:${('00' + second).slice(-2)}`;
 }
 
-export function getYesterday(origin: string) {
-  const now = new Date(origin);
-  now.setDate(now.getDate() - 1);
-  now.setHours(9, 0, 0, 0);
-  return dateToString(now);
-}
-
 export function getOrderAvailableTimes() {
   const now = new Date();
   const ret1 = new Date();
@@ -40,3 +33,4 @@ export function getOrderAvailableTimes() {
 export function isSameDay(day1: Date, day2: Date): boolean {
   return (day1.getFullYear() === day2.getFullYear()) && (day1.getMonth() === day2.getMonth()) && (day1.getDate() === day2.getDate());
 }
+

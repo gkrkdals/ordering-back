@@ -12,7 +12,7 @@ import { OrderGateway } from "@src/modules/socket/order.gateway";
 import { CustomerPrice } from "@src/entities/customer-price";
 import { CustomerCredit } from "@src/entities/customer-credit.entity";
 import { OrderStatus } from "@src/entities/order-status.entity";
-import { getOrderAvailableTimes } from "@src/utils/date";
+import { dateToString, getOrderAvailableTimes } from "@src/utils/date";
 import { Menu } from "@src/entities/menu.entity";
 import { FirebaseService } from "@src/modules/firebase/firebase.service";
 import { JwtCustomer } from "@src/types/jwt/JwtCustomer";
@@ -32,6 +32,8 @@ export class OrderService {
     private readonly customerCreditRepository: Repository<CustomerCredit>,
     @InjectRepository(Menu)
     private readonly menuRepository: Repository<Menu>,
+    @InjectRepository(Customer)
+    private readonly customerRepository: Repository<Customer>,
     @InjectDataSource()
     private readonly datasource: DataSource,
     private readonly orderGateway: OrderGateway,
@@ -100,6 +102,7 @@ export class OrderService {
 
   async addOrder(customer: JwtCustomer, orderedMenus: OrderedMenuDto[]): Promise<void> {
     const customPrices = await this.customerPriceRepository.findBy({ customer: customer.id });
+    const targetCustomer = await this.customerRepository.findOneBy({ id: customer.id });
 
     for(const orderedMenu of orderedMenus) {
       const newOrder = new Order();
@@ -129,6 +132,9 @@ export class OrderService {
         await this.orderRepository.save(newOrder);
       }
     }
+
+    targetCustomer.recentOrder = new Date();
+    await this.customerRepository.save(targetCustomer);
 
     this.orderGateway.newOrder();
     await this.fcmService.newOrder();

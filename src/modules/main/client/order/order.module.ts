@@ -13,6 +13,7 @@ import { Menu } from "@src/entities/menu.entity";
 import { User } from "@src/entities/user.entity";
 import { SocketModule } from "@src/modules/socket/socket.module";
 import { FirebaseModule } from "@src/modules/firebase/firebase.module";
+import { Customer } from "@src/entities/customer.entity";
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { FirebaseModule } from "@src/modules/firebase/firebase.module";
       CustomerCredit,
       User,
       Menu,
+      Customer,
     ]),
     SocketModule,
     FirebaseModule,

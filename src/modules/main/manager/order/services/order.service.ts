@@ -13,12 +13,13 @@ import { Menu } from "@src/entities/menu.entity";
 import { CustomerPrice } from "@src/entities/customer-price";
 import { OrderGateway } from "@src/modules/socket/order.gateway";
 import { Pending } from "@src/types/models/Pending";
-import { getOrderAvailableTimes } from "@src/utils/date";
+import { dateToString, getOrderAvailableTimes } from "@src/utils/date";
 import { OrderHistory } from "@src/types/models/OrderHistory";
 import { User } from "@src/entities/user.entity";
 import { PermissionEnum } from "@src/types/enum/PermissionEnum";
 import { FirebaseService } from "@src/modules/firebase/firebase.service";
 import { JwtCustomer } from "@src/types/jwt/JwtCustomer";
+import { Customer } from "@src/entities/customer.entity";
 
 @Injectable()
 export class OrderService {
@@ -35,6 +36,9 @@ export class OrderService {
 
     @InjectRepository(CustomerPrice)
     private readonly customerPriceRepository: Repository<CustomerPrice>,
+
+    @InjectRepository(Customer)
+    private readonly customerRepository: Repository<Customer>,
 
     private readonly orderGateway: OrderGateway,
 
@@ -134,6 +138,7 @@ export class OrderService {
   async createNewOrder(menu: Menu, customer: JwtCustomer, request: string, user: User) {
     const newOrder = new Order();
     const customPrices = await this.customerPriceRepository.findBy({ customer: customer.id });
+    const targetCustomer = await this.customerRepository.findOneBy({ id: customer.id });
 
     if (menu.id === 0) {
       newOrder.price = 0;
@@ -152,6 +157,9 @@ export class OrderService {
     newOrder.menu = menu.id;
     newOrder.request = request;
     await this.orderRepository.save(newOrder);
+
+    targetCustomer.recentOrder = new Date();
+    await this.customerRepository.save(targetCustomer);
 
     this.orderGateway.refreshClient();
     this.orderGateway.refresh();

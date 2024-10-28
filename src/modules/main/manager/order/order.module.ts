@@ -15,6 +15,7 @@ import { SchedulingOrderService } from "@src/modules/main/manager/order/services
 import { User } from "@src/entities/user.entity";
 import { SocketModule } from "@src/modules/socket/socket.module";
 import { FirebaseModule } from "@src/modules/firebase/firebase.module";
+import { Customer } from "@src/entities/customer.entity";
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { FirebaseModule } from "@src/modules/firebase/firebase.module";
       OrderChange,
       Settings,
       User,
+      Customer,
     ]),
     SocketModule,
     FirebaseModule,

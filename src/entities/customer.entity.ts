@@ -29,6 +29,9 @@ export class Customer {
   @OneToMany(() => CustomerPrice, (category) => category.customerJoin)
   customerPriceJoin: CustomerPrice[];
 
+  @Column({ nullable: true, name: 'recent_order' })
+  recentOrder: Date;
+
   @Column()
   withdrawn: number;
 
