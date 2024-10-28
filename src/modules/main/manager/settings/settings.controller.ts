@@ -1,4 +1,16 @@
-import { Body, Controller, Get, Header, Post, Put, Query, Res, UploadedFile, UseInterceptors } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Header,
+  Post,
+  Put,
+  Query,
+  Res,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors
+} from "@nestjs/common";
 import { SettingsService } from "@src/modules/main/manager/settings/settings.service";
 import { GetCalculationDto } from "@src/modules/main/manager/settings/dto/get-calculation.dto";
 import * as XLSX from "xlsx-js-style";
@@ -9,8 +21,10 @@ import { Settings } from "@src/entities/settings.entity";
 import { diskStorage } from "multer";
 import * as Path from "path";
 import { header } from "@src/config/xlsx";
+import { AuthGuard } from "@src/modules/auth/auth.guard";
 
 @Controller('manager/settings')
+@UseGuards(AuthGuard)
 export class SettingsController {
   constructor(private readonly settingService: SettingsService) {}
 

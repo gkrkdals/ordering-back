@@ -8,6 +8,7 @@ import { CustomerPrice } from "@src/entities/customer-price";
 import { MenuCategory } from "@src/entities/menu-category.entity";
 import { CreditService } from "@src/modules/main/manager/customer/services/credit.service";
 import { CustomerCredit } from "@src/entities/customer-credit.entity";
+import { JwtService } from "@nestjs/jwt";
 
 @Module({
   imports: [
@@ -19,7 +20,7 @@ import { CustomerCredit } from "@src/entities/customer-credit.entity";
       MenuCategory,
     ]),
   ],
-  providers: [CustomerService, CreditService],
   controllers: [CustomerController],
+  providers: [CustomerService, CreditService, JwtService],
 })
 export class CustomerModule {}

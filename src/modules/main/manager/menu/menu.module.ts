@@ -4,6 +4,7 @@ import { Menu } from "@src/entities/menu.entity";
 import { MenuController } from "@src/modules/main/manager/menu/menu.controller";
 import { MenuService } from "@src/modules/main/manager/menu/menu.service";
 import { MenuCategory } from "@src/entities/menu-category.entity";
+import { JwtService } from "@nestjs/jwt";
 
 @Module({
   imports: [
@@ -13,6 +14,6 @@ import { MenuCategory } from "@src/entities/menu-category.entity";
     ]),
   ],
   controllers: [MenuController],
-  providers: [MenuService]
+  providers: [MenuService, JwtService]
 })
 export class MenuModule {}

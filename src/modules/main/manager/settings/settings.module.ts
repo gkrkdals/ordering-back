@@ -4,6 +4,7 @@ import { SettingsService } from "@src/modules/main/manager/settings/settings.ser
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { Order } from "@src/entities/order.entity";
 import { Settings } from "@src/entities/settings.entity";
+import { JwtService } from "@nestjs/jwt";
 
 @Module({
   imports: [
@@ -13,6 +14,6 @@ import { Settings } from "@src/entities/settings.entity";
     ])
   ],
   controllers: [SettingsController],
-  providers: [SettingsService],
+  providers: [SettingsService, JwtService],
 })
 export class SettingsModule {}
