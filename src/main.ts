@@ -10,7 +10,7 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
   app.enableCors({
     credentials: true,
-    origin: process.env.ORIGIN,
+    origin: [ process.env.ORIGIN, 'https://localhost' ],
   });
   app.use(cookieParser());
   app.useWebSocketAdapter(new IoAdapter(app));

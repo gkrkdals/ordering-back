@@ -26,7 +26,6 @@ export class OrderGateway implements OnModuleInit, OnGatewayInit, OnGatewayConne
     this.server.listen(
       port, {
         cors: {
-            // origin: [ origin, 'https://localhost' ]
           origin: [ socketOrigin, 'https://localhost' ],
         }
       });
