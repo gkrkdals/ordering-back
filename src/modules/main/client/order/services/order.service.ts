@@ -12,7 +12,7 @@ import { OrderGateway } from "@src/modules/socket/order.gateway";
 import { CustomerPrice } from "@src/entities/customer-price";
 import { CustomerCredit } from "@src/entities/customer-credit.entity";
 import { OrderStatus } from "@src/entities/order-status.entity";
-import { dateToString, getOrderAvailableTimes } from "@src/utils/date";
+import { getOrderAvailableTimes } from "@src/utils/date";
 import { Menu } from "@src/entities/menu.entity";
 import { FirebaseService } from "@src/modules/firebase/firebase.service";
 import { JwtCustomer } from "@src/types/jwt/JwtCustomer";
@@ -136,7 +136,7 @@ export class OrderService {
     targetCustomer.recentOrder = new Date();
     await this.customerRepository.save(targetCustomer);
 
-    this.orderGateway.newOrder();
+    this.orderGateway.newOrder({ menu: orderedMenus.at(0).menu.id });
     await this.fcmService.newOrder();
     this.orderGateway.refresh();
     this.orderGateway.refreshClient();

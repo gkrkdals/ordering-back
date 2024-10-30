@@ -16,8 +16,7 @@ import { getOrderAvailableTimes } from "@src/utils/date";
 import { PermissionEnum } from "@src/types/enum/PermissionEnum";
 import { JwtUser } from "@src/types/jwt/JwtUser";
 import { FirebaseService } from "@src/modules/firebase/firebase.service";
-import { Customer } from "@src/entities/customer.entity";
-
+import { Menu } from "@src/entities/menu.entity";
 @Injectable()
 export class OrderModifyService {
   constructor(
@@ -29,6 +28,8 @@ export class OrderModifyService {
     private readonly customerCreditRepository: Repository<CustomerCredit>,
     @InjectRepository(OrderChange)
     private readonly orderChangeRepository: Repository<OrderChange>,
+    @InjectRepository(Menu)
+    private readonly menuRepository: Repository<Menu>,
 
     private readonly orderGateway: OrderGateway,
     private readonly fcmService: FirebaseService
@@ -53,6 +54,10 @@ export class OrderModifyService {
       where: { id: order.orderId },
       relations: { orderJoin: true, }
     });
+    const currentOrder = await this.orderRepository.findOne({
+      where: { id: order.orderId },
+      relations: { menuJoin: true } }
+    );
     const { orderCode, orderJoin: { customer } } = currentOrderStatus;
 
     // 새 주문상태 엔티티 생성, 새로운 주문상태와 해당 주문 코드 매핑
@@ -89,7 +94,7 @@ export class OrderModifyService {
     await this.orderStatusRepository.save(newOrderStatus);
 
     await this.clearAlarm();
-    await this.raiseAlarm(newOrderStatus.status);
+    await this.raiseAlarm(newOrderStatus.status, { menu: currentOrder.menuJoin.id });
 
     this.orderGateway.refreshClient();
     this.orderGateway.refresh();
@@ -176,19 +181,19 @@ export class OrderModifyService {
     }
   }
 
-  private async raiseAlarm(newStatus: StatusEnum) {
+  private async raiseAlarm(newStatus: StatusEnum, data?: any) {
     if(newStatus === StatusEnum.InPreparation) {
-      this.orderGateway.cookingStarted();
+      this.orderGateway.cookingStarted(data);
       await this.fcmService.cookingStarted();
     }
 
     if(newStatus === StatusEnum.WaitingForDelivery) {
-      this.orderGateway.newDelivery();
+      this.orderGateway.newDelivery(data);
       await this.fcmService.newDelivery();
     }
 
     if(newStatus === StatusEnum.InPickingUp) {
-      this.orderGateway.newDishDisposal();
+      this.orderGateway.newDishDisposal(data);
       await this.fcmService.newDishDisposal();
     }
   }

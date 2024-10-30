@@ -49,9 +49,8 @@ export class OrderGateway implements OnModuleInit, OnGatewayInit, OnGatewayConne
   }
 
   private broadcastEvent(event: string, data?: any) {
-    const broadcastingMessage = JSON.stringify(data);
     for (const client of this.clients) {
-      client.emit(event, broadcastingMessage);
+      client.emit(event, data);
     }
   }
 
@@ -68,32 +67,33 @@ export class OrderGateway implements OnModuleInit, OnGatewayInit, OnGatewayConne
   }
 
   // 새로운 주문 건 알림
-  newOrder() {
-    this.broadcastEvent('new_order');
+  newOrder(data?: any) {
+    this.broadcastEvent('new_order', data);
   }
 
-  cookingStarted() {
-    this.broadcastEvent('cooking_started');
+  // 조리 시작됨
+  cookingStarted(data?: any) {
+    this.broadcastEvent('cooking_started', data);
   }
 
   // 조리시간 초과 알림
-  cookingExceeded() {
-    this.broadcastEvent('cooking_exceeded');
+  cookingExceeded(data?: any) {
+    this.broadcastEvent('cooking_exceeded', data);
   }
 
   // 새로운 픽업요청 알림
-  newDelivery() {
-    this.broadcastEvent('new_delivery');
+  newDelivery(data?: any) {
+    this.broadcastEvent('new_delivery', data);
   }
 
   // 배달 지연 알림
-  deliverDelayed() {
-    this.broadcastEvent('deliver_delayed');
+  deliverDelayed(data?: any) {
+    this.broadcastEvent('deliver_delayed', data);
   }
 
   // 그릇 수거 요청
-  newDishDisposal() {
-    this.broadcastEvent('new_dish_disposal');
+  newDishDisposal(data?: any) {
+    this.broadcastEvent('new_dish_disposal', data);
   }
 
   @Cron(CronExpression.EVERY_30_SECONDS)

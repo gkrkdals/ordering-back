@@ -176,7 +176,7 @@ export class OrderService {
 
     this.orderGateway.refreshClient();
     this.orderGateway.refresh();
-    this.orderGateway.newOrder();
+    this.orderGateway.newOrder({ menu: menu.id });
     await this.fcmService.newOrder()
   }
 

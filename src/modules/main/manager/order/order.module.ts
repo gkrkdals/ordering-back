@@ -16,6 +16,7 @@ import { User } from "@src/entities/user.entity";
 import { SocketModule } from "@src/modules/socket/socket.module";
 import { FirebaseModule } from "@src/modules/firebase/firebase.module";
 import { Customer } from "@src/entities/customer.entity";
+import { Menu } from "@src/entities/menu.entity";
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { Customer } from "@src/entities/customer.entity";
       Settings,
       User,
       Customer,
+      Menu
     ]),
     SocketModule,
     FirebaseModule,
