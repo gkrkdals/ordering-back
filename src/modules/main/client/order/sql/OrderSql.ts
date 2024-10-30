@@ -21,7 +21,7 @@ export class OrderSql {
       AND d.id = a.status
       AND a.status < 5
       AND (b.time >= ? AND b.time <= ?)
-    ORDER BY status DESC`;
+    ORDER BY b.time desc, status DESC`;
 
   static getOrderStatusCounts = `
     SELECT

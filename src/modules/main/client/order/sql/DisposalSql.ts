@@ -22,5 +22,6 @@ export class DisposalSql {
     LEFT JOIN menu c ON a.menu = c.id
     WHERE (b.status = ? OR b.status = ?)
       AND a.customer = ?
+    ORDER BY a.time DESC
   `;
 }
