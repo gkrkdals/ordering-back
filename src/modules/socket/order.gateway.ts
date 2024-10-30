@@ -23,7 +23,7 @@ export class OrderGateway implements OnModuleInit, OnGatewayInit, OnGatewayConne
     const port = Number(this.configService.get("WS_PORT"));
     const origin = this.configService.get("ORIGIN");
 
-    this.server.listen(port, { cors: { origin } });
+    this.server.listen(port, { cors: { origin: [ origin, 'https://localhost' ] } });
   }
 
   afterInit(server: Server) {

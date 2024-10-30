@@ -1,7 +1,8 @@
 import { Injectable } from "@nestjs/common";
-import admin from "firebase-admin";
 import * as fs from 'fs';
 import * as path from 'path';
+import { messaging } from "firebase-admin";
+import { cert, initializeApp } from "firebase-admin/app";
 
 @Injectable()
 export class FirebaseService {
@@ -11,8 +12,8 @@ export class FirebaseService {
       const data = fs.readFileSync(fullPath, 'utf8');
       const serviceAccount = JSON.parse(data);
 
-      admin.initializeApp({
-        credential: admin.credential.cert({
+      initializeApp({
+        credential: cert({
           projectId: serviceAccount.project_id,
           clientEmail: serviceAccount.client_email,
           privateKey: serviceAccount.private_key,
@@ -49,7 +50,7 @@ export class FirebaseService {
   }
 
   private async fcm(title: string, body: string, sound: string, topic: string) {
-    await admin.messaging().send({
+    await messaging().send({
       topic,
       notification: {
         title,
@@ -63,7 +64,9 @@ export class FirebaseService {
           priority: "high",
           sound,
           tag: "order"
-        }
+        },
+        priority: "high",
+        ttl: 1000 * 60
       }
     })
 
