@@ -16,6 +16,7 @@ import { getOrderAvailableTimes } from "@src/utils/date";
 import { PermissionEnum } from "@src/types/enum/PermissionEnum";
 import { JwtUser } from "@src/types/jwt/JwtUser";
 import { FirebaseService } from "@src/modules/firebase/firebase.service";
+import { Customer } from "@src/entities/customer.entity";
 
 @Injectable()
 export class OrderModifyService {
@@ -28,6 +29,8 @@ export class OrderModifyService {
     private readonly customerCreditRepository: Repository<CustomerCredit>,
     @InjectRepository(OrderChange)
     private readonly orderChangeRepository: Repository<OrderChange>,
+    @InjectRepository(Customer)
+    private readonly customerRepository: Repository<Customer>,
 
     private readonly orderGateway: OrderGateway,
     private readonly fcmService: FirebaseService
@@ -53,6 +56,13 @@ export class OrderModifyService {
       relations: { orderJoin: true, }
     });
     const { orderCode, orderJoin: { customer } } = currentOrderStatus;
+    const currentCustomer = await this.customerRepository.findOneBy({ id: customer });
+
+    // 새 상태가 "요청완료"일 경우 최근주문시간 업데이트
+    if (order.newStatus === StatusEnum.InPickingUp) {
+      currentCustomer.recentOrder = new Date();
+      await this.customerRepository.save(currentCustomer);
+    }
 
     // 새 주문상태 엔티티 생성, 새로운 주문상태와 해당 주문 코드 매핑
     const newOrderStatus = new OrderStatus();

@@ -17,6 +17,8 @@ export class DishDisposalService {
     private readonly orderStatusRepository: Repository<OrderStatus>,
     private readonly orderGateway: OrderGateway,
     private readonly fcmService: FirebaseService,
+    @InjectRepository(Customer)
+    private readonly customerRepository: Repository<Customer>,
   ) {}
 
   async getDishDisposals(customer: Customer): Promise<Disposal[]> {
@@ -26,14 +28,18 @@ export class DishDisposalService {
     );
   }
 
-  async createDishDisposal(body: CreateDishDisposalDto) {
+  async createDishDisposal(customer: Customer, body: CreateDishDisposalDto) {
     const newOrderStatus = new OrderStatus();
+    const currentCustomer = await this.customerRepository.findOneBy({ id: customer.id });
     const { disposal, location } = body;
     newOrderStatus.orderCode = disposal.order_code;
     newOrderStatus.status = StatusEnum.InPickingUp;
     newOrderStatus.location = location;
 
     await this.orderStatusRepository.save(newOrderStatus);
+
+    currentCustomer.recentOrder = new Date();
+    await this.customerRepository.save(currentCustomer);
 
     this.orderGateway.newDishDisposal();
     await this.fcmService.newDishDisposal();

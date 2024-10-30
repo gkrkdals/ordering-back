@@ -6,7 +6,7 @@ import { User } from "@src/entities/user.entity";
 import { PermissionEnum } from "@src/types/enum/PermissionEnum";
 import { CreateAccountDto } from "@src/modules/auth/dto/create-account.dto";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { Not, Repository } from "typeorm";
 import { Customer } from "@src/entities/customer.entity";
 import { ManagerSignInDto } from "@src/modules/auth/dto/manager-sign-in.dto";
 import { Response } from "express";
@@ -102,6 +102,10 @@ export class AuthService {
     return user;
   }
 
+  async getAccounts() {
+    return this.userRepository.findBy({ withdrawn: Not(1) });
+  }
+
   async createAccount(body: CreateAccountDto) {
     const { username, password, nickname, permission } = body;
     const newUser = new User();
@@ -110,6 +114,19 @@ export class AuthService {
     newUser.nickname = nickname;
     newUser.permission = permission;
     await this.userRepository.save(newUser);
+  }
+
+  async updateAccount(account: User) {
+    const modifiedUser = await this.userRepository.findOneBy({ id: account.id });
+    modifiedUser.permission = account.permission;
+    modifiedUser.nickname = account.nickname;
+    await this.userRepository.save(modifiedUser);
+  }
+
+  async deleteAccount(id: number) {
+    const deletedAccount = await this.userRepository.findOneBy({ id });
+    deletedAccount.withdrawn = 1;
+    await this.userRepository.save(deletedAccount);
   }
 
   async logout(res: Response, user: User) {

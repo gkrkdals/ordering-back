@@ -1,4 +1,17 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, Query, Req, Res, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post, Put,
+  Query,
+  Req,
+  Res,
+  UseGuards
+} from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import { AuthGuard } from "./auth.guard";
 import { CookieOptions, Request, Response } from "express";
@@ -6,6 +19,7 @@ import { Customer } from "@src/entities/customer.entity";
 import { ManagerSignInDto } from "@src/modules/auth/dto/manager-sign-in.dto";
 import { CreateAccountDto } from "@src/modules/auth/dto/create-account.dto";
 import { CustomerData } from "@src/modules/user/customer.decorator";
+import { User } from "@src/entities/user.entity";
 
 const cookieOptions: CookieOptions = {
   sameSite: "none",
@@ -83,8 +97,26 @@ export class AuthController {
   }
 
   @UseGuards(AuthGuard)
+  @Get('account')
+  async getAccounts() {
+    return this.authService.getAccounts();
+  }
+
+  @UseGuards(AuthGuard)
   @Post('account')
   async createAccount(@Body() body: CreateAccountDto) {
     await this.authService.createAccount(body);
+  }
+
+  @UseGuards(AuthGuard)
+  @Put('account')
+  async updateAccount(@Body('user') account: User) {
+    await this.authService.updateAccount(account);
+  }
+
+  @UseGuards(AuthGuard)
+  @Delete('account/:id')
+  async deleteAccount(@Param('id') id: number) {
+    await this.authService.deleteAccount(id);
   }
 }

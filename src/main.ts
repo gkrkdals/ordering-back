@@ -2,20 +2,18 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import * as cookieParser from "cookie-parser";
 import { IoAdapter } from "@nestjs/platform-socket.io";
+import * as dotenv from "dotenv";
 
 async function bootstrap() {
+  dotenv.config();
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('api');
   app.enableCors({
     credentials: true,
-    origin: [
-      'https://localhost',
-      'http://localhost:5173',
-      'https://yeonsu.kr',
-    ],
+    origin: process.env.ORIGIN,
   });
   app.use(cookieParser());
   app.useWebSocketAdapter(new IoAdapter(app));
-  await app.listen(3000);
+  await app.listen(process.env.PORT);
 }
 bootstrap();

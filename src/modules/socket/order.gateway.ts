@@ -6,16 +6,25 @@ import {
 } from "@nestjs/websockets";
 import { Server, Socket } from 'socket.io';
 import { Cron, CronExpression } from "@nestjs/schedule";
+import { OnModuleInit } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 
-@WebSocketGateway(8080, {
-    cors: ['http://localhost:5173', 'https://localhost', 'https://yeonsu.kr']
-})
-export class OrderGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
+@WebSocketGateway()
+export class OrderGateway implements OnModuleInit, OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
+
+  constructor(private readonly configService: ConfigService) {}
 
   @WebSocketServer()
   server: Server;
 
   private clients: Socket[] = [];
+
+  onModuleInit() {
+    const port = Number(this.configService.get("WS_PORT"));
+    const origin = this.configService.get("ORIGIN");
+
+    this.server.listen(port, { cors: { origin } });
+  }
 
   afterInit(server: Server) {
     this.server = server;

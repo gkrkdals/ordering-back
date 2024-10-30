@@ -30,7 +30,7 @@ export class CustomerService {
   ): Promise<GetCustomerResponseDto> {
     const like = `%${query}%`
 
-    let orderBy = ``;
+    let orderBy: string;
     if (order !== '') {
       orderBy = `ORDER BY ${column} ${order}, id ${order}`;
     } else {
@@ -55,7 +55,16 @@ export class CustomerService {
     }
   }
 
-  async getAll() { return this.customerRepository.findBy({ withdrawn: Not(1) }); }
+  async getAll() {
+    return this.customerRepository.find({
+      where: {
+        withdrawn: Not(1),
+      },
+      order: {
+        recentOrder: 'desc'
+      }
+    });
+  }
 
   async getCategories() { return this.customerCategoryRepository.find(); }
 

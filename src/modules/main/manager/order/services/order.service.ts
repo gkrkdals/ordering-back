@@ -13,7 +13,7 @@ import { Menu } from "@src/entities/menu.entity";
 import { CustomerPrice } from "@src/entities/customer-price";
 import { OrderGateway } from "@src/modules/socket/order.gateway";
 import { Pending } from "@src/types/models/Pending";
-import { dateToString, getOrderAvailableTimes } from "@src/utils/date";
+import { getOrderAvailableTimes } from "@src/utils/date";
 import { OrderHistory } from "@src/types/models/OrderHistory";
 import { User } from "@src/entities/user.entity";
 import { PermissionEnum } from "@src/types/enum/PermissionEnum";
@@ -61,6 +61,19 @@ export class OrderService {
     const inPickingUp = pending.some(p => p.status === StatusEnum.InPickingUp);
 
     return { pendingReceipt, waitingForDelivery, inPickingUp };
+  }
+
+  async stopAlarmIfNoPending() {
+    const [start, end] = getOrderAvailableTimes();
+
+    const pendingReceipts: { status: number }[] = await this.orderStatusRepository
+      .createQueryBuilder()
+      .select('MAX(status)', 'status')
+      .where('time >= :start AND time <= :end', { start, end })
+      .groupBy('order_code')
+      .getRawMany();
+
+    return pendingReceipts.filter(p => p.status === StatusEnum.PendingReceipt).length === 0;
   }
 
   async getOrders(

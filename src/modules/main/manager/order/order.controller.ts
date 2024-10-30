@@ -26,6 +26,11 @@ export class OrderController {
     return this.orderService.pendingStatusForManager();
   }
 
+  @Get('alarm')
+  async stopAlarmIfNoPending() {
+    return this.orderService.stopAlarmIfNoPending();
+  }
+
   @Get('category')
   async getOrderCategories() {
     return this.orderService.getOrderCategories();

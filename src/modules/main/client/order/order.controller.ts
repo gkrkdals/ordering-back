@@ -60,7 +60,7 @@ export class OrderController {
   }
 
   @Post('dish')
-  async createDishDisposals(@Body() body: CreateDishDisposalDto) {
-    return this.dishDisposalService.createDishDisposal(body);
+  async createDishDisposals(@CustomerData() customer: Customer, @Body() body: CreateDishDisposalDto) {
+    return this.dishDisposalService.createDishDisposal(customer, body);
   }
 }

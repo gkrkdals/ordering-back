@@ -15,6 +15,7 @@ import { ScheduleModule } from "@nestjs/schedule";
     }),
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: process.env.NODE_ENV === "production" ? ".env.production" : ".env.development",
     }),
     ApiModule,
     ScheduleModule.forRoot()
