@@ -92,6 +92,7 @@ export class SettingsService {
     if (isSameDay(startDate, endDate)) {
       endDate.setHours(23, 59, 59, 999);
     } else {
+      endDate.setDate(endDate.getDate() + 1);
       endDate.setHours(8, 59, 59, 999);
     }
 
@@ -136,7 +137,7 @@ export class SettingsService {
       }
 
       return [
-        { v: isRowEmpty ? '' : numbering, t: "s", s: p },
+        { v: isRowEmpty ? '' : numbering, t: "n", s: p },
         { v: row.customer_name, t: "s", s: p },
         { v: row.menu_name, t: "s", s: t },
         { v: row.price === null ? '' : parseInt(row.price), t: "n", s: q },
