@@ -54,11 +54,12 @@ export class OrderModifyService {
       where: { id: order.orderId },
       relations: { orderJoin: true, }
     });
+
+    const { orderCode, orderJoin: { customer } } = currentOrderStatus;
     const currentOrder = await this.orderRepository.findOne({
-      where: { id: order.orderId },
+      where: { id: orderCode },
       relations: { menuJoin: true } }
     );
-    const { orderCode, orderJoin: { customer } } = currentOrderStatus;
 
     // 새 주문상태 엔티티 생성, 새로운 주문상태와 해당 주문 코드 매핑
     const newOrderStatus = new OrderStatus();
