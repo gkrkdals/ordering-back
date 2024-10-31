@@ -1,8 +1,8 @@
 import {
   Body,
-  Controller,
+  Controller, Delete,
   Get,
-  Header,
+  Header, Param, ParseIntPipe,
   Post,
   Put,
   Query,
@@ -22,11 +22,15 @@ import { diskStorage } from "multer";
 import * as Path from "path";
 import { header } from "@src/config/xlsx";
 import { AuthGuard } from "@src/modules/auth/auth.guard";
+import { NoAlarmsService } from "@src/modules/main/manager/settings/services/no-alarms.service";
 
 @Controller('manager/settings')
 @UseGuards(AuthGuard)
 export class SettingsController {
-  constructor(private readonly settingService: SettingsService) {}
+  constructor(
+    private readonly settingService: SettingsService,
+    private readonly noAlarmsService: NoAlarmsService
+  ) {}
 
   @Get('exceed')
   async getExceedSettings() {
@@ -87,5 +91,20 @@ export class SettingsController {
   private fitToColumn(arrayOfArray: any[][]) {
     // get maximum character of each column
     return arrayOfArray[0].map((a, i) => ({ wch: Math.max(...arrayOfArray.map(a2 => a2[i] ? a2[i].toString().length : 0)) * 1.2 }));
+  }
+
+  @Get('no-alarm')
+  async getNoAlarms() {
+    return this.noAlarmsService.getNoAlarms();
+  }
+
+  @Put('no-alarm')
+  async updateNoAlarms(@Body('menu') menu: number) {
+    await this.noAlarmsService.updateNoAlarms(menu);
+  }
+
+  @Delete('no-alarm/:id')
+  async deleteNoAlarm(@Param('id', ParseIntPipe) menu: number) {
+    await this.noAlarmsService.deleteNoAlarms(menu);
   }
 }

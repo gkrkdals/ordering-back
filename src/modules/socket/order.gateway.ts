@@ -96,7 +96,7 @@ export class OrderGateway implements OnModuleInit, OnGatewayInit, OnGatewayConne
     this.broadcastEvent('new_dish_disposal', data);
   }
 
-  @Cron(CronExpression.EVERY_30_SECONDS)
+  @Cron(CronExpression.EVERY_5_MINUTES)
   ping() {
     this.broadcastEvent('ping');
   }

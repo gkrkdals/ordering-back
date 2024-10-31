@@ -14,6 +14,7 @@ import { User } from "@src/entities/user.entity";
 import { SocketModule } from "@src/modules/socket/socket.module";
 import { FirebaseModule } from "@src/modules/firebase/firebase.module";
 import { Customer } from "@src/entities/customer.entity";
+import { NoAlarmsModule } from "@src/modules/misc/no-alarms.module";
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { Customer } from "@src/entities/customer.entity";
     ]),
     SocketModule,
     FirebaseModule,
+    NoAlarmsModule,
   ],
   controllers: [OrderController],
   providers: [

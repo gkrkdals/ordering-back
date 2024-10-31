@@ -20,6 +20,7 @@ import { PermissionEnum } from "@src/types/enum/PermissionEnum";
 import { FirebaseService } from "@src/modules/firebase/firebase.service";
 import { JwtCustomer } from "@src/types/jwt/JwtCustomer";
 import { Customer } from "@src/entities/customer.entity";
+import { NoAlarmsService } from "@src/modules/misc/no-alarms.service";
 
 @Injectable()
 export class OrderService {
@@ -43,6 +44,8 @@ export class OrderService {
     private readonly orderGateway: OrderGateway,
 
     private readonly fcmService: FirebaseService,
+
+    private readonly noAlarmsService: NoAlarmsService,
   ) {}
 
   async pendingStatusForManager() {
@@ -176,8 +179,8 @@ export class OrderService {
 
     this.orderGateway.refreshClient();
     this.orderGateway.refresh();
-    this.orderGateway.newOrder({ menu: menu.id });
-    await this.fcmService.newOrder()
+    this.orderGateway.newOrder(await this.noAlarmsService.isNoAlarm(menu.id));
+    await this.fcmService.newOrder();
   }
 
   private getModificationLimitAndItsName(user: User) {

@@ -16,6 +16,7 @@ import { getOrderAvailableTimes } from "@src/utils/date";
 import { Menu } from "@src/entities/menu.entity";
 import { FirebaseService } from "@src/modules/firebase/firebase.service";
 import { JwtCustomer } from "@src/types/jwt/JwtCustomer";
+import { NoAlarmsService } from "@src/modules/misc/no-alarms.service";
 
 @Injectable()
 export class OrderService {
@@ -36,8 +37,10 @@ export class OrderService {
     private readonly customerRepository: Repository<Customer>,
     @InjectDataSource()
     private readonly datasource: DataSource,
+
     private readonly orderGateway: OrderGateway,
-    private readonly fcmService: FirebaseService
+    private readonly fcmService: FirebaseService,
+    private readonly noAlarmsService: NoAlarmsService,
   ) {}
 
   getOrderCategories(): Promise<OrderCategory[]> {
@@ -136,7 +139,7 @@ export class OrderService {
     targetCustomer.recentOrder = new Date();
     await this.customerRepository.save(targetCustomer);
 
-    this.orderGateway.newOrder({ menu: orderedMenus.at(0).menu.id });
+    this.orderGateway.newOrder(await this.noAlarmsService.isNoAlarm(orderedMenus.at(0).menu.id));
     await this.fcmService.newOrder();
     this.orderGateway.refresh();
     this.orderGateway.refreshClient();
