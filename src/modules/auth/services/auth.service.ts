@@ -111,10 +111,10 @@ export class AuthService {
     }
   }
 
-  async logout(res: Response, user: User) {
+  async logout(res: Response, user: User, isNative: boolean) {
     res.clearCookie('jwt', { secure: true, httpOnly: true, sameSite: "none" });
     res.status(200).send();
-    if (user && user.id) {
+    if (user && user.id && isNative) {
       const foundUser = await this.userRepository.findOneBy({ id: user.id });
       if (foundUser.fcmToken) {
         await this.unsubscribe(foundUser, foundUser.fcmToken);

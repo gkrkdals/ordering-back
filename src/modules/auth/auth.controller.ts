@@ -87,8 +87,8 @@ export class AuthController {
 
   @Get('manager/logout')
   @UseGuards(AuthGuard)
-  async logout(@Res() res: Response, @UserData() user: User) {
-    await this.authService.logout(res, user);
+  async logout(@Res() res: Response, @UserData() user: User, @Query('isNative') isNative: boolean) {
+    await this.authService.logout(res, user, isNative);
   }
 
   @Get('manager/profile')
