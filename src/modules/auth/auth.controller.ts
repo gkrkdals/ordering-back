@@ -12,14 +12,15 @@ import {
   Res,
   UseGuards
 } from "@nestjs/common";
-import { AuthService } from "./auth.service";
+import { AuthService } from "./services/auth.service";
 import { AuthGuard } from "./auth.guard";
 import { CookieOptions, Request, Response } from "express";
 import { Customer } from "@src/entities/customer.entity";
 import { ManagerSignInDto } from "@src/modules/auth/dto/manager-sign-in.dto";
 import { CreateAccountDto } from "@src/modules/auth/dto/create-account.dto";
-import { CustomerData } from "@src/modules/user/customer.decorator";
+import { CustomerData, UserData } from "@src/modules/user/customer.decorator";
 import { User } from "@src/entities/user.entity";
+import { AccountService } from "@src/modules/auth/services/account.service";
 
 const cookieOptions: CookieOptions = {
   sameSite: "none",
@@ -30,7 +31,10 @@ const cookieOptions: CookieOptions = {
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly accountService: AccountService
+  ) {}
 
   @HttpCode(HttpStatus.OK)
   @Post('signin')
@@ -83,8 +87,8 @@ export class AuthController {
 
   @Get('manager/logout')
   @UseGuards(AuthGuard)
-  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    await this.authService.logout(res, req['user']);
+  async logout(@Res() res: Response, @UserData() user: User) {
+    await this.authService.logout(res, user);
   }
 
   @Get('manager/profile')
@@ -96,27 +100,34 @@ export class AuthController {
     return this.authService.checkProfile(req, permission);
   }
 
+  @HttpCode(HttpStatus.OK)
+  @Post('manager/fcm')
+  @UseGuards(AuthGuard)
+  async refreshToken(@UserData() user: User, @Body('token') token: string) {
+    await this.authService.refreshToken(user, token);
+  }
+
   @UseGuards(AuthGuard)
   @Get('account')
   async getAccounts() {
-    return this.authService.getAccounts();
+    return this.accountService.getAccounts();
   }
 
   @UseGuards(AuthGuard)
   @Post('account')
   async createAccount(@Body() body: CreateAccountDto) {
-    await this.authService.createAccount(body);
+    await this.accountService.createAccount(body);
   }
 
   @UseGuards(AuthGuard)
   @Put('account')
   async updateAccount(@Body('user') account: User) {
-    await this.authService.updateAccount(account);
+    await this.accountService.updateAccount(account);
   }
 
   @UseGuards(AuthGuard)
   @Delete('account/:id')
   async deleteAccount(@Param('id') id: number) {
-    await this.authService.deleteAccount(id);
+    await this.accountService.deleteAccount(id);
   }
 }

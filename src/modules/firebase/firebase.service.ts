@@ -73,5 +73,19 @@ export class FirebaseService {
     console.log(`successfully sent message: ${result}`);
   }
 
+  async subscribeToTopic(token: string, topic: string) {
+    try {
+      await messaging().subscribeToTopic(token, topic);
+    } catch (e) {
+      console.log(`error while subscribing to topic: ${e}`);
+    }
+  }
 
+  async unsubscribeFromTopic(token: string, topic: string) {
+    try {
+      await messaging().unsubscribeFromTopic(token, topic);
+    } catch (e) {
+      console.log(`error while unsubscribing from topic: ${e}`);
+    }
+  }
 }

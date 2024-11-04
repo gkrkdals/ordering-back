@@ -4,13 +4,13 @@ import { JwtService, JwtSignOptions } from "@nestjs/jwt";
 import { classToObject } from "@src/utils/data";
 import { User } from "@src/entities/user.entity";
 import { PermissionEnum } from "@src/types/enum/PermissionEnum";
-import { CreateAccountDto } from "@src/modules/auth/dto/create-account.dto";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Not, Repository } from "typeorm";
+import { Repository } from "typeorm";
 import { Customer } from "@src/entities/customer.entity";
 import { ManagerSignInDto } from "@src/modules/auth/dto/manager-sign-in.dto";
 import { Response } from "express";
 import { ConfigService } from "@nestjs/config";
+import { FirebaseService } from "@src/modules/firebase/firebase.service";
 
 const option: JwtSignOptions = {
   expiresIn: "7d"
@@ -21,9 +21,10 @@ export class AuthService {
   constructor(
     private readonly usersService: UserService,
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+    private readonly fcmService: FirebaseService,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-    private readonly configService: ConfigService,
   ) {}
 
   async clientSignIn(id: number): Promise<{ access_token: string; payload: Customer; }> {
@@ -50,13 +51,13 @@ export class AuthService {
 
     if (signInDto.token) {
       user.fcmToken = signInDto.token;
+      await this.userRepository.save(user);
+      await this.subscribe(user, signInDto.token);
     }
 
     const payload = classToObject(user);
     delete payload.password;
     delete payload.fcmToken;
-
-    await this.userRepository.save(user);
 
     return {
       access_token: await this.jwtService.signAsync(payload, option),
@@ -101,39 +102,44 @@ export class AuthService {
     return user;
   }
 
-  async getAccounts() {
-    return this.userRepository.findBy({ withdrawn: Not(1) });
-  }
+  async refreshToken(user: User, newToken: string) {
+    if (user && user.id) {
+      const foundUser = await this.userRepository.findOneBy({ id: user.id });
 
-  async createAccount(body: CreateAccountDto) {
-    const { username, password, nickname, permission } = body;
-    const newUser = new User();
-    newUser.username = username;
-    newUser.password = password;
-    newUser.nickname = nickname;
-    newUser.permission = permission;
-    await this.userRepository.save(newUser);
-  }
+      foundUser.fcmToken = newToken;
 
-  async updateAccount(account: User) {
-    const modifiedUser = await this.userRepository.findOneBy({ id: account.id });
-    modifiedUser.permission = account.permission;
-    modifiedUser.nickname = account.nickname;
-    await this.userRepository.save(modifiedUser);
-  }
-
-  async deleteAccount(id: number) {
-    const deletedAccount = await this.userRepository.findOneBy({ id });
-    deletedAccount.withdrawn = 1;
-    await this.userRepository.save(deletedAccount);
+    }
   }
 
   async logout(res: Response, user: User) {
     res.clearCookie('jwt', { secure: true, httpOnly: true, sameSite: "none" });
+    res.status(200).send();
     if (user && user.id) {
       const foundUser = await this.userRepository.findOneBy({ id: user.id });
+      if (foundUser.fcmToken) {
+        await this.unsubscribe(foundUser, foundUser.fcmToken);
+      }
+
       foundUser.fcmToken = null;
       await this.userRepository.save(foundUser);
+    }
+  }
+
+  private async subscribe(user: User, token: string) {
+    await this.fcmService.subscribeToTopic(token, "all");
+    if (user.permission === PermissionEnum.Cook) {
+      await this.fcmService.subscribeToTopic(token, "cook");
+    } else {
+      await this.fcmService.subscribeToTopic(token, "manager");
+    }
+  }
+
+  private async unsubscribe(user: User, token: string) {
+    await this.fcmService.unsubscribeFromTopic(token, "all");
+    if (user.permission === PermissionEnum.Cook) {
+      await this.fcmService.unsubscribeFromTopic(token, "cook");
+    } else {
+      await this.fcmService.unsubscribeFromTopic(token, "manager");
     }
   }
 }
