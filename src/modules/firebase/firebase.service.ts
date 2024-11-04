@@ -50,7 +50,7 @@ export class FirebaseService {
   }
 
   private async fcm(title: string, body: string, sound: string, topic: string) {
-    await messaging().send({
+    const result = await messaging().send({
       topic,
       notification: {
         title,
@@ -67,10 +67,10 @@ export class FirebaseService {
         },
         priority: "high",
         ttl: 1000 * 60
-      }
+      },
     })
 
-    // await admin.messaging().send(payload);
+    console.log(`successfully sent message: ${result}`);
   }
 
 

@@ -56,8 +56,7 @@ export class AuthService {
     delete payload.password;
     delete payload.fcmToken;
 
-    const saved = await this.userRepository.save(user);
-    console.log(saved.fcmToken);
+    await this.userRepository.save(user);
 
     return {
       access_token: await this.jwtService.signAsync(payload, option),
