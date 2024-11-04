@@ -14,7 +14,7 @@ import {
 } from "@nestjs/common";
 import { AuthService } from "./services/auth.service";
 import { AuthGuard } from "./auth.guard";
-import { CookieOptions, Request, Response } from "express";
+import { CookieOptions, Response } from "express";
 import { Customer } from "@src/entities/customer.entity";
 import { ManagerSignInDto } from "@src/modules/auth/dto/manager-sign-in.dto";
 import { CreateAccountDto } from "@src/modules/auth/dto/create-account.dto";
