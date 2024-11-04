@@ -70,7 +70,7 @@ export class FirebaseService {
       },
     })
 
-    console.log(`successfully sent message: ${result}`);
+    console.log(`successfully sent ${topic} message: ${result}`);
   }
 
   async subscribeToTopic(token: string, topic: string) {
