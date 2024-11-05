@@ -12,7 +12,7 @@ import { OrderSql } from "@src/modules/main/manager/order/sql/order.sql";
 import { UpdateOrderMenuDto } from "@src/modules/main/manager/order/dto/update-order-menu.dto";
 import { OrderChange } from "@src/entities/order-change.entity";
 import { User } from "@src/entities/user.entity";
-import { getOrderAvailableTimes } from "@src/utils/date";
+import { dateToString, getOrderAvailableTimes } from "@src/utils/date";
 import { PermissionEnum } from "@src/types/enum/PermissionEnum";
 import { JwtUser } from "@src/types/jwt/JwtUser";
 import { FirebaseService } from "@src/modules/firebase/firebase.service";
@@ -103,7 +103,7 @@ export class OrderModifyService {
         floor: currentOrder.customerJoin.floor,
         menu_name: currentOrder.menuJoin.name,
         request: currentOrder.request,
-        time: currentOrder.time
+        time: dateToString(new Date(currentOrder.time))
       })
     }
 
