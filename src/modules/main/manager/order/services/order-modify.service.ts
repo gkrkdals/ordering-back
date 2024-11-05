@@ -57,7 +57,7 @@ export class OrderModifyService {
     const { orderCode, orderJoin: { customer } } = currentOrderStatus;
     const currentOrder = await this.orderRepository.findOne({
       where: { id: orderCode },
-      relations: { menuJoin: true } }
+      relations: { menuJoin: true, customerJoin: true } }
     );
 
     // 새 주문상태 엔티티 생성, 새로운 주문상태와 해당 주문 코드 매핑
@@ -95,6 +95,17 @@ export class OrderModifyService {
 
     await this.clearAlarm();
     await this.raiseAlarm(newOrderStatus.status, await this.noAlarmsService.isNoAlarm(currentOrder.menuJoin.id));
+
+    if (order.newStatus === StatusEnum.WaitingForDelivery) {
+      this.orderGateway.printReceipt({
+        customer_name: currentOrder.customerJoin.name,
+        address: currentOrder.customerJoin.address,
+        floor: currentOrder.customerJoin.floor,
+        menu_name: currentOrder.menuJoin.name,
+        request: currentOrder.request,
+        time: currentOrder.time
+      })
+    }
 
     this.orderGateway.refreshClient();
     this.orderGateway.refresh();
