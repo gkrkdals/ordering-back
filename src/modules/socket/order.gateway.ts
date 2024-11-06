@@ -17,7 +17,9 @@ export class OrderGateway implements OnModuleInit, OnGatewayInit, OnGatewayConne
   @WebSocketServer()
   server: Server;
 
-  private clients: Socket[] = [];
+  private customerClients: Socket[] = [];
+  private managerClients: Socket[] = [];
+  private printerClients: Socket[] = [];
 
   onModuleInit() {
     const port = Number(this.configService.get("WS_PORT"));
@@ -36,73 +38,100 @@ export class OrderGateway implements OnModuleInit, OnGatewayInit, OnGatewayConne
   }
 
   handleConnection(client: Socket) {
-    this.clients.push(client);
+    const role = client.handshake.query.role as string;
+
+    if (role === 'customer') {
+      this.customerClients.push(client);
+    } else if (role === 'manager') {
+      this.managerClients.push(client);
+    } else if (role === 'printer') {
+      this.printerClients.push(client);
+    }
   }
 
   handleDisconnect(client: Socket) {
-    for (let i = 0; i < this.clients.length; i++) {
-      if (this.clients.at(i).id === client.id) {
-        this.clients.splice(i, 1);
-        break;
-      }
-    }
-  }
-
-  private broadcastEvent(event: string, data?: any) {
-    for (const client of this.clients) {
-      client.emit(event, data);
-    }
+    this.customerClients = this.customerClients.filter((socket: Socket) => socket.id !== client.id);
+    this.managerClients = this.managerClients.filter((socket: Socket) => socket.id !== client.id);
+    this.printerClients = this.printerClients.filter((socket: Socket) => socket.id !== client.id);
   }
 
   refresh() {
-    this.broadcastEvent('refresh');
+    this.broadcastManagerEvent('refresh');
   }
 
   refreshClient() {
-    this.broadcastEvent('refresh_client');
+    this.broadcastCustomerEvent('refresh_client');
   }
 
   clearAlarm() {
-    this.broadcastEvent('clear_alarm');
+    this.broadcastManagerEvent('clear_alarm');
   }
 
   // 새로운 주문 건 알림
   newOrder(data?: any) {
-    this.broadcastEvent('new_order', data);
+    this.broadcastManagerEvent('new_order', data);
   }
 
   // 조리 시작됨
   cookingStarted(data?: any) {
-    this.broadcastEvent('cooking_started', data);
+    this.broadcastManagerEvent('cooking_started', data);
   }
 
   // 조리시간 초과 알림
   cookingExceeded(data?: any) {
-    this.broadcastEvent('cooking_exceeded', data);
+    this.broadcastManagerEvent('cooking_exceeded', data);
   }
 
   // 새로운 픽업요청 알림
   newDelivery(data?: any) {
-    this.broadcastEvent('new_delivery', data);
+    this.broadcastManagerEvent('new_delivery', data);
   }
 
   // 배달 지연 알림
   deliverDelayed(data?: any) {
-    this.broadcastEvent('deliver_delayed', data);
+    this.broadcastManagerEvent('deliver_delayed', data);
   }
 
   // 그릇 수거 요청
   newDishDisposal(data?: any) {
-    this.broadcastEvent('new_dish_disposal', data);
+    this.broadcastManagerEvent('new_dish_disposal', data);
   }
 
   // 인쇄 요청
   printReceipt(data?: any) {
-    this.broadcastEvent('print_receipt', data);
+    this.broadcastPrinterEvent('print_receipt', data);
   }
 
   @Cron(CronExpression.EVERY_5_MINUTES)
   ping() {
-    this.broadcastEvent('ping');
+    this.broadcastCustomerEvent('ping');
+    this.broadcastManagerEvent('ping');
+    this.broadcastPrinterEvent('ping');
+  }
+
+  @Cron("0 0 05 * * *")
+  cleanup() {
+    console.log("cleaning up clients at 5am");
+    this.customerClients = [];
+    this.managerClients = [];
+    this.printerClients = [];
+  }
+
+  private broadcastCustomerEvent(event: string, data?: any) {
+    for (const client of this.customerClients) {
+      client.emit(event, data);
+    }
+  }
+
+  private broadcastManagerEvent(event: string, data?: any) {
+    for (const client of this.managerClients) {
+      client.emit(event, data);
+    }
+  }
+
+  private broadcastPrinterEvent(event: string, data?: any) {
+    for (const client of this.printerClients) {
+      client.emit(event, data);
+    }
   }
 }
