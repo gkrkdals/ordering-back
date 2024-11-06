@@ -76,9 +76,10 @@ export class AuthController {
   @Post('manager/app/signin')
   async managerAppSignIn(
     @Body('jwt') jwt: string,
+    @Body('') token: string,
     @Res({ passthrough: true }) res: Response
   ) {
-    const data = await this.authService.managerAppSignIn(jwt);
+    const data = await this.authService.managerAppSignIn(jwt, token);
     res.setHeader("Authorization", `Bearer ${data.access_token}`);
     res.cookie("jwt", data.access_token, cookieOptions);
 

@@ -65,8 +65,16 @@ export class AuthService {
     }
   }
 
-  async managerAppSignIn(jwt: string) {
+  async managerAppSignIn(jwt: string, token: string) {
     const data = await this.jwtService.verifyAsync<User>(jwt, { secret: this.configService.get('JWT_SECRET') });
+    const user = await this.userRepository.findOneBy({ id: data.id });
+
+    if (user && token) {
+      user.fcmToken = token;
+      await this.userRepository.save(user);
+      await this.subscribe(user, token);
+    }
+
     return { access_token: jwt, payload: data };
   }
 
