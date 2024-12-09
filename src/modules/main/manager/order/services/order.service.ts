@@ -97,7 +97,7 @@ export class OrderService {
 
     let orderBy: string;
     if (order === '') {
-      orderBy = 'ORDER BY t.time DESC'
+      orderBy = 'ORDER BY t.time DESC, t.id DESC'
     } else {
       orderBy = `ORDER BY ${column} ${order}, id ${order}`;
     }
