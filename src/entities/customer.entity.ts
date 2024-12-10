@@ -13,6 +13,9 @@ export class Customer {
   @Column()
   address: string;
 
+  @Column({ default: '', nullable: true })
+  tel: string;
+
   @Column({ nullable: true })
   memo: string;
 

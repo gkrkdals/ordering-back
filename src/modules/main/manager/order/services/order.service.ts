@@ -20,7 +20,7 @@ import { PermissionEnum } from "@src/types/enum/PermissionEnum";
 import { FirebaseService } from "@src/modules/firebase/firebase.service";
 import { JwtCustomer } from "@src/types/jwt/JwtCustomer";
 import { Customer } from "@src/entities/customer.entity";
-import { NoAlarmsService } from "@src/modules/misc/no-alarms.service";
+import { NoAlarmsService } from "@src/modules/misc/no-alarms/no-alarms.service";
 
 @Injectable()
 export class OrderService {

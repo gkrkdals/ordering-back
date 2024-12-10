@@ -125,6 +125,7 @@ export class CustomerService {
       updatedCustomer.memo = customer.memo;
       updatedCustomer.category = customer.category;
       updatedCustomer.floor = customer.floor;
+      updatedCustomer.tel = customer.tel;
       await this.customerRepository.save(updatedCustomer);
     }
   }

@@ -13,6 +13,7 @@ export interface OrderStatusRaw {
   status_name: string;
   credit: number
   address: string;
+  tel: string;
   floor: string;
   memo: string;
   location: string;

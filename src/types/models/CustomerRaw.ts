@@ -3,6 +3,7 @@ export interface CustomerRaw {
   name: string;
   address: string;
   memo: string;
+  tel: string;
   floor: string;
   category: number;
   withdrawn: number;

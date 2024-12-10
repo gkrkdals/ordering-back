@@ -20,6 +20,7 @@ export class OrderSql {
              e.name status_name,
              c.price,
              f.address,
+             f.tel,
              f.floor,
              c.memo,
              b.location

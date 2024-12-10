@@ -1,4 +1,5 @@
 export interface ExcelData {
+  customer: number;
   customer_name: string;
   menu: number | string;
   menu_name: string;
@@ -10,4 +11,5 @@ export interface ExcelData {
   credit_time: string;
   credit_by: string;
   memo: string;
+  hex: string;
 }

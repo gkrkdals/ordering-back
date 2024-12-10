@@ -6,8 +6,8 @@ export interface MainCalculation {
   price: number;
   misu: number;
   sum: number;
-  deposit_date: string;
-  deposit_nm: string;
   deposit_amt: string;
+  total_credit: number;
   bigo: string;
+  hex: string;
 }

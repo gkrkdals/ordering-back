@@ -12,9 +12,10 @@ import { eachCustomerHeader, eachCustomerHeaderWidth, header, mainHeader, mainHe
 import * as fs from "node:fs";
 import { MainCalculation } from "@src/modules/main/manager/settings/interfaces/MainCalculation";
 import { Customer } from "@src/entities/customer.entity";
-import { CustomerOrder } from "@src/modules/main/manager/settings/interfaces/CustomerOrder";
+// import { CustomerCalculation } from "@src/modules/main/manager/settings/interfaces/CustomerCalculation";
 
 const empty: ExcelData = {
+  customer: 0,
   customer_name: '',
   menu: '',
   menu_name: '',
@@ -25,7 +26,8 @@ const empty: ExcelData = {
   credit_by: '',
   credit_time: null,
   credit_in: null,
-  memo: ''
+  memo: '',
+  hex: 'FFFFFF'
 }
 
 @Injectable()
@@ -64,9 +66,9 @@ export class CalculationService {
 
     const wb = XLSX.utils.book_new();
 
-    await this.getSummarySheet(startString, endString, menuParam, customerParam, wb);
-    await this.getAllCustomerSheet(startString, endString, menuParam, wb);
-    await this.getEachCustomersSheet(startString, endString, menuParam, wb);
+    const excelData = await this.getSummarySheet(startString, endString, menuParam, customerParam, wb);
+    const allData = await this.getAllCustomerSheet(startString, endString, menuParam, wb);
+    await this.getEachCustomersSheet(startString, endString, menuParam, wb, excelData, allData);
 
     const filename = 'calculation.xlsx';
     XLSX.writeFile(wb, filename, { bookType: 'xlsx', type: 'binary' });
@@ -81,23 +83,19 @@ export class CalculationService {
       [start, end, customer, customer, menu, menu]
     );
 
-    const dishData: ExcelData[] = await this.orderRepository.query(
-      SettingsSql.getDishData,
-      [start, end, customer, customer,]
+    const dishAndMasterData: ExcelData[] = await this.orderRepository.query(
+      SettingsSql.getDishAndMasterData,
+      [start, end, customer, customer, start, end, customer, customer,]
     );
 
-    const extraData: ExcelData[] = await this.orderRepository.query(
-      SettingsSql.getExtraData,
-      [start, end, customer, customer,]
-    );
-
-    const excelData: ExcelData[] = ordinaryData.concat([empty]).concat(dishData).concat([empty]).concat(extraData);
+    const excelData: ExcelData[] = ordinaryData.concat([empty]).concat(dishAndMasterData);
     let numbering = 0;
 
     const data: any[][] = excelData.map((row) => {
       const p = this.getTheme(row.memo === '취소됨');
       const t = this.getTheme(row.memo === '취소됨', row.menu === 0);
       const q = this.getTheme(row.memo === '취소됨', row.menu === 0, true);
+      q.numFmt = '#,###';
       const isRowEmpty = row.customer_name.length < 1
 
       if (!isRowEmpty) {
@@ -109,7 +107,7 @@ export class CalculationService {
 
       return [
         { v: isRowEmpty ? '' : numbering, t: "n", s: p },
-        { v: row.customer_name, t: "s", s: p },
+        { v: row.customer_name, t: "s", s: { ...p, fill: { fgColor: { rgb: `${row.hex === 'FFFFFF' ? '00' : 'FF'}${row.hex}` } } } },
         { v: row.menu_name, t: "s", s: t },
         { v: row.price === null ? '' : parseInt(row.price), t: "n", s: q },
         { v: row.order_time === null ? '' : dateToString(new Date(row.order_time)), t: "s", s: p },
@@ -123,7 +121,7 @@ export class CalculationService {
 
     const s = {
       font: {
-        sz: '22'
+        sz: '18'
       },
       border: {
         top: { style: 'thick' },
@@ -134,24 +132,29 @@ export class CalculationService {
     }
 
     const summary = [
+      { v: '', t: "s" },
       { v: '매출', t: "s", s },
-      { f: 'SUM(D3:D3000)', t: "n", s },
+      { f: 'SUM(D3:D3000)', t: "n", s: { ...s, numFmt: '₩#,###' } },
       { v: '입금', t: "s", s },
-      { f: 'SUM(I3:I3000)', t: "n", s },
+      { f: 'SUM(I3:I3000)', t: "n", s: { ...s, numFmt: '₩#,###' } },
       { v: '차액', t: "s", s },
-      { f: 'B1-D1', t: "n", s },
+      { f: 'C1-E1', t: "n", s: { ...s, numFmt: '₩#,###' } },
     ]
 
-    const newWorksheet = XLSX.utils.aoa_to_sheet([summary, [], header, ...data]);
-    newWorksheet['!cols'] = this.fitToColumn([summary, [], header, ...data]);
+    const ws = XLSX.utils.aoa_to_sheet([summary, [], header, ...data]);
+    ws['!cols'] = this.fitToColumn([summary, [], header, ...data]);
+    ws['!autofilter'] = { ref: 'A3:J3' };
+    ws['!freeze'] = { ySplit: 1 }
 
-    XLSX.utils.book_append_sheet(wb, newWorksheet, '기간정산');
+    XLSX.utils.book_append_sheet(wb, ws, '기간정산');
+
+    return excelData;
   }
 
   async getAllCustomerSheet(start: string, end: string, menu: string | null, wb: XLSX.WorkBook, ) {
     const mainSheetData: MainCalculation[] = await this.orderRepository.query(
-      SettingsSql.getMainData,
-      [start, end, menu, menu, start, end, menu, menu]
+      SettingsSql.getAllCustomerOrderData,
+      [start, end, menu, menu, start, menu, menu, start, end, menu, menu,]
     );
 
     const data = mainSheetData.map((row, i) => {
@@ -159,17 +162,24 @@ export class CalculationService {
         { v: row.name, t: 's' },
         { v: row.tel, t: 's' },
         { v: row.cnt, t: 'n' },
-        { v: row.price, t: 'n' },
-        { v: row.misu, t: 'n' },
-        { v: row.sum, t: 'n' },
-        { v: row.deposit_date, t: 's' },
-        { v: row.deposit_nm, t: 's' },
-        { v: row.deposit_amt, t: 's' },
-        { v: '', t: 's' },
+        { v: row.price, t: 'n', s: { numFmt: '#,###' } },
+        { v: row.misu, t: 'n', s: { numFmt: '#,###' } },
+        { v: row.sum, t: 'n', s: { numFmt: '#,###' } },
+        { v: row.deposit_amt, t: 'n', s: { numFmt: '#,###' } },
+        { v: row.total_credit, t: 'n', s: { numFmt: '#,###' } },
         { v: row.bigo, t: 's' },
       ];
 
-      ret.forEach((row) => row.s = this.getColoredTheme(i));
+      ret.forEach((cell, index) => {
+        cell.s = this.getColoredTheme(i);
+        if (index >= 3 && index <= 7) {
+          cell.s.numFmt = '#,###';
+        }
+      });
+
+      if (row.hex !== 'FFFFFF') {
+        ret[0].s.fill = { fgColor: { rgb: `FF${row.hex}` } }
+      }
 
       return ret;
     });
@@ -180,55 +190,117 @@ export class CalculationService {
       { v: '', t: 's' },
       { v: '', t: 's'  },
       { f: 'SUM(C3:C3000)', t: 'n', s },
-      { f: 'SUM(D3:D3000)', t: 'n', s },
-      { f: 'SUM(E3:E3000)', t: 'n', s },
-      { f: 'SUM(F3:F3000)', t: 'n', s },
-      { v: '', t: 's' },
-      { v: '', t: 's' },
-      { f: 'SUM(I3:I3000)', t: 'n', s },
-      { v: '', t: 's' },
+      { f: 'SUM(D3:D3000)', t: 'n', s: { ...s, numFmt: '₩#,###'} },
+      { f: 'SUM(E3:E3000)', t: 'n', s: { ...s, numFmt: '₩#,###'} },
+      { f: 'SUM(F3:F3000)', t: 'n', s: { ...s, numFmt: '₩#,###'} },
+      { f: 'SUM(G3:I3000)', t: 'n', s: { ...s, numFmt: '₩#,###'} },
+      { f: 'SUM(H3:I3000)', t: 'n', s: { ...s, numFmt: '₩#,###'} },
       { v: '', t: 's' },
     ]
 
     const workSheet = XLSX.utils.aoa_to_sheet([topRow, mainHeader, ...data]);
     workSheet['!cols'] = mainHeaderWidth;
+    workSheet['!autofilter'] = { ref: 'A2:I2' };
     XLSX.utils.book_append_sheet(wb, workSheet, '전체정보');
+
+    return mainSheetData;
   }
 
-  async getEachCustomersSheet(start: string, end: string, menu: number | null, wb: XLSX.WorkBook) {
+  async getEachCustomersSheet(
+    start: string, end: string, menu: number | null,
+    wb: XLSX.WorkBook, excelData: ExcelData[], allData: MainCalculation[]
+  ) {
     const customers = await this.customerRepository.find({
+      relations: {
+        categoryJoin: true
+      },
       order: {
         name: 'ASC'
       }
     });
 
-    const merge = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } }
-    ]
-
     for (const customer of customers) {
-      const orders: CustomerOrder[] = await this.orderRepository.query(
-        SettingsSql.getEachCustomerOrderData,
-        [start, end, menu, menu, customer.id]
-      )
+      const orders = excelData.filter((data) => data.customer === customer.id);
+      const hex = customer.categoryJoin.hex;
 
-      const data = orders.map((row) => [
-        { v: row.customer_nm, t: 's', },
-        { v: row.menu_nm, t: 's', },
-        { v: row.price, t: 'n', },
-        { v: dateToString(new Date(row.time)), t: 's', },
-        { v: row.path, t: 's', },
-      ]);
+      const summary = allData.find((data) => data.id === customer.id);
 
-      const title = [
-        { v: customer.name, t: 's', s: { alignment: { horizontal: 'center' } } }
+      const data = orders.map((row) => {
+        let numbering = 0;
+        const p = this.getTheme(row.memo === '취소됨');
+        const t = this.getTheme(row.memo === '취소됨', row.menu === 0);
+        const q = this.getTheme(row.memo === '취소됨', row.menu === 0, true);
+        q.numFmt = '#,###';
+
+        if (row.memo === '취소됨') {
+          row.price = null;
+        }
+        numbering++;
+
+        return [
+          { v: numbering, t: "n", s: p },
+          { v: row.customer_name, t: "s", s: p },
+          { v: row.menu_name, t: "s", s: t },
+          { v: row.price === null ? '' : parseInt(row.price), t: "n", s: q },
+          { v: row.order_time === null ? '' : dateToString(new Date(row.order_time)), t: "s", s: p },
+          { v: row.path ?? '', t: "s", s: p },
+          { v: row.delivered_time === null ? '' : dateToString(new Date(row.delivered_time)), t: "s", s: p },
+          { v: row.credit_by ?? '', t: "s", s: p },
+          { v: row.credit_in === null ? '' : parseInt(row.credit_in), t: "n", s: q },
+          { v: row.memo, t: "s", s: p }
+        ]
+      });
+
+      const p = { alignment: { horizontal: 'center' } };
+      const q = {
+        ...p,
+        numFmt: '₩#,###'
+      }
+
+      const title1 = [
+        {
+          v: customer.name,
+          t: 's',
+          s: {
+            ...p,
+            fill: { fgColor: { rgb: `${hex === 'FFFFFF' ? '00' : 'FF'}${hex}` } },
+            font: { sz: '18' },
+          }
+        },
+        {},
+        {},
+        { v: '수량', s: p },
+        { v: '금액', s: p },
+        { v: '미수', s: p },
+        { v: '합계', s: p },
+        { v: '입금액', s: p },
+        {},
+        { v: '총잔액', s: p },
       ];
+
+      const title2 = [
+        {}, {}, {},
+        { v: summary.cnt, t: 'n', s: p },
+        { v: summary.price, t: 'n', s: q },
+        { v: summary.misu, t: 'n', s: q },
+        { v: summary.sum, t: 'n', s: q },
+        { v: summary.deposit_amt, t: 'n', s: q },
+        {},
+        { v: summary.total_credit, t: 'n', s: q },
+      ]
+
+      const merge = [
+        { s: { r: 0, c: 0 }, e: { r: 1, c: 2 } },
+        { s: { r: 0, c: 7 }, e: { r: 0, c: 8 } },
+        { s: { r: 1, c: 7 }, e: { r: 1, c: 8 } },
+      ]
 
       const escapedName = customer.name.replaceAll(/[\\/\[\]*?]/g, "");
 
-      const workSheet = XLSX.utils.aoa_to_sheet([title, eachCustomerHeader, ...data]);
+      const workSheet = XLSX.utils.aoa_to_sheet([title1, title2, eachCustomerHeader, ...data]);
       workSheet['!merges'] = merge;
       workSheet['!cols'] = eachCustomerHeaderWidth;
+      workSheet['!autofilter'] = { ref: 'A3:J3' };
       XLSX.utils.book_append_sheet(wb, workSheet, escapedName);
     }
   }
@@ -257,7 +329,7 @@ export class CalculationService {
   }
 
   private getColoredTheme(index: number) {
-    return {
+    const style: any = {
       fill: {
         fgColor: {
           rgb: index % 2 === 0 ? 'FFB7DEE8' : 'FFDAEEF3'
@@ -270,5 +342,7 @@ export class CalculationService {
         right: { color: { rgb: 'FFFFFFFF' } },
       }
     }
+
+    return style;
   }
 }

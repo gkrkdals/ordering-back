@@ -16,7 +16,7 @@ import { dateToString, getOrderAvailableTimes } from "@src/utils/date";
 import { PermissionEnum } from "@src/types/enum/PermissionEnum";
 import { JwtUser } from "@src/types/jwt/JwtUser";
 import { FirebaseService } from "@src/modules/firebase/firebase.service";
-import { NoAlarmsService } from "@src/modules/misc/no-alarms.service";
+import { NoAlarmsService } from "@src/modules/misc/no-alarms/no-alarms.service";
 @Injectable()
 export class OrderModifyService {
   constructor(

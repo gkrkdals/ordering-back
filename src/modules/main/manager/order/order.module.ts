@@ -17,7 +17,7 @@ import { SocketModule } from "@src/modules/socket/socket.module";
 import { FirebaseModule } from "@src/modules/firebase/firebase.module";
 import { Customer } from "@src/entities/customer.entity";
 import { Menu } from "@src/entities/menu.entity";
-import { NoAlarmsModule } from "@src/modules/misc/no-alarms.module";
+import { NoAlarmsModule } from "@src/modules/misc/no-alarms/no-alarms.module";
 
 @Module({
   imports: [
