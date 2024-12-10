@@ -6,7 +6,7 @@ export class OrderSql {
   FROM
       (
           SELECT
-             b.id,
+             c.id,
              a.order_code,
              d.id menu,
              d.name menu_name,
