@@ -46,6 +46,7 @@ export class SettingsSql {
         AND t.order_time <= ?
         AND (t.customer = ? OR ISNULL(?))
         AND (t.menu = ? OR ISNULL(?))
+      ORDER BY t.order_time
   `;
 
   static getDishAndMasterData = `
