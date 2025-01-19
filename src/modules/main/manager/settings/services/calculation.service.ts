@@ -297,11 +297,15 @@ export class CalculationService {
 
       const escapedName = customer.name.replaceAll(/[\\/\[\]*?]/g, "");
 
-      const workSheet = XLSX.utils.aoa_to_sheet([title1, title2, eachCustomerHeader, ...data]);
-      workSheet['!merges'] = merge;
-      workSheet['!cols'] = eachCustomerHeaderWidth;
-      workSheet['!autofilter'] = { ref: 'A3:J3' };
-      XLSX.utils.book_append_sheet(wb, workSheet, escapedName);
+      try {
+        const workSheet = XLSX.utils.aoa_to_sheet([title1, title2, eachCustomerHeader, ...data]);
+        workSheet['!merges'] = merge;
+        workSheet['!cols'] = eachCustomerHeaderWidth;
+        workSheet['!autofilter'] = { ref: 'A3:J3' };
+        XLSX.utils.book_append_sheet(wb, workSheet, escapedName);
+      } catch (e) {
+        console.error(e);
+      }
     }
   }
 
