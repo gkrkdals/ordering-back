@@ -17,6 +17,8 @@ import { UpdateCustomerPriceDto } from "@src/modules/main/manager/customer/dto/u
 import { CreditService } from "@src/modules/main/manager/customer/services/credit.service";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { AuthGuard } from "@src/modules/auth/auth.guard";
+import { UserData } from "@src/modules/user/customer.decorator";
+import { User } from "@src/entities/user.entity";
 
 @Controller('manager/customer')
 @UseGuards(AuthGuard)
@@ -82,7 +84,8 @@ export class CustomerController {
     @Body('mode') mode: number,
     @Body('customer') customer: number,
     @Body('price') price: number,
+    @UserData() user: User,
   ) {
-    return this.creditService.addCredit(mode, customer, price);
+    return this.creditService.addCredit(mode, customer, price, user);
   }
 }

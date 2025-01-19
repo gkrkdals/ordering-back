@@ -193,8 +193,8 @@ export class CalculationService {
       { f: 'SUM(D3:D3000)', t: 'n', s: { ...s, numFmt: '₩#,###'} },
       { f: 'SUM(E3:E3000)', t: 'n', s: { ...s, numFmt: '₩#,###'} },
       { f: 'SUM(F3:F3000)', t: 'n', s: { ...s, numFmt: '₩#,###'} },
-      { f: 'SUM(G3:I3000)', t: 'n', s: { ...s, numFmt: '₩#,###'} },
-      { f: 'SUM(H3:I3000)', t: 'n', s: { ...s, numFmt: '₩#,###'} },
+      { f: 'SUM(G3:G3000)', t: 'n', s: { ...s, numFmt: '₩#,###'} },
+      { f: 'SUM(H3:H3000)', t: 'n', s: { ...s, numFmt: '₩#,###'} },
       { v: '', t: 's' },
     ]
 
