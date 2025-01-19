@@ -14,22 +14,6 @@ import { MainCalculation } from "@src/modules/main/manager/settings/interfaces/M
 import { Customer } from "@src/entities/customer.entity";
 // import { CustomerCalculation } from "@src/modules/main/manager/settings/interfaces/CustomerCalculation";
 
-const empty: ExcelData = {
-  customer: 0,
-  customer_name: '',
-  menu: '',
-  menu_name: '',
-  path: null,
-  price: null,
-  order_time: null,
-  delivered_time: null,
-  credit_by: '',
-  credit_time: null,
-  credit_in: null,
-  memo: '',
-  hex: 'FFFFFF'
-}
-
 @Injectable()
 export class CalculationService {
   constructor(
@@ -68,7 +52,7 @@ export class CalculationService {
 
     const excelData = await this.getSummarySheet(startString, endString, menuParam, customerParam, wb);
     const allData = await this.getAllCustomerSheet(startString, endString, menuParam, wb);
-    await this.getEachCustomersSheet(startString, endString, menuParam, wb, excelData, allData);
+    await this.getEachCustomersSheet(wb, excelData, allData);
 
     const filename = 'calculation.xlsx';
     XLSX.writeFile(wb, filename, { bookType: 'xlsx', type: 'binary' });
@@ -78,17 +62,14 @@ export class CalculationService {
   }
 
   async getSummarySheet(start: string, end: string, menu: string | null, customer: string | null, wb: XLSX.WorkBook) {
-    const ordinaryData: ExcelData[] = await this.orderRepository.query(
+    const excelData: ExcelData[] = await this.orderRepository.query(
       SettingsSql.getOrdinaryData,
-      [start, end, customer, customer, menu, menu]
+      [
+        start, end, customer, customer, menu, menu,
+        start, end, customer, customer, start, end, customer, customer,
+      ]
     );
 
-    const dishAndMasterData: ExcelData[] = await this.orderRepository.query(
-      SettingsSql.getDishAndMasterData,
-      [start, end, customer, customer, start, end, customer, customer,]
-    );
-
-    const excelData: ExcelData[] = ordinaryData.concat([empty]).concat(dishAndMasterData);
     let numbering = 0;
 
     const data: any[][] = excelData.map((row) => {
@@ -96,17 +77,14 @@ export class CalculationService {
       const t = this.getTheme(row.memo === '취소됨', row.menu === 0);
       const q = this.getTheme(row.memo === '취소됨', row.menu === 0, true);
       q.numFmt = '#,###';
-      const isRowEmpty = row.customer_name.length < 1
+      numbering++;
 
-      if (!isRowEmpty) {
-        numbering++;
-      }
       if (row.memo === '취소됨') {
         row.price = null;
       }
 
       return [
-        { v: isRowEmpty ? '' : numbering, t: "n", s: p },
+        { v: numbering, t: "n", s: p },
         { v: row.customer_name, t: "s", s: { ...p, fill: { fgColor: { rgb: `${row.hex === 'FFFFFF' ? '00' : 'FF'}${row.hex}` } } } },
         { v: row.menu_name, t: "s", s: t },
         { v: row.price === null ? '' : parseInt(row.price), t: "n", s: q },
@@ -134,9 +112,9 @@ export class CalculationService {
     const summary = [
       { v: '', t: "s" },
       { v: '매출', t: "s", s },
-      { f: 'SUM(D3:D3000)', t: "n", s: { ...s, numFmt: '₩#,###' } },
+      { f: 'SUM(D3:D30000)', t: "n", s: { ...s, numFmt: '₩#,###' } },
       { v: '입금', t: "s", s },
-      { f: 'SUM(I3:I3000)', t: "n", s: { ...s, numFmt: '₩#,###' } },
+      { f: 'SUM(I3:I30000)', t: "n", s: { ...s, numFmt: '₩#,###' } },
       { v: '차액', t: "s", s },
       { f: 'C1-E1', t: "n", s: { ...s, numFmt: '₩#,###' } },
     ]
@@ -164,8 +142,8 @@ export class CalculationService {
         { v: row.cnt, t: 'n' },
         { v: row.price, t: 'n', s: { numFmt: '#,###' } },
         { v: row.misu, t: 'n', s: { numFmt: '#,###' } },
-        { v: row.sum, t: 'n', s: { numFmt: '#,###' } },
         { v: row.deposit_amt, t: 'n', s: { numFmt: '#,###' } },
+        { v: row.sum, t: 'n', s: { numFmt: '#,###' } },
         { v: row.total_credit, t: 'n', s: { numFmt: '#,###' } },
         { v: row.bigo, t: 's' },
       ];
@@ -189,12 +167,12 @@ export class CalculationService {
     const topRow = [
       { v: '', t: 's' },
       { v: '', t: 's'  },
-      { f: 'SUM(C3:C3000)', t: 'n', s },
-      { f: 'SUM(D3:D3000)', t: 'n', s: { ...s, numFmt: '₩#,###'} },
-      { f: 'SUM(E3:E3000)', t: 'n', s: { ...s, numFmt: '₩#,###'} },
-      { f: 'SUM(F3:F3000)', t: 'n', s: { ...s, numFmt: '₩#,###'} },
-      { f: 'SUM(G3:I3000)', t: 'n', s: { ...s, numFmt: '₩#,###'} },
-      { f: 'SUM(H3:I3000)', t: 'n', s: { ...s, numFmt: '₩#,###'} },
+      { f: 'SUM(C3:C500)', t: 'n', s },
+      { f: 'SUM(D3:D500)', t: 'n', s: { ...s, numFmt: '₩#,###'} },
+      { f: 'SUM(E3:E500)', t: 'n', s: { ...s, numFmt: '₩#,###'} },
+      { f: 'SUM(F3:F500)', t: 'n', s: { ...s, numFmt: '₩#,###'} },
+      { f: 'SUM(G3:G500)', t: 'n', s: { ...s, numFmt: '₩#,###'} },
+      { f: 'SUM(H3:H500)', t: 'n', s: { ...s, numFmt: '₩#,###'} },
       { v: '', t: 's' },
     ]
 
@@ -207,7 +185,6 @@ export class CalculationService {
   }
 
   async getEachCustomersSheet(
-    start: string, end: string, menu: number | null,
     wb: XLSX.WorkBook, excelData: ExcelData[], allData: MainCalculation[]
   ) {
     const customers = await this.customerRepository.find({
@@ -224,9 +201,9 @@ export class CalculationService {
       const hex = customer.categoryJoin.hex;
 
       const summary = allData.find((data) => data.id === customer.id);
-
+      let numbering = 0;
       const data = orders.map((row) => {
-        let numbering = 0;
+
         const p = this.getTheme(row.memo === '취소됨');
         const t = this.getTheme(row.memo === '취소됨', row.menu === 0);
         const q = this.getTheme(row.memo === '취소됨', row.menu === 0, true);
@@ -272,8 +249,8 @@ export class CalculationService {
         { v: '수량', s: p },
         { v: '금액', s: p },
         { v: '미수', s: p },
-        { v: '합계', s: p },
         { v: '입금액', s: p },
+        { v: '합계', s: p },
         {},
         { v: '총잔액', s: p },
       ];
@@ -283,8 +260,8 @@ export class CalculationService {
         { v: summary.cnt, t: 'n', s: p },
         { v: summary.price, t: 'n', s: q },
         { v: summary.misu, t: 'n', s: q },
-        { v: summary.sum, t: 'n', s: q },
         { v: summary.deposit_amt, t: 'n', s: q },
+        { v: summary.sum, t: 'n', s: q },
         {},
         { v: summary.total_credit, t: 'n', s: q },
       ]

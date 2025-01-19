@@ -45,8 +45,8 @@ export const mainHeader = [
   { v: '수', t: 's', s: headerTheme },
   { v: '금액', t: 's', s: headerTheme },
   { v: '미수', t: 's', s: headerTheme },
-  { v: '합계', t: 's', s: headerTheme },
   { v: '입금액', t: 's', s: headerTheme },
+  { v: '합계', t: 's', s: headerTheme },
   { v: '총 잔액', t: 's', s: headerTheme },
   { v: '비고', t: 's', s: headerTheme },
 ]
