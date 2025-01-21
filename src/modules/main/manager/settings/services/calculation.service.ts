@@ -49,6 +49,7 @@ export class CalculationService {
     }
 
     const wb = XLSX.utils.book_new();
+    console.log(startString, endString);
 
     const excelData = await this.getSummarySheet(startString, endString, menuParam, customerParam, wb);
     const allData = await this.getAllCustomerSheet(startString, endString, menuParam, wb);
@@ -67,6 +68,7 @@ export class CalculationService {
       [
         start, end, customer, customer, menu, menu,
         start, end, customer, customer, start, end, customer, customer,
+        start, start, end
       ]
     );
 
@@ -134,7 +136,13 @@ export class CalculationService {
   async getAllCustomerSheet(start: string, end: string, menu: string | null, wb: XLSX.WorkBook, ) {
     const mainSheetData: MainCalculation[] = await this.orderRepository.query(
       SettingsSql.getAllCustomerOrderData,
-      [start, end, menu, menu, start, menu, menu, start, end, menu, menu,]
+      [
+        start, end, menu, menu,
+        start, menu, menu,
+        start, end, start, menu, menu,
+        start, end, menu, menu,
+        start, end, menu, menu,
+      ]
     );
 
     const length = mainSheetData.length;

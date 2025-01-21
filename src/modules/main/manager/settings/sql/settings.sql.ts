@@ -13,7 +13,7 @@ export class SettingsSql {
                    IF(cancelled.status = 8, cancelled_by.nickname, delivered_user.nickname) credit_by,
                    cc.credit_time           AS                                              credit_time,
                    IFNULL(cc.credit_in, 0)  AS                                              credit_in,
-                   IF(cancelled.status = 8, '취소됨', '')                                      memo,
+                   IF(cancelled.status = 8, '취소됨', '')                                    memo,
                    t.hex
             FROM (SELECT a.id   order_code,
                          a.customer,
@@ -39,11 +39,9 @@ export class SettingsSql {
                      LEFT JOIN user u ON t.path = u.id
                      LEFT JOIN user delivered_user ON delivered.by = delivered_user.id
                      LEFT JOIN (SELECT customer_credit.order_code,
-                                       user.nickname               \`by\`,
                                        customer_credit.time        credit_time,
                                        customer_credit.credit_diff credit_in
                                 FROM customer_credit
-                                         LEFT JOIN user ON customer_credit.\`by\` = user.id
                                 WHERE status = 5) cc ON t.order_code = cc.order_code
             WHERE t.order_time >= ?
               AND t.order_time <= ?
@@ -96,7 +94,31 @@ export class SettingsSql {
                            LEFT JOIN customer_category on customer.category = customer_category.id
                   WHERE (customer_credit.time >= ? AND customer_credit.time <= ?)
                     AND (customer = ? OR ISNULL(?))
-                    AND order_code = 0) a) p
+                    AND order_code = 0) a
+
+#             UNION ALL
+# 
+#             SELECT c.id          customer,
+#                    c.name        customer_name,
+#                    ''            menu,
+#                    ''            menu_name,
+#                    null          path,
+#                    null          price,
+#                    null          order_time,
+#                    b.time        delivered_time,
+#                    d.nickname    credit_by,
+#                    b.time        credit_time,
+#                    b.credit_diff credit_in,
+#                    '마스터 입금'      memo,
+#                    hex
+#             FROM \`order\` a
+#                      LEFT JOIN customer_credit b ON a.id = b.order_code
+#                      LEFT JOIN customer c ON a.customer = c.id
+#                      LEFT JOIN user d ON b.\`by\` = d.id
+#                      LEFT JOIN customer_category e ON c.category = e.id
+#             WHERE a.time < ?
+#               AND ((b.status = 5 OR b.status = 7) AND b.time >= ? AND b.time <= ?)
+           ) p
       ORDER BY p.delivered_time
   `;
 
@@ -104,14 +126,15 @@ export class SettingsSql {
       SELECT a.id,
              a.name,
              a.tel,
-             IFNULL(b.cnt, 0)                               AS                         cnt,
-             IFNULL(b.price, 0)                             AS                         price,
-             (IFNULL(c.misu, 0) - IFNULL(d.deposit_amt, 0)) AS                         misu,
-             IFNULL(d.deposit_amt, 0)                       AS                         deposit_amt,
-             (IFNULL(b.price, 0) + IFNULL(c.misu, 0) - (IFNULL(d.deposit_amt, 0) * 2)) sum,
-             IFNULL(e.total_credit, 0) * -1                 AS                         total_credit,
-             ''                                                                        bigo,
-             f.hex
+             IFNULL(b.cnt, 0)                                                               AS  cnt,
+             IFNULL(b.price, 0)                                                             AS  price,
+             IFNULL(c.misu, 0)                                                              AS  misu,
+             IFNULL(d.deposit_amt, 0) + IFNULL(e.deposit_amt, 0) + IFNULL(f.deposit_amt, 0) AS  deposit_amt,
+             (IFNULL(b.price, 0) + IFNULL(c.misu, 0) -
+              (IFNULL(d.deposit_amt, 0) + IFNULL(e.deposit_amt, 0) + IFNULL(f.deposit_amt, 0))) sum,
+             IFNULL(g.total_credit, 0) * -1                                                 AS  total_credit,
+             ''                                                                                 bigo,
+             h.hex
       FROM customer a
                LEFT JOIN (SELECT customer,
                                  status,
@@ -122,7 +145,7 @@ export class SettingsSql {
                                 FROM \`order\` p
                                          LEFT JOIN order_status q ON q.order_code = p.id AND q.status = 8) a
                           WHERE ISNULL(status)
-                          AND (time >= ? AND time <= ?)
+                            AND (time >= ? AND time <= ?)
                             AND (ISNULL(?) OR menu = ?)
                           GROUP BY customer, status) b ON b.customer = a.id
                LEFT JOIN (SELECT p.customer,
@@ -136,16 +159,32 @@ export class SettingsSql {
                                  SUM(credit_diff) deposit_amt
                           FROM customer_credit p
                                    LEFT JOIN \`order\` q on p.order_code = q.id
-                          WHERE p.time >= ?
-                            AND p.time <= ?
+                          WHERE (p.time >= ? AND p.time <= ?)
+                            AND q.time >= ?
                             AND (ISNULL(?) OR q.menu = ?)
-                            AND (p.status = 5 OR p.status = 7 OR p.order_code = 0)
+                            AND p.status = 5
                           GROUP BY customer) d ON d.customer = a.id
+               LEFT JOIN (SELECT p.customer,
+                                 SUM(credit_diff) deposit_amt
+                          FROM customer_credit p
+                                   LEFT JOIN \`order\` q on p.order_code = q.id
+                          WHERE (p.time >= ? AND p.time <= ?)
+                            AND (ISNULL(?) OR q.menu = ?)
+                            AND p.status = 7
+                          GROUP BY customer) e ON e.customer = a.id
+               LEFT JOIN (SELECT p.customer,
+                                 SUM(credit_diff) deposit_amt
+                          FROM customer_credit p
+                                   LEFT JOIN \`order\` q on p.order_code = q.id
+                          WHERE (p.time >= ? AND p.time <= ?)
+                            AND (ISNULL(?) OR q.menu = ?)
+                            AND p.order_code = 0
+                          GROUP BY customer) f ON f.customer = a.id
                LEFT JOIN (SELECT customer,
                                  SUM(credit_diff) total_credit
                           FROM customer_credit
-                          GROUP BY customer) e ON e.customer = a.id
-               LEFT JOIN customer_category f ON f.id = a.category
+                          GROUP BY customer) g ON g.customer = a.id
+               LEFT JOIN customer_category h ON h.id = a.category
   `;
 
   static getEachCustomerOrderData = `
