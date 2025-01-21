@@ -139,7 +139,7 @@ export class SettingsSql {
                           WHERE p.time >= ?
                             AND p.time <= ?
                             AND (ISNULL(?) OR q.menu = ?)
-                            AND p.credit_diff > 0
+                            AND (p.status = 5 OR p.status = 7 OR p.order_code = 0)
                           GROUP BY customer) d ON d.customer = a.id
                LEFT JOIN (SELECT customer,
                                  SUM(credit_diff) total_credit

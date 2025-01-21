@@ -72,6 +72,8 @@ export class CalculationService {
 
     let numbering = 0;
 
+    const length = excelData.length;
+
     const data: any[][] = excelData.map((row) => {
       const p = this.getTheme(row.memo === '취소됨');
       const t = this.getTheme(row.memo === '취소됨', row.menu === 0);
@@ -112,9 +114,9 @@ export class CalculationService {
     const summary = [
       { v: '', t: "s" },
       { v: '매출', t: "s", s },
-      { f: 'SUM(D3:D30000)', t: "n", s: { ...s, numFmt: '₩#,###' } },
+      { f: `SUM(D4:D${length + 5})`, t: "n", s: { ...s, numFmt: '₩#,###' } },
       { v: '입금', t: "s", s },
-      { f: 'SUM(I3:I30000)', t: "n", s: { ...s, numFmt: '₩#,###' } },
+      { f: `SUM(I4:I${length + 5})`, t: "n", s: { ...s, numFmt: '₩#,###' } },
       { v: '차액', t: "s", s },
       { f: 'C1-E1', t: "n", s: { ...s, numFmt: '₩#,###' } },
     ]
@@ -134,6 +136,8 @@ export class CalculationService {
       SettingsSql.getAllCustomerOrderData,
       [start, end, menu, menu, start, menu, menu, start, end, menu, menu,]
     );
+
+    const length = mainSheetData.length;
 
     const data = mainSheetData.map((row, i) => {
       const ret: { v: any, t: any, s?: any }[] = [
@@ -167,12 +171,12 @@ export class CalculationService {
     const topRow = [
       { v: '', t: 's' },
       { v: '', t: 's'  },
-      { f: 'SUM(C3:C500)', t: 'n', s },
-      { f: 'SUM(D3:D500)', t: 'n', s: { ...s, numFmt: '₩#,###'} },
-      { f: 'SUM(E3:E500)', t: 'n', s: { ...s, numFmt: '₩#,###'} },
-      { f: 'SUM(F3:F500)', t: 'n', s: { ...s, numFmt: '₩#,###'} },
-      { f: 'SUM(G3:G500)', t: 'n', s: { ...s, numFmt: '₩#,###'} },
-      { f: 'SUM(H3:H500)', t: 'n', s: { ...s, numFmt: '₩#,###'} },
+      { f: `SUM(C3:C${length + 5})`, t: 'n', s },
+      { f: `SUM(D3:D${length + 5})`, t: 'n', s: { ...s, numFmt: '₩#,###'} },
+      { f: `SUM(E3:E${length + 5})`, t: 'n', s: { ...s, numFmt: '₩#,###'} },
+      { f: `SUM(F3:F${length + 5})`, t: 'n', s: { ...s, numFmt: '₩#,###'} },
+      { f: `SUM(G3:G${length + 5})`, t: 'n', s: { ...s, numFmt: '₩#,###'} },
+      { f: `SUM(H3:H${length + 5})`, t: 'n', s: { ...s, numFmt: '₩#,###'} },
       { v: '', t: 's' },
     ]
 
