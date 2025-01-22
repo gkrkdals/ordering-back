@@ -67,8 +67,9 @@ export class CalculationService {
       SettingsSql.getOrdinaryData,
       [
         start, end, customer, customer, menu, menu,
-        start, end, customer, customer, start, end, customer, customer,
-        start, start, end
+        start, end, customer, customer,
+        start, end, customer, customer,
+        start, end, start, customer, customer
       ]
     );
 
@@ -139,7 +140,7 @@ export class CalculationService {
       [
         start, end, menu, menu,
         start, menu, menu,
-        start, end, start, menu, menu,
+        start, end, menu, menu,
         start, end, menu, menu,
         start, end, menu, menu,
       ]

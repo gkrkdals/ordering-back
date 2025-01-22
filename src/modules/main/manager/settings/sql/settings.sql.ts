@@ -92,7 +92,34 @@ export class SettingsSql {
                            LEFT JOIN customer_category on customer.category = customer_category.id
                   WHERE (customer_credit.time >= ? AND customer_credit.time <= ?)
                     AND (customer = ? OR ISNULL(?))
-                    AND order_code = 0) a) p
+                    AND order_code = 0) a
+
+            UNION ALL
+
+            SELECT d.id          customer,
+                   d.name        customer_name,
+                   ''            menu,
+                   ''            menu_name,
+                   null          path,
+                   null          price,
+                   null          order_time,
+                   a.time        delivered_time,
+                   c.nickname    credit_by,
+                   a.time        credit_time,
+                   a.credit_diff credit_in,
+                   '마스터 입금'      memo,
+                   hex
+            FROM customer_credit a
+                     LEFT JOIN \`order\` b ON a.order_code = b.id
+                     LEFT JOIN user c ON a.\`by\` = c.id
+                     LEFT JOIN customer d ON a.customer = d.id
+                     LEFT JOIN customer_category on d.category = c.id
+            WHERE (a.time >= ? AND a.time <= ?)
+              AND (b.time < ?)
+              AND (a.customer = ? OR ISNULL(?))
+              AND status = 5) p
+
+
       ORDER BY p.delivered_time
   `;
 
@@ -134,7 +161,6 @@ export class SettingsSql {
                           FROM customer_credit p
                                    LEFT JOIN \`order\` q on p.order_code = q.id
                           WHERE (p.time >= ? AND p.time <= ?)
-                            AND q.time >= ?
                             AND (ISNULL(?) OR q.menu = ?)
                             AND p.status = 5
                           GROUP BY customer) d ON d.customer = a.id
