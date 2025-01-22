@@ -6,14 +6,14 @@ export class SettingsSql {
                    t.customer_name,
                    t.menu,
                    t.menu_name,
-                   IFNULL(u.nickname, '')   AS                                              path,
-                   IFNULL(t.price, 0)       AS                                              price,
-                   IFNULL(t.order_time, '') AS                                              order_time,
+                   IFNULL(u.nickname, '')               AS                                  path,
+                   IF(cancelled.status = 8, 0, t.price) AS                                  price,
+                   IFNULL(t.order_time, '')             AS                                  order_time,
                    IF(cancelled.status = 8, cancelled.time, delivered.time)                 delivered_time,
                    IF(cancelled.status = 8, cancelled_by.nickname, delivered_user.nickname) credit_by,
-                   cc.credit_time           AS                                              credit_time,
-                   IFNULL(cc.credit_in, 0)  AS                                              credit_in,
-                   IF(cancelled.status = 8, '취소됨', '')                                    memo,
+                   cc.credit_time                       AS                                  credit_time,
+                   IFNULL(cc.credit_in, 0)              AS                                  credit_in,
+                   IF(cancelled.status = 8, '취소됨', '')                                      memo,
                    t.hex
             FROM (SELECT a.id   order_code,
                          a.customer,
@@ -24,13 +24,10 @@ export class SettingsSql {
                          a.price,
                          time   order_time,
                          d.hex
-                  FROM \`order\` a,
-                       customer b,
-                       menu c,
-                       customer_category d
-                  WHERE b.id = a.customer
-                    AND c.id = a.menu
-                    AND d.id = b.category) t
+                  FROM \`order\` a
+                           LEFT JOIN customer b ON b.id = a.customer
+                           LEFT JOIN menu c ON c.id = a.menu
+                           LEFT JOIN customer_category d ON d.id = b.category) t
                      LEFT JOIN order_status cancelled
                                ON cancelled.status = 8 AND cancelled.order_code = t.order_code
                      LEFT JOIN user cancelled_by ON cancelled.\`by\` = cancelled_by.id
@@ -38,11 +35,12 @@ export class SettingsSql {
                                ON delivered.status = 5 AND delivered.order_code = t.order_code
                      LEFT JOIN user u ON t.path = u.id
                      LEFT JOIN user delivered_user ON delivered.by = delivered_user.id
-                     LEFT JOIN (SELECT customer_credit.order_code,
-                                       customer_credit.time        credit_time,
-                                       customer_credit.credit_diff credit_in
+                     LEFT JOIN (SELECT order_code,
+                                       MAX(time)        credit_time,
+                                       SUM(credit_diff) credit_in
                                 FROM customer_credit
-                                WHERE status = 5) cc ON t.order_code = cc.order_code
+                                WHERE status = 5
+                                GROUP BY order_code, status) cc ON t.order_code = cc.order_code
             WHERE t.order_time >= ?
               AND t.order_time <= ?
               AND (t.customer = ? OR ISNULL(?))
@@ -94,31 +92,7 @@ export class SettingsSql {
                            LEFT JOIN customer_category on customer.category = customer_category.id
                   WHERE (customer_credit.time >= ? AND customer_credit.time <= ?)
                     AND (customer = ? OR ISNULL(?))
-                    AND order_code = 0) a
-
-#             UNION ALL
-# 
-#             SELECT c.id          customer,
-#                    c.name        customer_name,
-#                    ''            menu,
-#                    ''            menu_name,
-#                    null          path,
-#                    null          price,
-#                    null          order_time,
-#                    b.time        delivered_time,
-#                    d.nickname    credit_by,
-#                    b.time        credit_time,
-#                    b.credit_diff credit_in,
-#                    '마스터 입금'      memo,
-#                    hex
-#             FROM \`order\` a
-#                      LEFT JOIN customer_credit b ON a.id = b.order_code
-#                      LEFT JOIN customer c ON a.customer = c.id
-#                      LEFT JOIN user d ON b.\`by\` = d.id
-#                      LEFT JOIN customer_category e ON c.category = e.id
-#             WHERE a.time < ?
-#               AND ((b.status = 5 OR b.status = 7) AND b.time >= ? AND b.time <= ?)
-           ) p
+                    AND order_code = 0) a) p
       ORDER BY p.delivered_time
   `;
 
@@ -186,25 +160,4 @@ export class SettingsSql {
                           GROUP BY customer) g ON g.customer = a.id
                LEFT JOIN customer_category h ON h.id = a.category
   `;
-
-  static getEachCustomerOrderData = `
-    SELECT
-        b.name customer_nm,
-        c.name menu_nm,
-        a.price,
-        a.time,
-        IF(ISNULL(a.path), b.name, d.nickname) AS path,
-        e.hex
-    FROM
-        \`order\` a
-    LEFT JOIN customer b ON b.id = a.customer
-    LEFT JOIN menu c ON c.id = a.menu
-    LEFT JOIN user d ON d.id = a.path
-    LEFT JOIN customer_category e ON e.id = b.category
-    WHERE (a.time >= ? AND a.time <= ?)
-    AND   (ISNULL(?) OR a.menu = ?)
-    AND   a.customer = ?
-  `;
-
-  static getEachCustomerSummaryData = this.getAllCustomerOrderData + ` WHERE a.id = ?`
 }
