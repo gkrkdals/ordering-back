@@ -229,19 +229,21 @@ export class OrderModifyService {
       order: { id: 'DESC' }
     });
 
-    const { orderCode, orderStatusCode, status } = recentJob;
+    if (recentJob) {
+      const { orderCode, orderStatusCode, status } = recentJob;
 
-    await this.customerCreditRepository.delete({
-      status, orderCode
-    });
+      await this.customerCreditRepository.delete({
+        status, orderCode
+      });
 
-    await this.orderStatusRepository.delete({
-      id: orderStatusCode
-    });
+      await this.orderStatusRepository.delete({
+        id: orderStatusCode
+      });
 
-    await this.recentJobRepository.remove(recentJob);
-    this.orderGateway.refreshClient();
-    this.orderGateway.refresh();
+      await this.recentJobRepository.remove(recentJob);
+      this.orderGateway.refreshClient();
+      this.orderGateway.refresh();
+    }
     return 'ok';
   }
 }
