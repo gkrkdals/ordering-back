@@ -122,6 +122,7 @@ export class OrderModifyService {
 
     const currentOrder = await this.orderRepository.findOneBy({ id: orderCode });
     currentOrder.menu = to;
+    currentOrder.price = price;
     currentOrder.request = request;
     await this.orderRepository.save(currentOrder);
 
