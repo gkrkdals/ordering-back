@@ -1,13 +1,13 @@
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
-import { Menu } from "@src/entities/menu.entity";
+import { Menu } from "@src/entities/menu/menu.entity";
 import { MenuController } from "@src/modules/main/client/menu/menu.controller";
 import { MenuService } from "@src/modules/main/client/menu/menu.service";
-import { MenuCategory } from "@src/entities/menu-category.entity";
-import { Customer } from "@src/entities/customer.entity";
+import { MenuCategory } from "@src/entities/menu/menu-category.entity";
+import { Customer } from "@src/entities/customer/customer.entity";
 import { JwtService } from "@nestjs/jwt";
 import { CustomerPrice } from "@src/entities/customer-price";
-import { Order } from "@src/entities/order.entity";
+import { Order } from "@src/entities/order/order.entity";
 
 @Module({
   imports: [TypeOrmModule.forFeature([

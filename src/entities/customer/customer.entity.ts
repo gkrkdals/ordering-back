@@ -1,5 +1,5 @@
 import { Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
-import { CustomerCategory } from "@src/entities/customer-category.entity";
+import { CustomerCategory } from "@src/entities/customer/customer-category.entity";
 import { CustomerPrice } from "@src/entities/customer-price";
 
 @Entity()

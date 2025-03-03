@@ -15,7 +15,7 @@ import {
 import { AuthService } from "./services/auth.service";
 import { AuthGuard } from "./auth.guard";
 import { CookieOptions, Response } from "express";
-import { Customer } from "@src/entities/customer.entity";
+import { Customer } from "@src/entities/customer/customer.entity";
 import { ManagerSignInDto } from "@src/modules/auth/dto/manager-sign-in.dto";
 import { CreateAccountDto } from "@src/modules/auth/dto/create-account.dto";
 import { CustomerData, UserData } from "@src/modules/user/customer.decorator";

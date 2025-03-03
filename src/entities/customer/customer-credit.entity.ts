@@ -1,5 +1,5 @@
 import { Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn } from "typeorm";
-import { Customer } from "@src/entities/customer.entity";
+import { Customer } from "@src/entities/customer/customer.entity";
 import { User } from "@src/entities/user.entity";
 
 @Entity('customer_credit')

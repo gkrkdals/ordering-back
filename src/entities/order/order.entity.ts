@@ -1,7 +1,7 @@
 import { Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
-import { Customer } from "@src/entities/customer.entity";
-import { Menu } from "@src/entities/menu.entity";
-import { OrderStatus } from "@src/entities/order-status.entity";
+import { Customer } from "@src/entities/customer/customer.entity";
+import { Menu } from "@src/entities/menu/menu.entity";
+import { OrderStatus } from "@src/entities/order/order-status.entity";
 
 @Entity()
 export class Order {

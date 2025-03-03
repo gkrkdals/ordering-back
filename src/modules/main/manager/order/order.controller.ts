@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, Query, Req, UseGuards } from "@nestjs/common";
 import { OrderService } from "@src/modules/main/manager/order/services/order.service";
 import { GetOrderResponseDto } from "@src/modules/main/manager/order/dto/response/get-order-response.dto";
-import { Menu } from "@src/entities/menu.entity";
+import { Menu } from "@src/entities/menu/menu.entity";
 import { UpdateOrderDto } from "@src/modules/main/manager/order/dto/update-order.dto";
 import { UpdateOrderMenuDto } from "@src/modules/main/manager/order/dto/update-order-menu.dto";
 import { OrderModifyService } from "@src/modules/main/manager/order/services/order-modify.service";
@@ -74,13 +74,18 @@ export class OrderController {
     return this.orderModifyService.updateOrder(user, body);
   }
 
-  @Delete(':id')
-  async cancelOrder(@UserData() user: JwtUser, @Param('id') id: number) {
-    return this.orderModifyService.cancelOrder(user, id);
-  }
-
   @Put('menu')
   async updateOrderMenu(@UserData() user: User, @Body() body: UpdateOrderMenuDto) {
     return this.orderModifyService.updateOrderMenu(body, user);
+  }
+
+  @Put('rollback')
+  async rollback(@UserData() user: User) {
+    return this.orderModifyService.rollback(user);
+  }
+
+  @Delete(':id')
+  async cancelOrder(@UserData() user: JwtUser, @Param('id') id: number) {
+    return this.orderModifyService.cancelOrder(user, id);
   }
 }

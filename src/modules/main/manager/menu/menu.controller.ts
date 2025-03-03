@@ -11,7 +11,7 @@ import {
   UseInterceptors
 } from "@nestjs/common";
 import { MenuService } from "@src/modules/main/manager/menu/menu.service";
-import { Menu } from "@src/entities/menu.entity";
+import { Menu } from "@src/entities/menu/menu.entity";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { AuthGuard } from "@src/modules/auth/auth.guard";
 

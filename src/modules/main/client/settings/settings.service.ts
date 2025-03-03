@@ -1,6 +1,6 @@
 import { Injectable, StreamableFile } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Customer } from "@src/entities/customer.entity";
+import { Customer } from "@src/entities/customer/customer.entity";
 import { Not, Repository } from "typeorm";
 import { Settings } from "@src/entities/settings.entity";
 import { createReadStream } from 'fs';

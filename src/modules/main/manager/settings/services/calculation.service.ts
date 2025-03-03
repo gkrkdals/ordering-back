@@ -4,14 +4,14 @@ import { dateToString, isSameDay } from "@src/utils/date";
 import { ExcelData } from "@src/types/models/ExcelData";
 import { SettingsSql } from "@src/modules/main/manager/settings/sql/settings.sql";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Order } from "@src/entities/order.entity";
+import { Order } from "@src/entities/order/order.entity";
 import {  Repository } from "typeorm";
 import { Response } from "express";
 import * as XLSX from "xlsx-js-style";
 import { eachCustomerHeader, eachCustomerHeaderWidth, header, mainHeader, mainHeaderWidth } from "@src/config/xlsx";
 import * as fs from "node:fs";
 import { MainCalculation } from "@src/modules/main/manager/settings/interfaces/MainCalculation";
-import { Customer } from "@src/entities/customer.entity";
+import { Customer } from "@src/entities/customer/customer.entity";
 // import { CustomerCalculation } from "@src/modules/main/manager/settings/interfaces/CustomerCalculation";
 
 @Injectable()

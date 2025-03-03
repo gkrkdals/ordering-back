@@ -3,7 +3,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Settings } from "@src/entities/settings.entity";
 import { Repository } from "typeorm";
 import * as cron from 'node-cron';
-import { Menu } from "@src/entities/menu.entity";
+import { Menu } from "@src/entities/menu/menu.entity";
 
 @Injectable()
 export class CronService implements OnModuleInit {

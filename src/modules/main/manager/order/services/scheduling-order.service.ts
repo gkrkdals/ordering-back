@@ -5,7 +5,7 @@ import { Repository } from "typeorm";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { dateToString, getOrderAvailableTimes } from "@src/utils/date";
 import { StatusEnum } from "@src/types/enum/StatusEnum";
-import { OrderStatus } from "@src/entities/order-status.entity";
+import { OrderStatus } from "@src/entities/order/order-status.entity";
 import { OrderGateway } from "@src/modules/socket/order.gateway";
 import { OrderSql } from "@src/modules/main/manager/order/sql/order.sql";
 import { FirebaseService } from "@src/modules/firebase/firebase.service";

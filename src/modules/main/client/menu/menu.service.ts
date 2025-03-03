@@ -1,9 +1,9 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Menu } from "@src/entities/menu.entity";
+import { Menu } from "@src/entities/menu/menu.entity";
 import { Like, Not, Repository } from "typeorm";
-import { Customer } from "@src/entities/customer.entity";
-import { Order } from "@src/entities/order.entity";
+import { Customer } from "@src/entities/customer/customer.entity";
+import { Order } from "@src/entities/order/order.entity";
 import { RecentMenu } from "@src/types/models/RecentMenu";
 
 @Injectable()

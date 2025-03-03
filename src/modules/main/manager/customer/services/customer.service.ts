@@ -1,10 +1,10 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Customer } from "@src/entities/customer.entity";
+import { Customer } from "@src/entities/customer/customer.entity";
 import { Not, Repository } from "typeorm";
 import { GetCustomerResponseDto } from "@src/modules/main/manager/customer/dto/response/get-customer-response.dto";
 import { countToTotalPage } from "@src/utils/data";
-import { CustomerCategory } from "@src/entities/customer-category.entity";
+import { CustomerCategory } from "@src/entities/customer/customer-category.entity";
 import { CustomerPrice } from "@src/entities/customer-price";
 import { UpdateCustomerPriceDto } from "@src/modules/main/manager/customer/dto/update-customer-price.dto";
 import { CustomerSql } from "@src/modules/main/manager/customer/sql/CustomerSql";

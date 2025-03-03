@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
-import { Customer } from "@src/entities/customer.entity";
+import { Customer } from "@src/entities/customer/customer.entity";
 import { InjectRepository } from "@nestjs/typeorm";
-import { OrderStatus } from "@src/entities/order-status.entity";
+import { OrderStatus } from "@src/entities/order/order-status.entity";
 import { Repository } from "typeorm";
 import { CreateDishDisposalDto } from "@src/modules/main/client/order/dto/create-dish-disposal.dto";
 import { DisposalSql } from "@src/modules/main/client/order/sql/DisposalSql";

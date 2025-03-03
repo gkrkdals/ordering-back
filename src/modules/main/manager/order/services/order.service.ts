@@ -1,15 +1,15 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { OrderStatus } from "@src/entities/order-status.entity";
+import { OrderStatus } from "@src/entities/order/order-status.entity";
 import { And, LessThanOrEqual, MoreThanOrEqual, Repository } from "typeorm";
-import { Order } from "@src/entities/order.entity";
+import { Order } from "@src/entities/order/order.entity";
 import { OrderSql } from "@src/modules/main/manager/order/sql/order.sql";
 import { StatusEnum } from "@src/types/enum/StatusEnum";
 import { GetOrderResponseDto } from "@src/modules/main/manager/order/dto/response/get-order-response.dto";
 import { OrderStatusRaw } from "@src/types/models/OrderStatusRaw";
 import { countSkip, countToTotalPage } from "@src/utils/data";
-import { OrderCategory } from "@src/entities/order-category.entity";
-import { Menu } from "@src/entities/menu.entity";
+import { OrderCategory } from "@src/entities/order/order-category.entity";
+import { Menu } from "@src/entities/menu/menu.entity";
 import { CustomerPrice } from "@src/entities/customer-price";
 import { OrderGateway } from "@src/modules/socket/order.gateway";
 import { Pending } from "@src/types/models/Pending";
@@ -19,7 +19,7 @@ import { User } from "@src/entities/user.entity";
 import { PermissionEnum } from "@src/types/enum/PermissionEnum";
 import { FirebaseService } from "@src/modules/firebase/firebase.service";
 import { JwtCustomer } from "@src/types/jwt/JwtCustomer";
-import { Customer } from "@src/entities/customer.entity";
+import { Customer } from "@src/entities/customer/customer.entity";
 import { NoAlarmsService } from "@src/modules/misc/no-alarms/no-alarms.service";
 
 @Injectable()

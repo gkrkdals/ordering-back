@@ -1,6 +1,6 @@
 import { Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn } from "typeorm";
-import { Menu } from "@src/entities/menu.entity";
-import { Order } from "@src/entities/order.entity";
+import { Menu } from "@src/entities/menu/menu.entity";
+import { Order } from "@src/entities/order/order.entity";
 import { User } from "@src/entities/user.entity";
 
 @Entity('order_change')

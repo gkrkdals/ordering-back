@@ -1,4 +1,4 @@
-import { Menu } from "@src/entities/menu.entity";
+import { Menu } from "@src/entities/menu/menu.entity";
 
 export class OrderedMenuDto {
   menu: Menu;

@@ -11,7 +11,7 @@ import {
   UseInterceptors
 } from "@nestjs/common";
 import { CustomerService } from "@src/modules/main/manager/customer/services/customer.service";
-import { Customer } from "@src/entities/customer.entity";
+import { Customer } from "@src/entities/customer/customer.entity";
 import { GetCustomerResponseDto } from "@src/modules/main/manager/customer/dto/response/get-customer-response.dto";
 import { UpdateCustomerPriceDto } from "@src/modules/main/manager/customer/dto/update-customer-price.dto";
 import { CreditService } from "@src/modules/main/manager/customer/services/credit.service";

@@ -1,22 +1,23 @@
 import { Injectable } from "@nestjs/common";
 import { UpdateOrderDto } from "@src/modules/main/manager/order/dto/update-order.dto";
 import { InjectRepository } from "@nestjs/typeorm";
-import { OrderStatus } from "@src/entities/order-status.entity";
+import { OrderStatus } from "@src/entities/order/order-status.entity";
 import { LessThan, Repository } from "typeorm";
 import { StatusEnum } from "@src/types/enum/StatusEnum";
-import { Order } from "@src/entities/order.entity";
-import { CustomerCredit } from "@src/entities/customer-credit.entity";
+import { Order } from "@src/entities/order/order.entity";
+import { CustomerCredit } from "@src/entities/customer/customer-credit.entity";
 import { OrderGateway } from "@src/modules/socket/order.gateway";
 import { Pending } from "@src/types/models/Pending";
 import { OrderSql } from "@src/modules/main/manager/order/sql/order.sql";
 import { UpdateOrderMenuDto } from "@src/modules/main/manager/order/dto/update-order-menu.dto";
-import { OrderChange } from "@src/entities/order-change.entity";
+import { OrderChange } from "@src/entities/order/order-change.entity";
 import { User } from "@src/entities/user.entity";
 import { dateToString, getOrderAvailableTimes } from "@src/utils/date";
 import { PermissionEnum } from "@src/types/enum/PermissionEnum";
 import { JwtUser } from "@src/types/jwt/JwtUser";
 import { FirebaseService } from "@src/modules/firebase/firebase.service";
 import { NoAlarmsService } from "@src/modules/misc/no-alarms/no-alarms.service";
+import { RecentJob } from "@src/entities/recent-job.entity";
 @Injectable()
 export class OrderModifyService {
   constructor(
@@ -28,6 +29,8 @@ export class OrderModifyService {
     private readonly customerCreditRepository: Repository<CustomerCredit>,
     @InjectRepository(OrderChange)
     private readonly orderChangeRepository: Repository<OrderChange>,
+    @InjectRepository(RecentJob)
+    private readonly recentJobRepository: Repository<RecentJob>,
 
     private readonly orderGateway: OrderGateway,
     private readonly fcmService: FirebaseService,
@@ -109,6 +112,14 @@ export class OrderModifyService {
 
     this.orderGateway.refreshClient();
     this.orderGateway.refresh();
+
+    const newRecentJob = new RecentJob();
+    newRecentJob.orderCode = newOrderStatus.orderCode;
+    newRecentJob.orderStatusCode = newOrderStatus.id;
+    newRecentJob.status = newOrderStatus.status;
+    newRecentJob.manager = user.id;
+
+    await this.recentJobRepository.save(newRecentJob);
   }
 
   /**
@@ -210,5 +221,27 @@ export class OrderModifyService {
       this.orderGateway.newDishDisposal();
       await this.fcmService.newDishDisposal();
     }
+  }
+
+  async rollback(user: User) {
+    const recentJob = await this.recentJobRepository.findOne({
+      where: { manager: user.id },
+      order: { id: 'DESC' }
+    });
+
+    const { orderCode, orderStatusCode, status } = recentJob;
+
+    await this.customerCreditRepository.delete({
+      status, orderCode
+    });
+
+    await this.orderStatusRepository.delete({
+      id: orderStatusCode
+    });
+
+    await this.recentJobRepository.remove(recentJob);
+    this.orderGateway.refreshClient();
+    this.orderGateway.refresh();
+    return 'ok';
   }
 }

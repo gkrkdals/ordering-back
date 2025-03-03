@@ -1,6 +1,6 @@
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
-import { Order } from "@src/entities/order.entity";
-import { OrderCategory } from "@src/entities/order-category.entity";
+import { Order } from "@src/entities/order/order.entity";
+import { OrderCategory } from "@src/entities/order/order-category.entity";
 import { User } from "@src/entities/user.entity";
 
 @Entity('order_status')
