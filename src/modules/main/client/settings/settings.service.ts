@@ -28,6 +28,12 @@ export class SettingsService {
     await this.customerRepository.save(customer);
   }
 
+  async updateShowConfirm(customerId: number, value: 0 | 1) {
+    const customer = await this.customerRepository.findOneBy({ id: customerId });
+    customer.showConfirm = value;
+    await this.customerRepository.save(customer);
+  }
+
   async getStandardSettings() {
     return this.settingsRepository.findBy({ big: 2, sml: Not(1) });
   }

@@ -118,10 +118,11 @@ export class OrderModifyService {
    * @param user 관리자 정보
    */
   async updateOrderMenu(body: UpdateOrderMenuDto, user: User) {
-    const { orderCode, from, to, price } = body;
+    const { orderCode, from, to, price, request } = body;
 
     const currentOrder = await this.orderRepository.findOneBy({ id: orderCode });
     currentOrder.menu = to;
+    currentOrder.request = request;
     await this.orderRepository.save(currentOrder);
 
     const newOrderChange = new OrderChange();

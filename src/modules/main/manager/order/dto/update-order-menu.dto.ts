@@ -3,4 +3,5 @@ export class UpdateOrderMenuDto {
   from: number;
   to: number;
   price: number;
+  request: string;
 }

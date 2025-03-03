@@ -9,7 +9,7 @@ export class CustomerSql {
     ON b.customer = a.id
     WHERE
         withdrawn != 1
-    AND (name LIKE ? OR address LIKE ? OR memo LIKE ?)
+    AND (name LIKE ? OR address LIKE ? OR memo LIKE ? OR tel LIKE ?)
     ^
   `
 

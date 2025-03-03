@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 import { Order } from "@src/entities/order.entity";
 import { OrderCategory } from "@src/entities/order-category.entity";
 import { User } from "@src/entities/user.entity";
@@ -19,7 +19,7 @@ export class OrderStatus {
   orderCode: number;
 
   @JoinColumn({ name: 'order_code' })
-  @OneToOne(() => Order)
+  @ManyToOne(() => Order, order => order.id)
   orderJoin: Order;
 
   @Column()

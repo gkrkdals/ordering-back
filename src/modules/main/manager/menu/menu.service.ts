@@ -56,7 +56,10 @@ export class MenuService {
   }
 
   async getMenuCategoryAll(): Promise<MenuCategory[]> {
-    return this.foodCategoryRepository.findBy({ id: MoreThan(0) });
+    return this.foodCategoryRepository.find({
+      where: { id: MoreThan(0) },
+      order: { price: 'ASC' }
+    });
   }
 
   async createMenu(body: Menu) {

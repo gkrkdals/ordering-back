@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { OrderStatus } from "@src/entities/order-status.entity";
-import { Repository } from "typeorm";
+import { And, LessThanOrEqual, MoreThanOrEqual, Repository } from "typeorm";
 import { Order } from "@src/entities/order.entity";
 import { OrderSql } from "@src/modules/main/manager/order/sql/order.sql";
 import { StatusEnum } from "@src/types/enum/StatusEnum";
@@ -13,7 +13,7 @@ import { Menu } from "@src/entities/menu.entity";
 import { CustomerPrice } from "@src/entities/customer-price";
 import { OrderGateway } from "@src/modules/socket/order.gateway";
 import { Pending } from "@src/types/models/Pending";
-import { getOrderAvailableTimes } from "@src/utils/date";
+import { dateToString, getOrderAvailableTimes } from "@src/utils/date";
 import { OrderHistory } from "@src/types/models/OrderHistory";
 import { User } from "@src/entities/user.entity";
 import { PermissionEnum } from "@src/types/enum/PermissionEnum";
@@ -138,6 +138,41 @@ export class OrderService {
       count,
       limit,
       name
+    }
+  }
+
+  async getSales(date: string | undefined) {
+    if (date) {
+      const theDay = new Date(date);
+      const theNextDay = new Date(date);
+      theDay.setHours(9);
+      theNextDay.setDate(theNextDay.getDate() + 1);
+      theNextDay.setHours(9);
+
+      const sales = await this.orderRepository.find({
+        where: {
+          time: And(MoreThanOrEqual(dateToString(theDay)), LessThanOrEqual(dateToString(theNextDay))),
+        },
+        relations: {
+          orderStatus: true,
+          customerJoin: {
+            categoryJoin: true
+          },
+          menuJoin: {
+            menuCategory: true
+          }
+        }
+      });
+
+      return sales.filter(order => order.orderStatus.every(p => p.status !== StatusEnum.Canceled));
+    } else {
+      const [firstDate, lastDate] = getOrderAvailableTimes();
+      const { sales } = (await this.orderRepository.query(
+        OrderSql.getSales,
+        [firstDate, lastDate, StatusEnum.Canceled]
+      ))[0];
+
+      return sales;
     }
   }
 

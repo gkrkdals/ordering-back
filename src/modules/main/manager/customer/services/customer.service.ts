@@ -44,7 +44,7 @@ export class CustomerService {
 
     const customers: CustomerRaw[] = await this.customerRepository.query(
       CustomerSql.getCustomer.replace('^', orderBy),
-      [like, like, like]
+      [like, like, like, like]
     );
 
     return {

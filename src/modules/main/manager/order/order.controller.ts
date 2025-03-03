@@ -49,6 +49,11 @@ export class OrderController {
     return this.orderService.getOrders(column, order, page, query, user, isRemaining);
   }
 
+  @Get('sales')
+  async getSales(@Query('date') date: string | undefined) {
+    return this.orderService.getSales(date);
+  }
+
   @Get('history')
   async getOrderHistory(@Query('orderCode') orderCode: number) {
     return this.orderService.getOrderHistory(orderCode);

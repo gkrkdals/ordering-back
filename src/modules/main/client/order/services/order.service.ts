@@ -90,7 +90,7 @@ export class OrderService {
       .groupBy('customer')
       .getRawOne<{ credit: string }>();
 
-    return parseInt(result.credit);
+    return result ? parseInt(result.credit) : 0;
   }
 
   async getSummaryCount() {

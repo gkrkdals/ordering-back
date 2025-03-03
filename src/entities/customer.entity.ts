@@ -43,4 +43,7 @@ export class Customer {
 
   @Column({ name: 'hide_order_status' })
   hideOrderStatus: number;
+
+  @Column({ name: 'show_confirm' })
+  showConfirm: number;
 }

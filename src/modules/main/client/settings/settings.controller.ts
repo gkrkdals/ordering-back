@@ -34,4 +34,12 @@ export class SettingsController {
   ) {
     return this.settingsService.updateHideOrderStatus(customerId, value);
   }
+
+  @Put('show-confirm')
+  async updateShowConfirm(
+    @Body('customerId') customerId: number,
+    @Body('value') value: 0 | 1
+  ) {
+    return this.settingsService.updateShowConfirm(customerId, value);
+  }
 }
