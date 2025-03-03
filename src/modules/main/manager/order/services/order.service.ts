@@ -99,7 +99,7 @@ export class OrderService {
     if (order === '') {
       orderBy = 'ORDER BY t.time DESC';
     } else {
-      orderBy = `ORDER BY ${column} ${order}, t.order_id ${order}`;
+      orderBy = `ORDER BY ${column} ${order}, t.time DESC`;
     }
 
     const data: OrderStatusRaw[] = await this
