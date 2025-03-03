@@ -50,27 +50,27 @@ export class FirebaseService {
   }
 
   private async fcm(title: string, body: string, sound: string, topic: string) {
-    // const result = await messaging().send({
-    //   topic,
-    //   notification: {
-    //     title,
-    //     body,
-    //   },
-    //   android: {
-    //     notification: {
-    //       channelId: sound,
-    //       title,
-    //       body,
-    //       priority: "high",
-    //       sound,
-    //       tag: "order"
-    //     },
-    //     priority: "high",
-    //     ttl: 1000 * 60
-    //   },
-    // })
+    const result = await messaging().send({
+      topic,
+      notification: {
+        title,
+        body,
+      },
+      android: {
+        notification: {
+          channelId: sound,
+          title,
+          body,
+          priority: "high",
+          sound,
+          tag: "order"
+        },
+        priority: "high",
+        ttl: 1000 * 60
+      },
+    })
 
-    // console.log(`successfully sent ${topic} message: ${result}`);
+    console.log(`successfully sent ${topic} message: ${result}`);
   }
 
   async subscribeToTopic(token: string, topic: string) {
