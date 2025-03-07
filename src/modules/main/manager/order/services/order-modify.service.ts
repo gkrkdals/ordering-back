@@ -17,7 +17,7 @@ import { PermissionEnum } from "@src/types/enum/PermissionEnum";
 import { JwtUser } from "@src/types/jwt/JwtUser";
 import { FirebaseService } from "@src/modules/firebase/firebase.service";
 import { NoAlarmsService } from "@src/modules/misc/no-alarms/no-alarms.service";
-import { RecentJob } from "@src/entities/recent-job.entity";
+
 @Injectable()
 export class OrderModifyService {
   constructor(
@@ -29,8 +29,6 @@ export class OrderModifyService {
     private readonly customerCreditRepository: Repository<CustomerCredit>,
     @InjectRepository(OrderChange)
     private readonly orderChangeRepository: Repository<OrderChange>,
-    @InjectRepository(RecentJob)
-    private readonly recentJobRepository: Repository<RecentJob>,
 
     private readonly orderGateway: OrderGateway,
     private readonly fcmService: FirebaseService,
@@ -112,14 +110,6 @@ export class OrderModifyService {
 
     this.orderGateway.refreshClient();
     this.orderGateway.refresh();
-
-    const newRecentJob = new RecentJob();
-    newRecentJob.orderCode = newOrderStatus.orderCode;
-    newRecentJob.orderStatusCode = newOrderStatus.id;
-    newRecentJob.status = newOrderStatus.status;
-    newRecentJob.manager = user.id;
-
-    await this.recentJobRepository.save(newRecentJob);
   }
 
   /**
@@ -223,27 +213,33 @@ export class OrderModifyService {
     }
   }
 
-  async rollback(user: User) {
-    const recentJob = await this.recentJobRepository.findOne({
-      where: { manager: user.id },
-      order: { id: 'DESC' }
+  async rollback(orderCode: number, _: number, newStatus: number) {
+
+    if (
+      newStatus === StatusEnum.AwaitingPickup ||
+      newStatus === StatusEnum.PickupComplete ||
+      newStatus === StatusEnum.PendingReceipt
+    ) {
+      await this.customerCreditRepository.delete({
+        orderCode: orderCode,
+        status: newStatus
+      });
+    }
+
+    await this.orderStatusRepository.delete({
+      orderCode: orderCode,
+      status: newStatus,
     });
 
-    if (recentJob) {
-      const { orderCode, orderStatusCode, status } = recentJob;
-
-      await this.customerCreditRepository.delete({
-        status, orderCode
-      });
-
-      await this.orderStatusRepository.delete({
-        id: orderStatusCode
-      });
-
-      await this.recentJobRepository.remove(recentJob);
-      this.orderGateway.refreshClient();
-      this.orderGateway.refresh();
+    if (newStatus === StatusEnum.PendingReceipt) {
+      await this.orderRepository.delete({
+        id: orderCode
+      })
     }
+
+    this.orderGateway.refreshClient();
+    this.orderGateway.refresh();
+
     return 'ok';
   }
 }

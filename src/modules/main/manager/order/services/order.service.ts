@@ -161,6 +161,9 @@ export class OrderService {
           menuJoin: {
             menuCategory: true
           }
+        },
+        order: {
+          id: 'DESC'
         }
       });
 
@@ -172,7 +175,7 @@ export class OrderService {
         [firstDate, lastDate, StatusEnum.Canceled]
       ))[0];
 
-      return sales;
+      return sales ?? 0;
     }
   }
 

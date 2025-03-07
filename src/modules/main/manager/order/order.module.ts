@@ -18,7 +18,6 @@ import { FirebaseModule } from "@src/modules/firebase/firebase.module";
 import { Customer } from "@src/entities/customer/customer.entity";
 import { Menu } from "@src/entities/menu/menu.entity";
 import { NoAlarmsModule } from "@src/modules/misc/no-alarms/no-alarms.module";
-import { RecentJob } from "@src/entities/recent-job.entity";
 
 @Module({
   imports: [
@@ -33,7 +32,6 @@ import { RecentJob } from "@src/entities/recent-job.entity";
       User,
       Customer,
       Menu,
-      RecentJob
     ]),
     SocketModule,
     FirebaseModule,

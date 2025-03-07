@@ -80,8 +80,12 @@ export class OrderController {
   }
 
   @Put('rollback')
-  async rollback(@UserData() user: User) {
-    return this.orderModifyService.rollback(user);
+  async rollback(
+    @Body('orderCode') orderCode: number,
+    @Body('oldStatus') oldStatus: number,
+    @Body('newStatus') newStatus: number
+  ) {
+    return this.orderModifyService.rollback(orderCode, oldStatus, newStatus);
   }
 
   @Delete(':id')
