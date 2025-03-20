@@ -52,7 +52,11 @@ export class MenuService {
   }
 
   async getAll(): Promise<Menu[]> {
-    return this.menuRepository.find({ relations: { menuCategory: true }, where: { withdrawn: Not(1) }});
+    return this.menuRepository.find({
+      relations: { menuCategory: true },
+      where: { withdrawn: Not(1) },
+      order: { seq: 'ASC' }
+    });
   }
 
   async getMenuCategoryAll(): Promise<MenuCategory[]> {
