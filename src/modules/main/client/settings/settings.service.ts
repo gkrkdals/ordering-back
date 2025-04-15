@@ -68,19 +68,24 @@ export class SettingsService {
         startString, endString, startString, customerId,
       ]
     );
-    console.log(result);
 
-    // return this.orderRepository.find({
-    //   where: {
-    //     time: Between(startString, endString),
-    //     customer: customerId
-    //   },
-    //   relations: {
-    //     menuJoin: {
-    //       menuCategory: true
-    //     },
-    //   }
-    // });
+    result.forEach((order: any) => {
+      if (order.order_time === '') {
+        order.order_time = order.delivered_time
+      }
+    });
+
+    result.sort((a, b) => {
+      const d1 = new Date(a.order_time), d2 = new Date(b.order_time);
+      if (d1 > d2) {
+        return 1;
+      } else if (d1 < d2) {
+        return -1;
+      }
+
+      return 0;
+    })
+
     return result;
   }
 
