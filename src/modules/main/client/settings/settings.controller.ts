@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Put, Res, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Put, Query, Res, UseGuards } from "@nestjs/common";
 import { SettingsService } from "@src/modules/main/client/settings/settings.service";
 import { Response } from "express";
 import { AuthGuard } from "@src/modules/auth/auth.guard";
@@ -41,5 +41,17 @@ export class SettingsController {
     @Body('value') value: 0 | 1
   ) {
     return this.settingsService.updateShowConfirm(customerId, value);
+  }
+
+  @Get('history')
+  async getHistory(
+    @Query('customerId') customerId: number,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+  ) {
+    return {
+      orders: await this.settingsService.getOrderHistory(customerId, startDate, endDate),
+      credit: await this.settingsService.getCreditHistory(customerId, startDate, endDate),
+    }
   }
 }
