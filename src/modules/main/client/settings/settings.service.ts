@@ -1,7 +1,7 @@
 import { Injectable, StreamableFile } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Customer } from "@src/entities/customer/customer.entity";
-import { Between, Not, Repository } from "typeorm";
+import { Not, Repository } from "typeorm";
 import { Settings } from "@src/entities/settings.entity";
 import { createReadStream } from 'fs';
 import * as Path from 'path';
