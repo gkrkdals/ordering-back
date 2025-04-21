@@ -98,7 +98,15 @@ export class SettingsService {
     ))[0].credit;
 
     const ordered = (await this.orderRepository.query(
-      'SELECT IFNULL(SUM(price), 0) AS price FROM `order` WHERE customer = ? AND (time BETWEEN ? AND ?)',
+      `SELECT IFNULL(SUM(a.price), 0) AS price
+       FROM \`order\` a
+                LEFT JOIN (SELECT order_code,
+                                  MAX(status) status
+                           FROM order_status
+                           GROUP BY order_code) b ON a.id = b.order_code
+       WHERE a.customer = ?
+         AND (a.time BETWEEN ? AND ?)
+         AND b.status != 8`,
       [customerId, startString, endString]
     ))[0].price;
 

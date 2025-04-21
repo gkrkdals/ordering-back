@@ -7,7 +7,8 @@ export class ClientSettingsSql {
                    IFNULL(t.order_time, '')             AS                                  order_time,
                    IFNULL(cc.credit_in, 0)              AS                                  credit_in,
                    IF(cancelled.status = 8, cancelled.time, delivered.time)                 delivered_time,
-                   t.hex
+                   t.hex,
+                   IF(cancelled.status = 8, 1, null) cancelled
             FROM (SELECT a.id   order_code,
                          a.customer,
                          b.name customer_name,
@@ -48,7 +49,8 @@ export class ClientSettingsSql {
                          ''                 order_time,
                          credit_diff          credit_in,
                          customer_credit.time delivered_time,
-                         '' hex
+                         '' hex,
+                         null cancelled
                   FROM customer_credit
                            LEFT JOIN user on customer_credit.by = user.id
                            LEFT JOIN customer on customer_credit.customer = customer.id
@@ -66,7 +68,8 @@ export class ClientSettingsSql {
                          ''                        order_time,
                          customer_credit.credit_diff credit_in,
                          customer_credit.time        delivered_time,
-                         '' hex
+                         '' hex,
+                         null cancelled
                   from customer_credit
                            LEFT JOIN user ON customer_credit.\`by\` = user.id
                            LEFT JOIN customer ON customer_credit.customer = customer.id
@@ -83,7 +86,8 @@ export class ClientSettingsSql {
                    ''          order_time,
                    a.time        delivered_time,
                    a.credit_diff credit_in,
-                   '' hex
+                   '' hex,
+                   null cancelled
             FROM customer_credit a
                      LEFT JOIN \`order\` b ON a.order_code = b.id
                      LEFT JOIN user c ON a.\`by\` = c.id
