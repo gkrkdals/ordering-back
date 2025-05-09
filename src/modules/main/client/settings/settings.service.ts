@@ -58,6 +58,7 @@ export class SettingsService {
 
   async getOrderHistory(customerId: number, startDate: string, endDate: string) {
     const [startString, endString] = this.getStartAndEnd(startDate, endDate);
+    console.log(startString, endString);
 
     const result = await this.orderRepository.query(
       ClientSettingsSql.getOrderData,
@@ -132,7 +133,7 @@ export class SettingsService {
     const start = new Date(startDate), end = new Date(endDate);
 
     start.setHours(9, 0, 0, 0);
-    if (isSameDay(start, start)) {
+    if (isSameDay(start, end)) {
       end.setHours(23, 59, 59, 999);
     } else {
       end.setDate(end.getDate() + 1);
