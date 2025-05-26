@@ -72,6 +72,11 @@ export class OrderGateway implements OnModuleInit, OnGatewayInit, OnGatewayConne
     this.broadcastManagerEvent('new_order', data);
   }
 
+  // 요청사항 확인하세요
+  checkRequest(data?: any) {
+    this.broadcastManagerEvent('check_request', data);
+  }
+
   // 조리 시작됨
   cookingStarted(data?: any) {
     this.broadcastManagerEvent('cooking_started', data);
@@ -85,6 +90,16 @@ export class OrderGateway implements OnModuleInit, OnGatewayInit, OnGatewayConne
   // 새로운 픽업요청 알림
   newDelivery(data?: any) {
     this.broadcastManagerEvent('new_delivery', data);
+  }
+
+  // 요청사항 실행했는지 묻기
+  isRequestDone(data?: any) {
+    this.broadcastManagerEvent('is_request_done', data);
+  }
+
+  // 배달 중(요청사항 있을 때에만)
+  duringDelivery(data?: any) {
+    this.broadcastManagerEvent('during_delivery', data);
   }
 
   // 배달 지연 알림

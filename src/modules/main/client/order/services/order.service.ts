@@ -107,6 +107,8 @@ export class OrderService {
     const customPrices = await this.customerPriceRepository.findBy({ customer: customer.id });
     const targetCustomer = await this.customerRepository.findOneBy({ id: customer.id });
 
+    const isThereAnyRequest = orderedMenus.some(menu => menu.request && menu.request.length !== 0);
+
     for(const orderedMenu of orderedMenus) {
       const newOrder = new Order();
       const currentMenu = await this.menuRepository.findOneBy({ id: orderedMenu.menu.id });
@@ -139,9 +141,17 @@ export class OrderService {
     targetCustomer.recentOrder = new Date();
     await this.customerRepository.save(targetCustomer);
 
-    this.orderGateway.newOrder(await this.noAlarmsService.isNoAlarm(orderedMenus.at(0).menu.id));
-    await this.fcmService.newOrder();
     this.orderGateway.refresh();
     this.orderGateway.refreshClient();
+
+    const noAlarm = await this.noAlarmsService.isNoAlarm(orderedMenus.at(0).menu.id);
+    if (isThereAnyRequest) {
+      this.orderGateway.checkRequest(noAlarm);
+      await this.fcmService.checkRequest();
+    } else {
+      this.orderGateway.newOrder(noAlarm);
+      await this.fcmService.newOrder();
+    }
+
   }
 }

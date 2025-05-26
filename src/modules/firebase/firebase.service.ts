@@ -29,6 +29,10 @@ export class FirebaseService {
     await this.fcm("새로운 주문", "새로운 주문이 있습니다.", "new_order", 'all');
   }
 
+  async checkRequest() {
+    await this.fcm("요청사항 확인", "요청사항을 확인하세요.", "check_request", 'all');
+  }
+
   async cookingStarted() {
     await this.fcm("조리 시작", "조리가 시작되었습니다.", "cooking_started", 'all');
   }
@@ -39,6 +43,14 @@ export class FirebaseService {
 
   async newDelivery() {
     await this.fcm("새로운 배달", "새로운 배달이 있습니다.", "new_delivery", 'manager');
+  }
+
+  async isRequestDone() {
+    await this.fcm("요청사항 확인", "요청사항을 실행했나요?", "is_request_done", 'manager');
+  }
+
+  async duringDelivery() {
+    await this.fcm("배달 중", "배달중인 주문이 있습니다.", "during_delivery", "manager")
   }
 
   async deliverDelayed() {

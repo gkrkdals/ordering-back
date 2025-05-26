@@ -193,6 +193,7 @@ export class OrderService {
     const newOrder = new Order();
     const customPrices = await this.customerPriceRepository.findBy({ customer: customer.id });
     const targetCustomer = await this.customerRepository.findOneBy({ id: customer.id });
+    const isThereAnyRequest = request && request.length !== 0;
 
     if (menu.id === 0) {
       newOrder.price = 0;
@@ -215,10 +216,17 @@ export class OrderService {
     targetCustomer.recentOrder = new Date();
     await this.customerRepository.save(targetCustomer);
 
+    const noAlarm = await this.noAlarmsService.isNoAlarm(menu.id);
+    if (isThereAnyRequest) {
+      this.orderGateway.checkRequest(noAlarm);
+      await this.fcmService.checkRequest();
+    } else {
+      this.orderGateway.newOrder(noAlarm);
+      await this.fcmService.newOrder();
+    }
+
     this.orderGateway.refreshClient();
     this.orderGateway.refresh();
-    this.orderGateway.newOrder(await this.noAlarmsService.isNoAlarm(menu.id));
-    await this.fcmService.newOrder();
   }
 
   private getModificationLimitAndItsName(user: User) {

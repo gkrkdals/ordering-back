@@ -60,6 +60,7 @@ export class OrderModifyService {
       where: { id: orderCode },
       relations: { menuJoin: true, customerJoin: true } }
     );
+    const isThereAnyRequest = currentOrder.request && currentOrder.request.length !== 0;
 
     // 새 주문상태 엔티티 생성, 새로운 주문상태와 해당 주문 코드 매핑
     const newOrderStatus = new OrderStatus();
@@ -95,7 +96,11 @@ export class OrderModifyService {
     await this.orderStatusRepository.save(newOrderStatus);
 
     await this.clearAlarm();
-    await this.raiseAlarm(newOrderStatus.status, await this.noAlarmsService.isNoAlarm(currentOrder.menuJoin.id));
+    await this.raiseAlarm(
+      newOrderStatus.status,
+      await this.noAlarmsService.isNoAlarm(currentOrder.menuJoin.id),
+      isThereAnyRequest
+    );
 
     if (order.newStatus === StatusEnum.WaitingForDelivery) {
       this.orderGateway.printReceipt({
@@ -196,15 +201,25 @@ export class OrderModifyService {
     }
   }
 
-  private async raiseAlarm(newStatus: StatusEnum, data?: any) {
+  private async raiseAlarm(newStatus: StatusEnum, data?: any, isThereAnyRequest?: boolean) {
     if(newStatus === StatusEnum.InPreparation) {
       this.orderGateway.cookingStarted(data);
       await this.fcmService.cookingStarted();
     }
 
     if(newStatus === StatusEnum.WaitingForDelivery) {
-      this.orderGateway.newDelivery();
-      await this.fcmService.newDelivery();
+      if (isThereAnyRequest) {
+        this.orderGateway.isRequestDone();
+        await this.fcmService.isRequestDone();
+      } else {
+        this.orderGateway.newDelivery();
+        await this.fcmService.newDelivery();
+      }
+    }
+
+    if (isThereAnyRequest && newStatus === StatusEnum.InDelivery) {
+      this.orderGateway.duringDelivery();
+      await this.fcmService.duringDelivery();
     }
 
     if(newStatus === StatusEnum.InPickingUp) {
