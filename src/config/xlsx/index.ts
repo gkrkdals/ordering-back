@@ -13,8 +13,11 @@ export const header = [
   { v: '가격', t: 's', s: mainHeaderStyle },
   { v: '주문시간', t: 's', s: mainHeaderStyle },
   { v: '주문경로', t: 's', s: mainHeaderStyle },
-  { v: '완료 및 입금 시간', t: 's', s: mainHeaderStyle },
-  { v: '관리자', t: 's', s: mainHeaderStyle },
+  { v: '배달완료시간', t: 's', s: mainHeaderStyle },
+  { v: '담당자', t: 's', s: mainHeaderStyle },
+  { v: '입금액', t: 's', s: mainHeaderStyle },
+  { v: '그릇수거시간', t: 's', s: mainHeaderStyle },
+  { v: '담당자', t: 's', s: mainHeaderStyle },
   { v: '입금액', t: 's', s: mainHeaderStyle },
   { v: '비고', t: 's', s: mainHeaderStyle },
 ];
@@ -42,12 +45,12 @@ const headerTheme = {
 export const mainHeader = [
   { v: '이름', t: 's', s: headerTheme },
   { v: '휴대폰', t: 's', s: headerTheme },
-  { v: '수', t: 's', s: headerTheme },
   { v: '금액', t: 's', s: headerTheme },
   { v: '미수', t: 's', s: headerTheme },
   { v: '입금액', t: 's', s: headerTheme },
   { v: '합계', t: 's', s: headerTheme },
   { v: '총 잔액', t: 's', s: headerTheme },
+  { v: '수', t: 's', s: headerTheme },
   { v: '비고', t: 's', s: headerTheme },
 ]
 

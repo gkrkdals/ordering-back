@@ -13,6 +13,9 @@ export class SettingsSql {
                    IF(cancelled.status = 8, cancelled_by.nickname, delivered_user.nickname) credit_by,
                    cc.credit_time                       AS                                  credit_time,
                    IFNULL(cc.credit_in, 0)              AS                                  credit_in,
+                   disposal.time                        AS                                  disposal_time,
+                   disposal.disposal_manager,
+                   cred.credit_diff                     AS                                  disposal_in,
                    IF(cancelled.status = 8, '취소됨', '')                                      memo,
                    t.hex
             FROM (SELECT a.id   order_code,
@@ -41,6 +44,14 @@ export class SettingsSql {
                                 FROM customer_credit
                                 WHERE status = 5
                                 GROUP BY order_code, status) cc ON t.order_code = cc.order_code
+                     LEFT JOIN (SELECT o.time,
+                                       u.nickname as disposal_manager,
+                                       order_code
+                                FROM order_status o
+                                         LEFT JOIN user u ON u.id = o.\`by\`
+                                WHERE status = 7) disposal
+                               ON t.order_code = disposal.order_code
+                     LEFT JOIN customer_credit cred ON cred.status = 7 AND cred.order_code = t.order_code
             WHERE t.order_time >= ?
               AND t.order_time <= ?
               AND (t.customer = ? OR ISNULL(?))
@@ -49,18 +60,21 @@ export class SettingsSql {
             UNION ALL
 
             SELECT *
-            FROM (SELECT customer.id          customer,
-                         customer.name        customer_name,
-                         ''                   menu,
-                         ''                   menu_name,
-                         null                 path,
-                         null                 price,
-                         null                 order_time,
-                         customer_credit.time delivered_time,
-                         user.nickname        credit_by,
-                         customer_credit.time credit_time,
-                         credit_diff          credit_in,
-                         '그릇수거 입금'            memo,
+            FROM (SELECT customer.id             customer,
+                         customer.name           customer_name,
+                         ''                      menu,
+                         ''                      menu_name,
+                         null                    path,
+                         null                    price,
+                         null                    order_time,
+                         customer_credit.time    delivered_time,
+                         null                    credit_by,
+                         null                    credit_time,
+                         null                    credit_in,
+                         customer_credit.time AS disposal_time,
+                         user.nickname        as disposal_manager,
+                         credit_diff          AS disposal_in,
+                         '그릇수거 입금'               memo,
                          hex
                   FROM customer_credit
                            LEFT JOIN user on customer_credit.by = user.id
@@ -84,12 +98,16 @@ export class SettingsSql {
                          user.nickname               credit_by,
                          customer_credit.time        credit_time,
                          customer_credit.credit_diff credit_in,
+                         null AS                     disposal_time,
+                         null AS                     disposal_manager,
+                         null AS                     disposal_in,
                          '마스터 입금'                    memo,
                          hex
                   from customer_credit
                            LEFT JOIN user ON customer_credit.\`by\` = user.id
                            LEFT JOIN customer ON customer_credit.customer = customer.id
                            LEFT JOIN customer_category on customer.category = customer_category.id
+
                   WHERE (customer_credit.time >= ? AND customer_credit.time <= ?)
                     AND (customer = ? OR ISNULL(?))
                     AND order_code = 0) a
@@ -107,6 +125,9 @@ export class SettingsSql {
                    c.nickname    credit_by,
                    a.time        credit_time,
                    a.credit_diff credit_in,
+                   null AS       disposal_time,
+                   null AS       disposal_manager,
+                   null          disposal_in,
                    '마스터 입금'      memo,
                    hex
             FROM customer_credit a

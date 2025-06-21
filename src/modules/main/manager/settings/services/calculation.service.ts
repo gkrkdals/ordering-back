@@ -98,6 +98,9 @@ export class CalculationService {
         { v: row.delivered_time === null ? '' : dateToString(new Date(row.delivered_time)), t: "s", s: p },
         { v: row.credit_by ?? '', t: "s", s: p },
         { v: row.credit_in === null ? '' : parseInt(row.credit_in), t: "n", s: q },
+        { v: row.disposal_time === null ? '' : dateToString(new Date(row.disposal_time)), t: "s", s: p },
+        { v: row.disposal_manager ?? '', t: "s", s: p },
+        { v: row.disposal_in === null ? '' : parseInt(row.disposal_in), t: "n", s: q },
         { v: row.memo, t: "s", s: p }
       ];
     });
@@ -152,12 +155,12 @@ export class CalculationService {
       const ret: { v: any, t: any, s?: any }[] = [
         { v: row.name, t: 's' },
         { v: row.tel, t: 's' },
-        { v: row.cnt, t: 'n' },
         { v: row.price, t: 'n', s: { numFmt: '#,###' } },
         { v: row.misu, t: 'n', s: { numFmt: '#,###' } },
         { v: row.deposit_amt, t: 'n', s: { numFmt: '#,###' } },
         { v: row.sum, t: 'n', s: { numFmt: '#,###' } },
         { v: row.total_credit, t: 'n', s: { numFmt: '#,###' } },
+        { v: row.cnt, t: 'n' },
         { v: row.bigo, t: 's' },
       ];
 

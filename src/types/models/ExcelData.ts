@@ -10,6 +10,9 @@ export interface ExcelData {
   credit_in: string;
   credit_time: string;
   credit_by: string;
+  disposal_time: string;
+  disposal_manager: string;
+  disposal_in : string;
   memo: string;
   hex: string;
 }
