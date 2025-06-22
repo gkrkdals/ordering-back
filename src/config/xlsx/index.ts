@@ -19,6 +19,9 @@ export const header = [
   { v: '그릇수거시간', t: 's', s: mainHeaderStyle },
   { v: '담당자', t: 's', s: mainHeaderStyle },
   { v: '입금액', t: 's', s: mainHeaderStyle },
+  { v: '마스터입금시간', t: 's', s: mainHeaderStyle },
+  { v: '담당자', t: 's', s: mainHeaderStyle },
+  { v: '입금액', t: 's', s: mainHeaderStyle },
   { v: '비고', t: 's', s: mainHeaderStyle },
 ];
 
@@ -57,12 +60,12 @@ export const mainHeader = [
 export const mainHeaderWidth = [
   { wch: 22 },
   { wch: 15 },
+  { wch: 13 },
+  { wch: 13 },
+  { wch: 13 },
+  { wch: 13 },
+  { wch: 13 },
   { wch: 6 },
-  { wch: 13 },
-  { wch: 13 },
-  { wch: 13 },
-  { wch: 13 },
-  { wch: 13 },
   { wch: 18 },
 ]
 

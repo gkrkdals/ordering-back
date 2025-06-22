@@ -13,6 +13,9 @@ export interface ExcelData {
   disposal_time: string;
   disposal_manager: string;
   disposal_in : string;
+  master_time: string;
+  master_manager: string;
+  master_in: string;
   memo: string;
   hex: string;
 }

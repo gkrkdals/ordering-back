@@ -78,21 +78,20 @@ export class CalculationService {
     const length = excelData.length;
 
     const data: any[][] = excelData.map((row) => {
-      const p = this.getTheme(row.memo === '취소됨');
-      const t = this.getTheme(row.memo === '취소됨', row.menu === 0);
-      const q = this.getTheme(row.memo === '취소됨', row.menu === 0, true);
+      const cancelled = row.price === '취소됨';
+      const p = this.getTheme(cancelled);
+      const t = this.getTheme(cancelled, row.menu === 0);
+      const q = this.getTheme(cancelled, row.menu === 0, true);
       q.numFmt = '#,###';
       numbering++;
 
-      if (row.memo === '취소됨') {
-        row.price = null;
-      }
+      const priceValue = row.price === null ? '' : (cancelled ? '취소됨' : parseInt(row.price));
 
       return [
         { v: numbering, t: "n", s: p },
         { v: row.customer_name, t: "s", s: { ...p, fill: { fgColor: { rgb: `${row.hex === 'FFFFFF' ? '00' : 'FF'}${row.hex}` } } } },
         { v: row.menu_name, t: "s", s: t },
-        { v: row.price === null ? '' : parseInt(row.price), t: "n", s: q },
+        { v: priceValue, t: cancelled ? "s" : "n", s: q },
         { v: row.order_time === null ? '' : dateToString(new Date(row.order_time)), t: "s", s: p },
         { v: row.path ?? '', t: "s", s: p },
         { v: row.delivered_time === null ? '' : dateToString(new Date(row.delivered_time)), t: "s", s: p },
@@ -101,6 +100,9 @@ export class CalculationService {
         { v: row.disposal_time === null ? '' : dateToString(new Date(row.disposal_time)), t: "s", s: p },
         { v: row.disposal_manager ?? '', t: "s", s: p },
         { v: row.disposal_in === null ? '' : parseInt(row.disposal_in), t: "n", s: q },
+        { v: row.master_time === null ? '' : dateToString(new Date(row.master_time)), t: "s", s: p },
+        { v: row.master_manager ?? '', t: "s", s: p },
+        { v: row.master_in === null ? '' : parseInt(row.master_in), t: "n", s: q },
         { v: row.memo, t: "s", s: p }
       ];
     });
@@ -166,7 +168,7 @@ export class CalculationService {
 
       ret.forEach((cell, index) => {
         cell.s = this.getColoredTheme(i);
-        if (index >= 3 && index <= 7) {
+        if (index >= 2 && index <= 6) {
           cell.s.numFmt = '#,###';
         }
       });
@@ -183,12 +185,12 @@ export class CalculationService {
     const topRow = [
       { v: '', t: 's' },
       { v: '', t: 's'  },
-      { f: `SUM(C3:C${length + 5})`, t: 'n', s },
+      { f: `SUM(C3:C${length + 5})`, t: 'n', s: { ...s, numFmt: '₩#,###'} },
       { f: `SUM(D3:D${length + 5})`, t: 'n', s: { ...s, numFmt: '₩#,###'} },
       { f: `SUM(E3:E${length + 5})`, t: 'n', s: { ...s, numFmt: '₩#,###'} },
       { f: `SUM(F3:F${length + 5})`, t: 'n', s: { ...s, numFmt: '₩#,###'} },
       { f: `SUM(G3:G${length + 5})`, t: 'n', s: { ...s, numFmt: '₩#,###'} },
-      { f: `SUM(H3:H${length + 5})`, t: 'n', s: { ...s, numFmt: '₩#,###'} },
+      { f: `SUM(H3:H${length + 5})`, t: 'n', s, },
       { v: '', t: 's' },
     ]
 
@@ -219,22 +221,25 @@ export class CalculationService {
       const summary = allData.find((data) => data.id === customer.id);
       let numbering = 0;
       const data = orders.map((row) => {
-
-        const p = this.getTheme(row.memo === '취소됨');
-        const t = this.getTheme(row.memo === '취소됨', row.menu === 0);
-        const q = this.getTheme(row.memo === '취소됨', row.menu === 0, true);
+        const cancelled = row.price === '취소됨';
+        const p = this.getTheme(cancelled);
+        const t = this.getTheme(cancelled, row.menu === 0);
+        const q = this.getTheme(cancelled, row.menu === 0, true);
         q.numFmt = '#,###';
 
-        if (row.memo === '취소됨') {
-          row.price = null;
-        }
+        // if (row.memo === '취소됨') {
+        //   row.price = null;
+        // }
+
+        const priceValue = row.price === null ? '' : (cancelled ? '취소됨' : parseInt(row.price));
+
         numbering++;
 
         return [
           { v: numbering, t: "n", s: p },
           { v: row.customer_name, t: "s", s: p },
           { v: row.menu_name, t: "s", s: t },
-          { v: row.price === null ? '' : parseInt(row.price), t: "n", s: q },
+          { v: priceValue, t: cancelled ? 's' : 'n', s: q },
           { v: row.order_time === null ? '' : dateToString(new Date(row.order_time)), t: "s", s: p },
           { v: row.path ?? '', t: "s", s: p },
           { v: row.delivered_time === null ? '' : dateToString(new Date(row.delivered_time)), t: "s", s: p },
