@@ -27,9 +27,10 @@ export class CalculationService {
     const { menu, type, start, end } = params;
     const startDate = new Date(start);
     const endDate = new Date(end);
+    const today = new Date();
 
     startDate.setHours(9, 0, 0, 0);
-    if (isSameDay(startDate, endDate)) {
+    if (isSameDay(startDate, endDate) && isSameDay(startDate, today)) {
       endDate.setHours(23, 59, 59, 999);
     } else {
       endDate.setDate(endDate.getDate() + 1);
@@ -124,14 +125,14 @@ export class CalculationService {
       { v: '매출', t: "s", s },
       { f: `SUM(D4:D${length + 5})`, t: "n", s: { ...s, numFmt: '₩#,###' } },
       { v: '입금', t: "s", s },
-      { f: `SUM(I4:I${length + 5})`, t: "n", s: { ...s, numFmt: '₩#,###' } },
+      { f: `SUM(I4:I${length + 5},L4:L${length + 5},O4:O${length + 5})`, t: "n", s: { ...s, numFmt: '₩#,###' } },
       { v: '차액', t: "s", s },
       { f: 'C1-E1', t: "n", s: { ...s, numFmt: '₩#,###' } },
     ]
 
     const ws = XLSX.utils.aoa_to_sheet([summary, [], header, ...data]);
     ws['!cols'] = this.fitToColumn([summary, [], header, ...data]);
-    ws['!autofilter'] = { ref: 'A3:J3' };
+    ws['!autofilter'] = { ref: 'A3:P3' };
     ws['!freeze'] = { ySplit: 1 }
 
     XLSX.utils.book_append_sheet(wb, ws, '기간정산');

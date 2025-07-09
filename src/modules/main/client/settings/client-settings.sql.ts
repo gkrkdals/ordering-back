@@ -34,7 +34,7 @@ export class ClientSettingsSql {
                                        MAX(time)        credit_time,
                                        SUM(credit_diff) credit_in
                                 FROM customer_credit
-                                WHERE status = 5
+                                WHERE status = 5 AND credit_diff > 0
                                 GROUP BY order_code, status) cc ON t.order_code = cc.order_code
             WHERE t.order_time >= ?
               AND t.order_time <= ?

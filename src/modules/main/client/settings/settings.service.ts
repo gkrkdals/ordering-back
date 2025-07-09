@@ -112,7 +112,7 @@ export class SettingsService {
     ))[0].price;
 
     const charged = (await this.customerCreditRepository.query(
-      "SELECT IFNULL(SUM(credit_diff), 0) AS credit FROM customer_credit WHERE customer = ? AND (time BETWEEN ? AND ?) AND credit_diff > 0",
+      "SELECT IFNULL(SUM(credit_diff), 0) AS credit FROM customer_credit WHERE customer = ? AND (time BETWEEN ? AND ?) AND (STATUS = 5 OR credit_diff > 0)",
       [customerId, startString, endString]
     ))[0].credit;
 
