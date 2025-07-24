@@ -151,7 +151,7 @@ export class SettingsSql {
             WHERE (a.time >= ? AND a.time <= ?)
               AND (b.time < ?)
               AND (a.customer = ? OR ISNULL(?))
-              AND status = 5) p
+              AND (status = 5 or status = null)) p
 
 
       ORDER BY p.delivered_time

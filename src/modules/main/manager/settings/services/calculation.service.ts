@@ -50,7 +50,6 @@ export class CalculationService {
     }
 
     const wb = XLSX.utils.book_new();
-    console.log(startString, endString);
 
     const excelData = await this.getSummarySheet(startString, endString, menuParam, customerParam, wb);
     const allData = await this.getAllCustomerSheet(startString, endString, menuParam, wb);
@@ -70,7 +69,7 @@ export class CalculationService {
         start, end, customer, customer, menu, menu,
         start, end, customer, customer,
         start, end, customer, customer,
-        start, end, start, customer, customer
+        start, end, start, customer, customer,
       ]
     );
 
@@ -243,9 +242,10 @@ export class CalculationService {
           { v: priceValue, t: cancelled ? 's' : 'n', s: q },
           { v: row.order_time === null ? '' : dateToString(new Date(row.order_time)), t: "s", s: p },
           { v: row.path ?? '', t: "s", s: p },
-          { v: row.delivered_time === null ? '' : dateToString(new Date(row.delivered_time)), t: "s", s: p },
-          { v: row.credit_by ?? '', t: "s", s: p },
-          { v: row.credit_in === null ? '' : parseInt(row.credit_in), t: "n", s: q },
+          // 아래는 마스터입금도 고려
+          { v: this.getTime(row), t: "s", s: p },
+          { v: this.getBy(row), t: "s", s: p },
+          { v: this.getIn(row), t: "n", s: q },
           { v: row.memo, t: "s", s: p }
         ]
       });
@@ -347,5 +347,39 @@ export class CalculationService {
     }
 
     return style;
+  }
+
+  getTime(row: ExcelData) {
+    if (row.delivered_time !== null) {
+      return dateToString(new Date(row.delivered_time));
+    } else if (row.disposal_time !== null) {
+      return dateToString(new Date(row.disposal_time));
+    } else if (row.master_time !== null) {
+      return dateToString(new Date(row.master_time));
+    }
+
+    return '';
+  }
+
+  getBy(row: ExcelData) {
+    if (row.credit_by !== null) {
+      return row.credit_by;
+    } else if (row.disposal_manager !== null) {
+      return row.disposal_manager;
+    } else if (row.master_manager !== null) {
+      return row.master_manager;
+    }
+
+    return '';
+  }
+
+  getIn(row: ExcelData) {
+    if (row.credit_in !== null) {
+      return parseInt(row.credit_in);
+    } else if (row.disposal_in !== null) {
+      return parseInt(row.disposal_in);
+    } else if (row.master_in !== null) {
+      return parseInt(row.master_in);
+    }
   }
 }
