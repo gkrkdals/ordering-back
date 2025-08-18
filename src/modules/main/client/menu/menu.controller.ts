@@ -12,8 +12,8 @@ export class MenuController {
   }
 
   @Get()
-  async findAll(): Promise<Menu[]> {
-    return this.menuService.findAll();
+  async findAll(@CustomerData() customer: Customer): Promise<Menu[]> {
+    return this.menuService.findAll(customer);
   }
 
   @Get('/recent')

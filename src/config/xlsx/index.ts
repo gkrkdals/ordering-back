@@ -23,6 +23,7 @@ export const header = [
   { v: '담당자', t: 's', s: mainHeaderStyle },
   { v: '입금액', t: 's', s: mainHeaderStyle },
   { v: '비고', t: 's', s: mainHeaderStyle },
+  { v: '메모', t: 's', s: mainHeaderStyle },
 ];
 
 const headerTheme = {
@@ -90,6 +91,7 @@ export const eachCustomerHeader = [
   { v: '관리자', t: 's', s: eachCustomerHeaderTheme },
   { v: '입금액', t: 's', s: eachCustomerHeaderTheme },
   { v: '비고', t: 's', s: eachCustomerHeaderTheme },
+  { v: '메모', t: 's', s: eachCustomerHeaderTheme },
 ];
 
 export const eachCustomerHeaderWidth = [

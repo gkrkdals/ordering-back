@@ -5,12 +5,18 @@ import { Settings } from "@src/entities/settings.entity";
 import { Response } from "express";
 import { createReadStream } from "fs";
 import Path from "path";
+import { MenuCategory } from "@src/entities/menu/menu-category.entity";
+import { Menu } from "@src/entities/menu/menu.entity";
 
 @Injectable()
 export class SettingsService {
   constructor(
     @InjectRepository(Settings)
     private readonly settingsRepository: Repository<Settings>,
+    @InjectRepository(MenuCategory)
+    private readonly menuCategoryRepository: Repository<MenuCategory>,
+    @InjectRepository(Menu)
+    private readonly menuRepository: Repository<Menu>,
   ) {}
 
   async getExceedSettings() {
@@ -57,5 +63,42 @@ export class SettingsService {
     const logoSetting = await this.settingsRepository.findOneBy({ big: 2, sml: 1 });
     logoSetting.stringValue = name;
     await this.settingsRepository.save(logoSetting);
+  }
+
+  async getMenuCategories() {
+    return (await this.menuCategoryRepository.find()).map(c => ({ ...c, modified: false, deleted: false }));
+  }
+
+  async modifyMenuCategories(modified: any[], added: any[]) {
+    const m = modified.filter(p => p.modified);
+    const d = modified.filter(p => p.deleted);
+
+    for (const item of d) {
+      const [, cnt] = await this.menuRepository.findAndCount({
+        where: {
+          category: item.id
+        }
+      });
+      if (cnt === 0) {
+        await this.menuCategoryRepository.delete({ id: item.id });
+      }
+    }
+
+    for (const item of m) {
+      const modified = new MenuCategory();
+      modified.id = item.id;
+      modified.hex = item.hex;
+      modified.name = item.name;
+      modified.price = item.price;
+      await this.menuCategoryRepository.save(modified);
+    }
+
+    for (const item of added) {
+      const newCategory = new MenuCategory();
+      newCategory.hex = item.hex;
+      newCategory.name = item.name;
+      newCategory.price = item.price;
+      await this.menuCategoryRepository.save(newCategory);
+    }
   }
 }

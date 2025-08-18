@@ -59,6 +59,11 @@ export class OrderController {
     return this.orderService.getOrderHistory(orderCode);
   }
 
+  @Get('memo')
+  async getMemo(@Query('orderCode') orderCode: number) {
+    return this.orderService.getMemo(orderCode);
+  }
+
   @Post()
   async createNewOrder(
     @Body('menu') menu: Menu,

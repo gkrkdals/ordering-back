@@ -20,7 +20,8 @@ export class SettingsSql {
                    null                                     AS                              master_manager,
                    null                                     AS                              master_in,
                    t.request                                                                memo,
-                   t.hex
+                   t.hex,
+                   t.memo AS bigo
             FROM (SELECT a.id   order_code,
                          a.customer,
                          b.name customer_name,
@@ -30,7 +31,8 @@ export class SettingsSql {
                          a.price,
                          time   order_time,
                          a.request,
-                         d.hex
+                         d.hex, 
+                         a.memo
                   FROM \`order\` a
                            LEFT JOIN customer b ON b.id = a.customer
                            LEFT JOIN menu c ON c.id = a.menu
@@ -82,7 +84,8 @@ export class SettingsSql {
                          null                 AS master_manager,
                          null                 AS master_in,
                          ''                      memo,
-                         hex
+                         hex,
+                         '' bigo
                   FROM customer_credit
                            LEFT JOIN user on customer_credit.by = user.id
                            LEFT JOIN customer on customer_credit.customer = customer.id
@@ -112,7 +115,8 @@ export class SettingsSql {
                          user.nickname        AS     master_manager,
                          customer_credit.credit_diff master_in,
                          ''                          memo,
-                         hex
+                         hex,
+                         '' bigo
                   from customer_credit
                            LEFT JOIN user ON customer_credit.\`by\` = user.id
                            LEFT JOIN customer ON customer_credit.customer = customer.id
@@ -142,7 +146,8 @@ export class SettingsSql {
                    c.nickname    master_manager,
                    a.credit_diff master_in,
                    ''            memo,
-                   hex
+                   hex,
+                   '' bigo
             FROM customer_credit a
                      LEFT JOIN \`order\` b ON a.order_code = b.id
                      LEFT JOIN user c ON a.\`by\` = c.id
@@ -151,7 +156,7 @@ export class SettingsSql {
             WHERE (a.time >= ? AND a.time <= ?)
               AND (b.time < ?)
               AND (a.customer = ? OR ISNULL(?))
-              AND (status = 5 or status = null)) p
+              AND (status = 5 or status IS NULL)) p
 
 
       ORDER BY p.delivered_time

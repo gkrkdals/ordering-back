@@ -5,16 +5,28 @@ import { Like, Not, Repository } from "typeorm";
 import { Customer } from "@src/entities/customer/customer.entity";
 import { Order } from "@src/entities/order/order.entity";
 import { RecentMenu } from "@src/types/models/RecentMenu";
+import { DiscountGroup } from "@src/entities/customer/discount-group.entity";
 
 @Injectable()
 export class MenuService {
   constructor(
     @InjectRepository(Menu) private menuRepository: Repository<Menu>,
     @InjectRepository(Order) private orderRepository: Repository<Order>,
+    @InjectRepository(DiscountGroup)
+    private discountGroupRepository: Repository<DiscountGroup>,
   ) {}
 
-  findAll(): Promise<Menu[]> {
-    return this.menuRepository.find({
+  async findAll(customer: Customer): Promise<Menu[]> {
+    const groupId = customer.discountGroupId;
+    let type: 'amount' | 'percent' | '' = '', value = 0;
+
+    const group = await this.discountGroupRepository.findOneBy({ id: groupId });
+    if (group) {
+      type = group.discountType;
+      value = group.discountValue;
+    }
+
+    const data = await this.menuRepository.find({
       relations: { menuCategory: true },
       where: {
         id: Not(0),
@@ -24,6 +36,22 @@ export class MenuService {
         seq: 'asc',
       }
     });
+
+    if (type === 'amount') {
+      data.forEach(item => {
+        if (item.isDiscountable === 1) {
+          item.menuCategory.price -= value
+        }
+      });
+    } else if (type === 'percent') {
+      data.forEach(item => {
+        if (item.isDiscountable === 1) {
+          item.menuCategory.price *= ((100 - value) * 0.01);
+        }
+      })
+    }
+
+    return data;
   }
 
   findOne(id: number): Promise<Menu | null> {

@@ -87,11 +87,15 @@ export class OrderModifyService {
       newCreditInfo.creditDiff = newCreditInfo.creditDiff * -1;
       await this.customerCreditRepository.save(newCreditInfo);
     } else if(
-      (order.newStatus === StatusEnum.AwaitingPickup || order.newStatus === StatusEnum.PickupComplete) &&
-      !order.postpaid
+      (order.newStatus === StatusEnum.AwaitingPickup || order.newStatus === StatusEnum.PickupComplete)
     ) {
       // 음식 수령 후 금액을 바로 지불하였을 시 저장
-      await this.customerCreditRepository.save(newCreditInfo);
+      if (!order.postpaid) {
+        await this.customerCreditRepository.save(newCreditInfo);
+      }
+
+      currentOrder.memo = order.memo;
+      await this.orderRepository.save(currentOrder);
     }
     await this.orderStatusRepository.save(newOrderStatus);
 

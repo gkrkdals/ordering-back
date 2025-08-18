@@ -4,4 +4,5 @@ export class UpdateOrderDto {
   paidAmount: number;
   postpaid: boolean;
   menu: number;
+  memo: string;
 }

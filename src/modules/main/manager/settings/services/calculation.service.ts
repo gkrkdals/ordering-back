@@ -103,7 +103,8 @@ export class CalculationService {
         { v: row.master_time === null ? '' : dateToString(new Date(row.master_time)), t: "s", s: p },
         { v: row.master_manager ?? '', t: "s", s: p },
         { v: row.master_in === null ? '' : parseInt(row.master_in), t: "n", s: q },
-        { v: row.memo, t: "s", s: p }
+        { v: row.memo, t: "s", s: p },
+        { v: row.bigo ?? '', t: "s", s: p }
       ];
     });
 
@@ -246,7 +247,8 @@ export class CalculationService {
           { v: this.getTime(row), t: "s", s: p },
           { v: this.getBy(row), t: "s", s: p },
           { v: this.getIn(row), t: "n", s: q },
-          { v: row.memo, t: "s", s: p }
+          { v: row.memo, t: "s", s: p },
+          { v: row.bigo ?? '', t: "s", s: p },
         ]
       });
 
@@ -286,6 +288,7 @@ export class CalculationService {
         { v: summary.sum, t: 'n', s: q },
         {},
         { v: summary.total_credit, t: 'n', s: q },
+        {}
       ]
 
       const merge = [

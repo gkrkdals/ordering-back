@@ -11,13 +11,17 @@ import { Customer } from "@src/entities/customer/customer.entity";
 import { BusinessHoursController } from "@src/modules/main/manager/settings/controllers/business-hours.controller";
 import { BusinessHoursService } from "@src/modules/main/manager/settings/services/business-hours.service";
 import { CronModule } from "@src/modules/misc/cron/cron.module";
+import { MenuCategory } from "@src/entities/menu/menu-category.entity";
+import { Menu } from "@src/entities/menu/menu.entity";
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       Order,
       Customer,
-      Settings
+      Settings,
+      MenuCategory,
+      Menu
     ]),
     CronModule,
   ],

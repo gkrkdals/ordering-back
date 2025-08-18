@@ -24,4 +24,7 @@ export class Menu {
 
   @Column()
   seq: number;
+
+  @Column({ name: 'is_discountable', default: 1 })
+  isDiscountable: number;
 }

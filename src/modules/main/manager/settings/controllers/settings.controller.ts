@@ -90,4 +90,14 @@ export class SettingsController {
   async deleteNoAlarm(@Param('id', ParseIntPipe) menu: number) {
     await this.noAlarmsService.deleteNoAlarms(menu);
   }
+
+  @Get('menu/category')
+  async getMenuCategories() {
+    return this.settingService.getMenuCategories();
+  }
+
+  @Put('menu/category')
+  async modifyMenuCategories(@Body('modified') modified: any[], @Body('added') added: any[]) {
+    await this.settingService.modifyMenuCategories(modified, added);
+  }
 }

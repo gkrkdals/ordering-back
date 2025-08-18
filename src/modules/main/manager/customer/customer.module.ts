@@ -9,6 +9,7 @@ import { MenuCategory } from "@src/entities/menu/menu-category.entity";
 import { CreditService } from "@src/modules/main/manager/customer/services/credit.service";
 import { CustomerCredit } from "@src/entities/customer/customer-credit.entity";
 import { JwtService } from "@nestjs/jwt";
+import { DiscountGroup } from "@src/entities/customer/discount-group.entity";
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { JwtService } from "@nestjs/jwt";
       CustomerPrice,
       CustomerCredit,
       MenuCategory,
+      DiscountGroup
     ]),
   ],
   controllers: [CustomerController],

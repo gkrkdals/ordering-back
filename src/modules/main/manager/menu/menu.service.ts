@@ -103,6 +103,7 @@ export class MenuService {
       updatedMenu.category = menu.category;
       updatedMenu.name = menu.name;
       updatedMenu.soldOut = menu.soldOut;
+      updatedMenu.isDiscountable = menu.isDiscountable;
       await this.menuRepository.save(updatedMenu);
     }
   }

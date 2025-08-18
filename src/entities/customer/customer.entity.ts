@@ -1,6 +1,7 @@
 import { Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 import { CustomerCategory } from "@src/entities/customer/customer-category.entity";
 import { CustomerPrice } from "@src/entities/customer-price";
+import { DiscountGroup } from "@src/entities/customer/discount-group.entity";
 
 @Entity()
 export class Customer {
@@ -46,4 +47,11 @@ export class Customer {
 
   @Column({ name: 'show_confirm' })
   showConfirm: number;
+
+  @Column({ name: 'discount_group_id', nullable: true })
+  discountGroupId: number | null;
+
+  @JoinColumn({ name: 'discount_group_id' })
+  @OneToOne(() => DiscountGroup)
+  discountGroup: DiscountGroup | null;
 }

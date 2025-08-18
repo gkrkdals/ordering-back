@@ -19,6 +19,7 @@ import { FileInterceptor } from "@nestjs/platform-express";
 import { AuthGuard } from "@src/modules/auth/auth.guard";
 import { UserData } from "@src/modules/user/customer.decorator";
 import { User } from "@src/entities/user.entity";
+import { DiscountGroup } from "@src/entities/customer/discount-group.entity";
 
 @Controller('manager/customer')
 @UseGuards(AuthGuard)
@@ -87,5 +88,20 @@ export class CustomerController {
     @UserData() user: User,
   ) {
     return this.creditService.addCredit(mode, customer, price, user);
+  }
+
+  @Get('discount-group')
+  async getDiscountGroups() {
+    return this.customerService.getDiscountGroups();
+  }
+
+  @Put('discount-group')
+  async modifyDiscountGroups(@Body('modified') modified: DiscountGroup[], @Body('added') added: DiscountGroup[]) {
+    await this.customerService.modifyDiscountGroups(modified, added);
+  }
+
+  @Put('discount-group/all')
+  async setAllGroup(@Body('groupId') groupId: number) {
+    await this.customerService.setAllGroup(groupId);
   }
 }

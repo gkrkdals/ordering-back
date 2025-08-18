@@ -8,6 +8,7 @@ import { Customer } from "@src/entities/customer/customer.entity";
 import { JwtService } from "@nestjs/jwt";
 import { CustomerPrice } from "@src/entities/customer-price";
 import { Order } from "@src/entities/order/order.entity";
+import { DiscountGroup } from "@src/entities/customer/discount-group.entity";
 
 @Module({
   imports: [TypeOrmModule.forFeature([
@@ -15,7 +16,8 @@ import { Order } from "@src/entities/order/order.entity";
     MenuCategory,
     Customer,
     CustomerPrice,
-    Order
+    Order,
+    DiscountGroup
   ])],
   controllers: [MenuController],
   providers: [MenuService, JwtService],

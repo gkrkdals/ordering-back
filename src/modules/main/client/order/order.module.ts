@@ -15,6 +15,7 @@ import { SocketModule } from "@src/modules/socket/socket.module";
 import { FirebaseModule } from "@src/modules/firebase/firebase.module";
 import { Customer } from "@src/entities/customer/customer.entity";
 import { NoAlarmsModule } from "@src/modules/misc/no-alarms/no-alarms.module";
+import { DiscountGroup } from "@src/entities/customer/discount-group.entity";
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { NoAlarmsModule } from "@src/modules/misc/no-alarms/no-alarms.module";
       User,
       Menu,
       Customer,
+      DiscountGroup
     ]),
     SocketModule,
     FirebaseModule,

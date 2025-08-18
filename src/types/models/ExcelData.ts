@@ -18,4 +18,5 @@ export interface ExcelData {
   master_in: string;
   memo: string;
   hex: string;
+  bigo: string;
 }

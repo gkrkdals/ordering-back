@@ -17,6 +17,7 @@ import { Menu } from "@src/entities/menu/menu.entity";
 import { FirebaseService } from "@src/modules/firebase/firebase.service";
 import { JwtCustomer } from "@src/types/jwt/JwtCustomer";
 import { NoAlarmsService } from "@src/modules/misc/no-alarms/no-alarms.service";
+import { DiscountGroup } from "@src/entities/customer/discount-group.entity";
 
 @Injectable()
 export class OrderService {
@@ -35,6 +36,8 @@ export class OrderService {
     private readonly menuRepository: Repository<Menu>,
     @InjectRepository(Customer)
     private readonly customerRepository: Repository<Customer>,
+    @InjectRepository(DiscountGroup)
+    private readonly discountGroupRepository: Repository<DiscountGroup>,
     @InjectDataSource()
     private readonly datasource: DataSource,
 
@@ -60,6 +63,15 @@ export class OrderService {
   }
 
   async getLastOrders(customer: Customer) {
+    const groupId = customer.discountGroupId;
+    let type: 'amount' | 'percent' | '' = '', value = 0;
+
+    const group = await this.discountGroupRepository.findOneBy({ id: groupId });
+    if (group) {
+      type = group.discountType;
+      value = group.discountValue;
+    }
+
     const recentMenuOnDigit: { id: number; menu: number }[] = await this.orderRepository.query(
       'SELECT MAX(id) AS id, menu FROM `order` WHERE customer = ? AND menu != 0 GROUP BY menu ORDER BY id DESC LIMIT 10',
       [customer.id]
@@ -77,6 +89,20 @@ export class OrderService {
         }
       });
       recentMenus.push(menu);
+    }
+
+    if (type === 'amount') {
+      recentMenus.forEach(item => {
+        if (item.isDiscountable === 1) {
+          item.menuCategory.price -= value
+        }
+      });
+    } else if (type === 'percent') {
+      recentMenus.forEach(item => {
+        if (item.isDiscountable === 1) {
+          item.menuCategory.price *= ((100 - value) * 0.01);
+        }
+      })
     }
 
     return recentMenus
@@ -117,17 +143,12 @@ export class OrderService {
       if (currentMenu.soldOut === 1) {
         throw new BadRequestException();
       } else {
-        if (orderedMenu.menu.id === 0) {
-          newOrder.memo = orderedMenu.menu.name;
-          newOrder.price = 0;
-        } else {
-          const customPrice = customPrices.find(price => price.category === orderedMenu.menu.category);
+        const customPrice = customPrices.find(price => price.category === orderedMenu.menu.category);
 
-          if(customPrice) {
-            newOrder.price = customPrice.price;
-          } else {
-            newOrder.price = orderedMenu.menu.menuCategory.price;
-          }
+        if(customPrice) {
+          newOrder.price = customPrice.price;
+        } else {
+          newOrder.price = orderedMenu.menu.menuCategory.price;
         }
 
         newOrder.path = null;
@@ -152,6 +173,5 @@ export class OrderService {
       this.orderGateway.newOrder(noAlarm);
       await this.fcmService.newOrder();
     }
-
   }
 }

@@ -10,6 +10,7 @@ import { UpdateCustomerPriceDto } from "@src/modules/main/manager/customer/dto/u
 import { CustomerSql } from "@src/modules/main/manager/customer/sql/CustomerSql";
 import { CustomerRaw } from "@src/types/models/CustomerRaw";
 import * as XLSX from "xlsx-js-style";
+import { DiscountGroup } from "@src/entities/customer/discount-group.entity";
 
 @Injectable()
 export class CustomerService {
@@ -20,6 +21,8 @@ export class CustomerService {
     private readonly customerCategoryRepository: Repository<CustomerCategory>,
     @InjectRepository(CustomerPrice)
     private readonly customerPriceRepository: Repository<CustomerPrice>,
+    @InjectRepository(DiscountGroup)
+    private readonly discountGroupRepository: Repository<DiscountGroup>,
   ) {}
 
   async getCustomer(
@@ -118,6 +121,7 @@ export class CustomerService {
 
   async updateCustomer(customer: Customer) {
     const updatedCustomer = await this.customerRepository.findOneBy({ id: customer.id });
+    customer.discountGroupId = parseInt(customer['discount_group_id'].toString());
 
     if (updatedCustomer) {
       updatedCustomer.name = customer.name;
@@ -126,6 +130,7 @@ export class CustomerService {
       updatedCustomer.category = customer.category;
       updatedCustomer.floor = customer.floor;
       updatedCustomer.tel = customer.tel;
+      updatedCustomer.discountGroupId = customer.discountGroupId === -1 ? null : customer.discountGroupId;
       await this.customerRepository.save(updatedCustomer);
     }
   }
@@ -159,5 +164,49 @@ export class CustomerService {
         await this.customerPriceRepository.delete({ customer, category })
       }
     }
+  }
+
+  async getDiscountGroups() {
+    return (await this.discountGroupRepository.find()).map(p => ({...p, modified: false, deleted: false}));
+  }
+
+  async modifyDiscountGroups(modified: any[], added: any[]) {
+    const d = modified.filter(p => p.deleted);
+    const m = modified.filter(p => p.modified);
+
+    for (const item of d) {
+      const [, cnt] = await this.customerRepository.findAndCount({
+        where: {
+          discountGroupId: item.id
+        }
+      });
+
+      if (cnt === 0) {
+        await this.discountGroupRepository.delete({ id: item.id });
+      }
+    }
+
+    for (const item of m) {
+      const modified = new DiscountGroup();
+      modified.id = item.id;
+      modified.name = item.name;
+      modified.discountType = item.discountType;
+      modified.discountValue = item.discountValue;
+      modified.description = item.description;
+      await this.discountGroupRepository.save(modified);
+    }
+
+    for (const item of added) {
+      const newGroup = new DiscountGroup();
+      newGroup.name = item.name;
+      newGroup.discountType = item.discountType;
+      newGroup.discountValue = item.discountValue;
+      newGroup.description = item.description;
+      await this.discountGroupRepository.save(newGroup);
+    }
+  }
+
+  async setAllGroup(groupId: number) {
+    await this.customerRepository.update({}, { discountGroupId: groupId === -1 ? null : groupId });
   }
 }

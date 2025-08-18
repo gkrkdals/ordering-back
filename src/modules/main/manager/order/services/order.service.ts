@@ -189,16 +189,22 @@ export class OrderService {
       .query(OrderSql.getOrderHistory, [orderCode, orderCode]);
   }
 
+  async getMemo(orderCode: number): Promise<string> {
+    return (await this
+      .orderRepository
+      .findOneBy({ id: orderCode })).memo ?? '';
+  }
+
   async createNewOrder(menu: Menu, customer: JwtCustomer, request: string, user: User) {
     const newOrder = new Order();
-    const customPrices = await this.customerPriceRepository.findBy({ customer: customer.id });
+    const customerPrices = await this.customerPriceRepository.findBy({ customer: customer.id });
     const targetCustomer = await this.customerRepository.findOneBy({ id: customer.id });
     const isThereAnyRequest = request && request.length !== 0;
 
     if (menu.id === 0) {
       newOrder.price = 0;
     } else {
-      const customPrice = customPrices.find(price => price.category === menu.category);
+      const customPrice = customerPrices.find(price => price.category === menu.category);
 
       if(customPrice) {
         newOrder.price = customPrice.price;

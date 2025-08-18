@@ -58,7 +58,6 @@ export class SettingsService {
 
   async getOrderHistory(customerId: number, startDate: string, endDate: string) {
     const [startString, endString] = this.getStartAndEnd(startDate, endDate);
-    console.log(startString, endString);
 
     const result = await this.orderRepository.query(
       ClientSettingsSql.getOrderData,
