@@ -66,10 +66,12 @@ export class OrderService {
     const groupId = customer.discountGroupId;
     let type: 'amount' | 'percent' | '' = '', value = 0;
 
-    const group = await this.discountGroupRepository.findOneBy({ id: groupId });
-    if (group) {
-      type = group.discountType;
-      value = group.discountValue;
+    if (groupId) {
+      const group = await this.discountGroupRepository.findOneBy({ id: groupId });
+      if (group) {
+        type = group.discountType;
+        value = group.discountValue;
+      }
     }
 
     const recentMenuOnDigit: { id: number; menu: number }[] = await this.orderRepository.query(
