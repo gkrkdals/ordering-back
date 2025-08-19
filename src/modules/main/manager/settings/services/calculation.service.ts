@@ -123,9 +123,9 @@ export class CalculationService {
     const summary = [
       { v: '', t: "s" },
       { v: '매출', t: "s", s },
-      { f: `SUM(D4:D${length + 5})`, t: "n", s: { ...s, numFmt: '₩#,###' } },
+      { f: `SUBTOTAL(109, D4:D${length + 5})`, t: "n", s: { ...s, numFmt: '₩#,###' } },
       { v: '입금', t: "s", s },
-      { f: `SUM(I4:I${length + 5},L4:L${length + 5},O4:O${length + 5})`, t: "n", s: { ...s, numFmt: '₩#,###' } },
+      { f: `SUBTOTAL(109, I4:I${length + 5}) + SUBTOTAL(109, L4:L${length + 5}) + SUBTOTAL(109, O4:O${length + 5})`, t: "n", s: { ...s, numFmt: '₩#,###' } },
       { v: '차액', t: "s", s },
       { f: 'C1-E1', t: "n", s: { ...s, numFmt: '₩#,###' } },
     ]
@@ -186,12 +186,12 @@ export class CalculationService {
     const topRow = [
       { v: '', t: 's' },
       { v: '', t: 's'  },
-      { f: `SUM(C3:C${length + 5})`, t: 'n', s: { ...s, numFmt: '₩#,###'} },
-      { f: `SUM(D3:D${length + 5})`, t: 'n', s: { ...s, numFmt: '₩#,###'} },
-      { f: `SUM(E3:E${length + 5})`, t: 'n', s: { ...s, numFmt: '₩#,###'} },
-      { f: `SUM(F3:F${length + 5})`, t: 'n', s: { ...s, numFmt: '₩#,###'} },
-      { f: `SUM(G3:G${length + 5})`, t: 'n', s: { ...s, numFmt: '₩#,###'} },
-      { f: `SUM(H3:H${length + 5})`, t: 'n', s, },
+      { f: `SUBTOTAL(109, C3:C${length + 5})`, t: 'n', s: { ...s, numFmt: '₩#,###'} },
+      { f: `SUBTOTAL(109, D3:D${length + 5})`, t: 'n', s: { ...s, numFmt: '₩#,###'} },
+      { f: `SUBTOTAL(109, E3:E${length + 5})`, t: 'n', s: { ...s, numFmt: '₩#,###'} },
+      { f: `SUBTOTAL(109, F3:F${length + 5})`, t: 'n', s: { ...s, numFmt: '₩#,###'} },
+      { f: `SUBTOTAL(109, G3:G${length + 5})`, t: 'n', s: { ...s, numFmt: '₩#,###'} },
+      { f: `SUBTOTAL(109, H3:H${length + 5})`, t: 'n', s, },
       { v: '', t: 's' },
     ]
 
