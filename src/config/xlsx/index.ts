@@ -80,29 +80,54 @@ const eachCustomerHeaderTheme = {
   }
 }
 
+// export const eachCustomerHeader = [
+//   { v: '순번', t: 's', s: eachCustomerHeaderTheme },
+//   { v: '고객명', t: 's', s: eachCustomerHeaderTheme },
+//   { v: '메뉴', t: 's', s: eachCustomerHeaderTheme },
+//   { v: '가격', t: 's', s: eachCustomerHeaderTheme },
+//   { v: '주문시간', t: 's', s: eachCustomerHeaderTheme },
+//   { v: '주문경로', t: 's', s: eachCustomerHeaderTheme },
+//   { v: '완료 및 입금 시간', t: 's', s: eachCustomerHeaderTheme },
+//   { v: '관리자', t: 's', s: eachCustomerHeaderTheme },
+//   { v: '입금액', t: 's', s: eachCustomerHeaderTheme },
+//   { v: '비고', t: 's', s: eachCustomerHeaderTheme },
+//   { v: '메모', t: 's', s: eachCustomerHeaderTheme },
+// ];
+
 export const eachCustomerHeader = [
   { v: '순번', t: 's', s: eachCustomerHeaderTheme },
-  { v: '고객명', t: 's', s: eachCustomerHeaderTheme },
   { v: '메뉴', t: 's', s: eachCustomerHeaderTheme },
   { v: '가격', t: 's', s: eachCustomerHeaderTheme },
   { v: '주문시간', t: 's', s: eachCustomerHeaderTheme },
   { v: '주문경로', t: 's', s: eachCustomerHeaderTheme },
-  { v: '완료 및 입금 시간', t: 's', s: eachCustomerHeaderTheme },
-  { v: '관리자', t: 's', s: eachCustomerHeaderTheme },
+  { v: '배달완료시간', t: 's', s: eachCustomerHeaderTheme },
+  { v: '담당자', t: 's', s: eachCustomerHeaderTheme },
+  { v: '그릇수거시간', t: 's', s: eachCustomerHeaderTheme },
+  { v: '담당자', t: 's', s: eachCustomerHeaderTheme },
+  { v: '입금시간', t: 's', s: eachCustomerHeaderTheme },
+  { v: '담당자', t: 's', s: eachCustomerHeaderTheme },
   { v: '입금액', t: 's', s: eachCustomerHeaderTheme },
-  { v: '비고', t: 's', s: eachCustomerHeaderTheme },
+  { v: '입금경로', t: 's', s: eachCustomerHeaderTheme },
+  { v: '요청사항', t: 's', s: eachCustomerHeaderTheme },
   { v: '메모', t: 's', s: eachCustomerHeaderTheme },
+  { v: '비고', t: 's', s: eachCustomerHeaderTheme },
 ];
+
 
 export const eachCustomerHeaderWidth = [
   { wch: 8 },
-  { wch: 12 },
   { wch: 15 },
-  { wch: 10 },
+  { wch: 15 },
   { wch: 20 },
-  { wch: 10 },
   { wch: 20 },
-  { wch: 10 },
-  { wch: 10 },
+  { wch: 20 },
+  { wch: 20 },
+  { wch: 20 },
+  { wch: 20 },
+  { wch: 20 },
+  { wch: 20 },
+  { wch: 20 },
+  { wch: 20 },
+  { wch: 20 },
   { wch: 20 },
 ]

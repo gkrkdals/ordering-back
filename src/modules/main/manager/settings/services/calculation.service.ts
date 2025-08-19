@@ -238,17 +238,21 @@ export class CalculationService {
 
         return [
           { v: numbering, t: "n", s: p },
-          { v: row.customer_name, t: "s", s: p },
           { v: row.menu_name, t: "s", s: t },
           { v: priceValue, t: cancelled ? 's' : 'n', s: q },
-          { v: row.order_time === null ? '' : dateToString(new Date(row.order_time)), t: "s", s: p },
+          { v: this.getTime(row.order_time), t: "s", s: p },
           { v: row.path ?? '', t: "s", s: p },
-          // 아래는 마스터입금도 고려
-          { v: this.getTime(row), t: "s", s: p },
-          { v: this.getBy(row), t: "s", s: p },
-          { v: this.getIn(row), t: "n", s: q },
-          { v: row.memo, t: "s", s: p },
+          { v: this.getTime(row.delivered_time), t: "s", s: p },
+          { v: row.credit_by ?? '', t: "s", s: p },
+          { v: this.getTime(row.disposal_time), t: "s", s: p },
+          { v: row.disposal_manager ?? '', t: "s", s: p },
+          { v: this.getTime(row.credit_time), t: "s", s: p },
+          { v: row.credit_by, t: "s", s: p },
+          { v: row.credit_in === null ? '' : parseInt(row.credit_in), t: "s", s: p },
+          { v: this.getMethod(row), t: "s", s: p },
+          { v: row.memo ?? '', t: "n", s: q },
           { v: row.bigo ?? '', t: "s", s: p },
+          { v: '', t: "s", s: p },
         ]
       });
 
@@ -352,37 +356,18 @@ export class CalculationService {
     return style;
   }
 
-  getTime(row: ExcelData) {
-    if (row.delivered_time !== null) {
-      return dateToString(new Date(row.delivered_time));
-    } else if (row.disposal_time !== null) {
-      return dateToString(new Date(row.disposal_time));
-    } else if (row.master_time !== null) {
-      return dateToString(new Date(row.master_time));
-    }
-
-    return '';
+  getTime(time: string) {
+    return time === null ? '' : dateToString(new Date(time));
   }
 
-  getBy(row: ExcelData) {
-    if (row.credit_by !== null) {
-      return row.credit_by;
-    } else if (row.disposal_manager !== null) {
-      return row.disposal_manager;
-    } else if (row.master_manager !== null) {
-      return row.master_manager;
+  getMethod(row: ExcelData) {
+    if (row.delivered_time) {
+      return '';
+    } else if (row.disposal_time) {
+      return '그릇수거';
+    } else if (row.master_time) {
+      return '마스터입금'
     }
-
     return '';
-  }
-
-  getIn(row: ExcelData) {
-    if (row.credit_in !== null) {
-      return parseInt(row.credit_in);
-    } else if (row.disposal_in !== null) {
-      return parseInt(row.disposal_in);
-    } else if (row.master_in !== null) {
-      return parseInt(row.master_in);
-    }
   }
 }
