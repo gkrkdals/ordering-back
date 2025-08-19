@@ -247,10 +247,10 @@ export class CalculationService {
           { v: this.getTime(row.disposal_time), t: "s", s: p },
           { v: row.disposal_manager ?? '', t: "s", s: p },
           { v: this.getTime(row.credit_time), t: "s", s: p },
-          { v: row.credit_by, t: "s", s: p },
-          { v: row.credit_in === null ? '' : parseInt(row.credit_in), t: "s", s: p },
+          { v: row.credit_by ?? '', t: "s", s: p },
+          { v: this.getIn(row), t: "n", s: p },
           { v: this.getMethod(row), t: "s", s: p },
-          { v: row.memo ?? '', t: "n", s: q },
+          { v: row.memo ?? '', t: "s", s: q },
           { v: row.bigo ?? '', t: "s", s: p },
           { v: '', t: "s", s: p },
         ]
@@ -360,9 +360,21 @@ export class CalculationService {
     return time === null ? '' : dateToString(new Date(time));
   }
 
+  getIn(row: ExcelData) {
+    if (row.credit_in) {
+      return parseInt(row.credit_in);
+    } else if (row.disposal_in) {
+      return parseInt(row.disposal_in);
+    } else if (row.master_in) {
+      return parseInt(row.master_in);
+    }
+
+    return '';
+  }
+
   getMethod(row: ExcelData) {
     if (row.delivered_time) {
-      return '';
+      return '일반입금';
     } else if (row.disposal_time) {
       return '그릇수거';
     } else if (row.master_time) {
