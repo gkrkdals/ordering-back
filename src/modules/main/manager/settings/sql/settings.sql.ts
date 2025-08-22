@@ -114,7 +114,7 @@ export class SettingsSql {
                          customer_credit.time AS     master_time,
                          user.nickname        AS     master_manager,
                          customer_credit.credit_diff master_in,
-                         ''                          memo,
+                         customer_credit.memo                          memo,
                          hex,
                          '' bigo
                   from customer_credit
@@ -145,7 +145,7 @@ export class SettingsSql {
                    a.time        master_time,
                    c.nickname    master_manager,
                    a.credit_diff master_in,
-                   ''            memo,
+                   a.memo            memo,
                    hex,
                    '' bigo
             FROM customer_credit a

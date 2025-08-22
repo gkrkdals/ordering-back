@@ -12,7 +12,7 @@ export class OrderSql {
                    g.id   customer_category,
                    f.name customer_name,
                    f.memo customer_memo,
-                   c.request,
+                   IF(ISNULL(?), c.request, c.memo) request,
                    a.status,
                    e.name status_name,
                    c.price,

@@ -101,4 +101,15 @@ export class SettingsService {
       await this.menuCategoryRepository.save(newCategory);
     }
   }
+
+  async getDiscountValue() {
+    const discountSetting = await this.settingsRepository.findOneBy({ big: 5, sml: 1 });
+    return discountSetting.value / 1000;
+  }
+
+  async updateDiscount(value: number) {
+    const discountSetting = await this.settingsRepository.findOneBy({ big: 5, sml: 1 });
+    discountSetting.value = value;
+    await this.settingsRepository.save(discountSetting);
+  }
 }

@@ -100,4 +100,14 @@ export class SettingsController {
   async modifyMenuCategories(@Body('modified') modified: any[], @Body('added') added: any[]) {
     await this.settingService.modifyMenuCategories(modified, added);
   }
+
+  @Get('discount')
+  async getDiscountValue() {
+    return this.settingService.getDiscountValue();
+  }
+
+  @Put('discount')
+  async updateDiscount(@Body('value') value: number) {
+    await this.settingService.updateDiscount(value);
+  }
 }

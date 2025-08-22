@@ -85,9 +85,10 @@ export class CustomerController {
     @Body('mode') mode: number,
     @Body('customer') customer: number,
     @Body('price') price: number,
+    @Body('memo') memo: string,
     @UserData() user: User,
   ) {
-    return this.creditService.addCredit(mode, customer, price, user);
+    return this.creditService.addCredit(mode, customer, price, user, memo);
   }
 
   @Get('discount-group')

@@ -103,6 +103,7 @@ export class CalculationService {
         { v: row.master_time === null ? '' : dateToString(new Date(row.master_time)), t: "s", s: p },
         { v: row.master_manager ?? '', t: "s", s: p },
         { v: row.master_in === null ? '' : parseInt(row.master_in), t: "n", s: q },
+        { v: this.getMethod(row), t: "s", s: p },
         { v: row.memo, t: "s", s: p },
         { v: row.bigo ?? '', t: "s", s: p }
       ];
@@ -132,7 +133,7 @@ export class CalculationService {
 
     const ws = XLSX.utils.aoa_to_sheet([summary, [], header, ...data]);
     ws['!cols'] = this.fitToColumn([summary, [], header, ...data]);
-    ws['!autofilter'] = { ref: 'A3:P3' };
+    ws['!autofilter'] = { ref: 'A3:R3' };
     ws['!freeze'] = { ySplit: 1 }
 
     XLSX.utils.book_append_sheet(wb, ws, '기간정산');
@@ -239,20 +240,20 @@ export class CalculationService {
         return [
           { v: numbering, t: "n", s: p },
           { v: row.menu_name, t: "s", s: t },
-          { v: priceValue, t: cancelled ? 's' : 'n', s: q },
-          { v: this.getTime(row.order_time), t: "s", s: p },
+          { v: priceValue, t: cancelled ? "s" : "n", s: q },
+          { v: row.order_time === null ? '' : dateToString(new Date(row.order_time)), t: "s", s: p },
           { v: row.path ?? '', t: "s", s: p },
-          { v: this.getTime(row.delivered_time), t: "s", s: p },
+          { v: row.delivered_time === null ? '' : dateToString(new Date(row.delivered_time)), t: "s", s: p },
           { v: row.credit_by ?? '', t: "s", s: p },
-          { v: this.getTime(row.disposal_time), t: "s", s: p },
+          { v: row.credit_in === null ? '' : parseInt(row.credit_in), t: "n", s: q },
+          { v: row.disposal_time === null ? '' : dateToString(new Date(row.disposal_time)), t: "s", s: p },
           { v: row.disposal_manager ?? '', t: "s", s: p },
-          { v: this.getTime(row.credit_time), t: "s", s: p },
-          { v: row.credit_by ?? '', t: "s", s: p },
-          { v: this.getIn(row), t: "n", s: p },
-          { v: this.getMethod(row), t: "s", s: p },
-          { v: row.memo ?? '', t: "s", s: q },
-          { v: row.bigo ?? '', t: "s", s: p },
-          { v: '', t: "s", s: p },
+          { v: row.disposal_in === null ? '' : parseInt(row.disposal_in), t: "n", s: q },
+          { v: row.master_time === null ? '' : dateToString(new Date(row.master_time)), t: "s", s: p },
+          { v: row.master_manager ?? '', t: "s", s: p },
+          { v: row.master_in === null ? '' : parseInt(row.master_in), t: "n", s: q },
+          { v: row.memo, t: "s", s: p },
+          { v: row.bigo ?? '', t: "s", s: p }
         ]
       });
 
@@ -307,7 +308,7 @@ export class CalculationService {
         const workSheet = XLSX.utils.aoa_to_sheet([title1, title2, eachCustomerHeader, ...data]);
         workSheet['!merges'] = merge;
         workSheet['!cols'] = eachCustomerHeaderWidth;
-        workSheet['!autofilter'] = { ref: 'A3:J3' };
+        workSheet['!autofilter'] = { ref: 'A3:Q3' };
         XLSX.utils.book_append_sheet(wb, workSheet, escapedName);
       } catch (e) {
         console.error(e);
@@ -373,12 +374,12 @@ export class CalculationService {
   }
 
   getMethod(row: ExcelData) {
-    if (row.delivered_time) {
-      return '일반입금';
-    } else if (row.disposal_time) {
+    if (parseInt(row.credit_in) !== 0 && !isNaN(parseInt(row.credit_in))) {
+      return '배달완료';
+    } else if (parseInt(row.disposal_in) !== 0 && !isNaN(parseInt(row.disposal_in))) {
       return '그릇수거';
-    } else if (row.master_time) {
-      return '마스터입금'
+    } else if (parseInt(row.master_in) !== 0 && !isNaN(parseInt(row.master_in))) {
+      return '마스터'
     }
     return '';
   }

@@ -21,6 +21,7 @@ import { FirebaseService } from "@src/modules/firebase/firebase.service";
 import { JwtCustomer } from "@src/types/jwt/JwtCustomer";
 import { Customer } from "@src/entities/customer/customer.entity";
 import { NoAlarmsService } from "@src/modules/misc/no-alarms/no-alarms.service";
+import { Settings } from "@src/entities/settings.entity";
 
 @Injectable()
 export class OrderService {
@@ -40,6 +41,9 @@ export class OrderService {
 
     @InjectRepository(Customer)
     private readonly customerRepository: Repository<Customer>,
+
+    @InjectRepository(Settings)
+    private readonly settingsRepository: Repository<Settings>,
 
     private readonly orderGateway: OrderGateway,
 
@@ -107,6 +111,7 @@ export class OrderService {
       .query(
         OrderSql.getOrderStatus.replace('^', orderBy),
         [
+          remainingMode,
           ...likes,
           StatusEnum.PendingReceipt, StatusEnum.PickupComplete,
           orderingMode, firstTime, lastTime,
@@ -200,6 +205,7 @@ export class OrderService {
     const customerPrices = await this.customerPriceRepository.findBy({ customer: customer.id });
     const targetCustomer = await this.customerRepository.findOneBy({ id: customer.id });
     const isThereAnyRequest = request && request.length !== 0;
+    const discountValue = (await this.settingsRepository.findOneBy({ big: 5, sml: 1 })).value;
 
     if (menu.id === 0) {
       newOrder.price = 0;
@@ -210,6 +216,10 @@ export class OrderService {
         newOrder.price = customPrice.price;
       } else {
         newOrder.price = menu.menuCategory.price;
+      }
+
+      if (menu.isDiscountable === 1) {
+        newOrder.price -= discountValue;
       }
     }
 

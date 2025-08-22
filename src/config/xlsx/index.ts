@@ -22,6 +22,7 @@ export const header = [
   { v: '마스터입금시간', t: 's', s: mainHeaderStyle },
   { v: '담당자', t: 's', s: mainHeaderStyle },
   { v: '입금액', t: 's', s: mainHeaderStyle },
+  { v: '입금경로', t: 's', s: mainHeaderStyle },
   { v: '비고', t: 's', s: mainHeaderStyle },
   { v: '메모', t: 's', s: mainHeaderStyle },
 ];
@@ -95,22 +96,23 @@ const eachCustomerHeaderTheme = {
 // ];
 
 export const eachCustomerHeader = [
-  { v: '순번', t: 's', s: eachCustomerHeaderTheme },
-  { v: '메뉴', t: 's', s: eachCustomerHeaderTheme },
-  { v: '가격', t: 's', s: eachCustomerHeaderTheme },
-  { v: '주문시간', t: 's', s: eachCustomerHeaderTheme },
-  { v: '주문경로', t: 's', s: eachCustomerHeaderTheme },
-  { v: '배달완료시간', t: 's', s: eachCustomerHeaderTheme },
-  { v: '담당자', t: 's', s: eachCustomerHeaderTheme },
-  { v: '그릇수거시간', t: 's', s: eachCustomerHeaderTheme },
-  { v: '담당자', t: 's', s: eachCustomerHeaderTheme },
-  { v: '입금시간', t: 's', s: eachCustomerHeaderTheme },
-  { v: '담당자', t: 's', s: eachCustomerHeaderTheme },
-  { v: '입금액', t: 's', s: eachCustomerHeaderTheme },
-  { v: '입금경로', t: 's', s: eachCustomerHeaderTheme },
-  { v: '요청사항', t: 's', s: eachCustomerHeaderTheme },
-  { v: '메모', t: 's', s: eachCustomerHeaderTheme },
-  { v: '비고', t: 's', s: eachCustomerHeaderTheme },
+  { v: '순번', t: 's', s: mainHeaderStyle },
+  { v: '메뉴', t: 's', s: mainHeaderStyle },
+  { v: '가격', t: 's', s: mainHeaderStyle },
+  { v: '주문시간', t: 's', s: mainHeaderStyle },
+  { v: '주문경로', t: 's', s: mainHeaderStyle },
+  { v: '배달완료시간', t: 's', s: mainHeaderStyle },
+  { v: '담당자', t: 's', s: mainHeaderStyle },
+  { v: '입금액', t: 's', s: mainHeaderStyle },
+  { v: '그릇수거시간', t: 's', s: mainHeaderStyle },
+  { v: '담당자', t: 's', s: mainHeaderStyle },
+  { v: '입금액', t: 's', s: mainHeaderStyle },
+  { v: '마스터입금시간', t: 's', s: mainHeaderStyle },
+  { v: '담당자', t: 's', s: mainHeaderStyle },
+  { v: '입금액', t: 's', s: mainHeaderStyle },
+  { v: '입금경로', t: 's', s: mainHeaderStyle },
+  { v: '비고', t: 's', s: mainHeaderStyle },
+  { v: '메모', t: 's', s: mainHeaderStyle },
 ];
 
 

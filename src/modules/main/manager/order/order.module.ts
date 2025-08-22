@@ -32,6 +32,7 @@ import { NoAlarmsModule } from "@src/modules/misc/no-alarms/no-alarms.module";
       User,
       Customer,
       Menu,
+      Settings,
     ]),
     SocketModule,
     FirebaseModule,

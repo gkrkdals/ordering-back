@@ -32,4 +32,7 @@ export class CustomerCredit {
 
   @Column()
   time: Date;
+
+  @Column()
+  memo: string;
 }
