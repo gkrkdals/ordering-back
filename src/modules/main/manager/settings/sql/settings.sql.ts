@@ -114,9 +114,9 @@ export class SettingsSql {
                          customer_credit.time AS     master_time,
                          user.nickname        AS     master_manager,
                          customer_credit.credit_diff master_in,
-                         customer_credit.memo                          memo,
+                         ''                          memo,
                          hex,
-                         '' bigo
+                         customer_credit.memo bigo
                   from customer_credit
                            LEFT JOIN user ON customer_credit.\`by\` = user.id
                            LEFT JOIN customer ON customer_credit.customer = customer.id
@@ -145,9 +145,9 @@ export class SettingsSql {
                    a.time        master_time,
                    c.nickname    master_manager,
                    a.credit_diff master_in,
-                   a.memo            memo,
+                   ''            memo,
                    hex,
-                   '' bigo
+                   a.memo bigo
             FROM customer_credit a
                      LEFT JOIN \`order\` b ON a.order_code = b.id
                      LEFT JOIN user c ON a.\`by\` = c.id
