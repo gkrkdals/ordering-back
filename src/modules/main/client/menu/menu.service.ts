@@ -17,7 +17,6 @@ export class MenuService {
   ) {}
 
   async findAll(customer: Customer): Promise<Menu[]> {
-    console.log(customer.discountGroupId);
     const groupId: number | null = customer.discountGroupId;
     let type: 'amount' | 'percent' | '' = '', value = 0;
 

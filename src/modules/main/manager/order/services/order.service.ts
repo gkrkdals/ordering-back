@@ -22,6 +22,8 @@ import { JwtCustomer } from "@src/types/jwt/JwtCustomer";
 import { Customer } from "@src/entities/customer/customer.entity";
 import { NoAlarmsService } from "@src/modules/misc/no-alarms/no-alarms.service";
 import { Settings } from "@src/entities/settings.entity";
+import { DiscountType } from "@src/config/constants";
+import { DiscountGroup } from "@src/entities/customer/discount-group.entity";
 
 @Injectable()
 export class OrderService {
@@ -44,6 +46,9 @@ export class OrderService {
 
     @InjectRepository(Settings)
     private readonly settingsRepository: Repository<Settings>,
+
+    @InjectRepository(DiscountGroup)
+    private readonly discountGroupRepository: Repository<DiscountGroup>,
 
     private readonly orderGateway: OrderGateway,
 
@@ -205,7 +210,19 @@ export class OrderService {
     const customerPrices = await this.customerPriceRepository.findBy({ customer: customer.id });
     const targetCustomer = await this.customerRepository.findOneBy({ id: customer.id });
     const isThereAnyRequest = request && request.length !== 0;
-    const discountValue = (await this.settingsRepository.findOneBy({ big: 5, sml: 1 })).value;
+
+    const groupId: number | null = targetCustomer.discountGroupId;
+    let type: DiscountType = '', discountValue = 0;
+
+    if (groupId) {
+      const group = await this.discountGroupRepository.findOneBy({ id: groupId });
+      if (group) {
+        type = group.discountType;
+        discountValue = group.discountValue;
+      }
+    }
+
+
 
     if (menu.id === 0) {
       newOrder.price = 0;
@@ -219,7 +236,11 @@ export class OrderService {
       }
 
       if (menu.isDiscountable === 1) {
-        newOrder.price -= discountValue;
+        if (type === 'amount') {
+          newOrder.price -= discountValue;
+        } else if (type === 'percent') {
+          newOrder.price *= ((100 - discountValue) * 0.01);
+        }
       }
     }
 

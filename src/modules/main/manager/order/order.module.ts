@@ -18,6 +18,7 @@ import { FirebaseModule } from "@src/modules/firebase/firebase.module";
 import { Customer } from "@src/entities/customer/customer.entity";
 import { Menu } from "@src/entities/menu/menu.entity";
 import { NoAlarmsModule } from "@src/modules/misc/no-alarms/no-alarms.module";
+import { DiscountGroup } from "@src/entities/customer/discount-group.entity";
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { NoAlarmsModule } from "@src/modules/misc/no-alarms/no-alarms.module";
       Customer,
       Menu,
       Settings,
+      DiscountGroup
     ]),
     SocketModule,
     FirebaseModule,

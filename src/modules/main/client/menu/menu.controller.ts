@@ -20,5 +20,4 @@ export class MenuController {
   async findRecentMenus(@CustomerData() customer: Customer) {
     return this.menuService.findRecentMenus(customer);
   }
-
 }

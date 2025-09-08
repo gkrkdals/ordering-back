@@ -19,9 +19,9 @@ export class SettingsSql {
                    null                                     AS                              master_time,
                    null                                     AS                              master_manager,
                    null                                     AS                              master_in,
-                   t.request                                                                memo,
+                   IFNULL(t.request, '')                                                                memo,
                    t.hex,
-                   t.memo AS bigo
+                   IFNULL(t.memo, '') AS bigo
             FROM (SELECT a.id   order_code,
                          a.customer,
                          b.name customer_name,
