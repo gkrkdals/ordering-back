@@ -210,8 +210,6 @@ export class OrderService {
     const targetCustomer = await this.customerRepository.findOneBy({ id: customer.id });
     const isThereAnyRequest = request && request.length !== 0;
 
-    const discountValue = (await this.settingsRepository.findOneBy({ big: 5, sml: 1 })).value ?? 0;
-
     if (menu.id === 0) {
       newOrder.price = 0;
     } else {
@@ -222,8 +220,6 @@ export class OrderService {
       } else {
         newOrder.price = menu.menuCategory.price;
       }
-
-      newOrder.price -= discountValue;
     }
 
     newOrder.path = user.id;

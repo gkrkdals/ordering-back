@@ -18,6 +18,7 @@ import { FirebaseService } from "@src/modules/firebase/firebase.service";
 import { JwtCustomer } from "@src/types/jwt/JwtCustomer";
 import { NoAlarmsService } from "@src/modules/misc/no-alarms/no-alarms.service";
 import { DiscountGroup } from "@src/entities/customer/discount-group.entity";
+import { Settings } from "@src/entities/settings.entity";
 
 @Injectable()
 export class OrderService {
@@ -38,6 +39,8 @@ export class OrderService {
     private readonly customerRepository: Repository<Customer>,
     @InjectRepository(DiscountGroup)
     private readonly discountGroupRepository: Repository<DiscountGroup>,
+    @InjectRepository(Settings)
+    private readonly settingsRepository: Repository<Settings>,
     @InjectDataSource()
     private readonly datasource: DataSource,
 
@@ -134,7 +137,7 @@ export class OrderService {
   async addOrder(customer: JwtCustomer, orderedMenus: OrderedMenuDto[]): Promise<void> {
     const customPrices = await this.customerPriceRepository.findBy({ customer: customer.id });
     const targetCustomer = await this.customerRepository.findOneBy({ id: customer.id });
-
+    const webDiscountValue = (await this.settingsRepository.findOneBy({ big: 5, sml: 1 })).value ?? 0;
     const isThereAnyRequest = orderedMenus.some(menu => menu.request && menu.request.length !== 0);
 
     for(const orderedMenu of orderedMenus) {
@@ -152,6 +155,8 @@ export class OrderService {
         } else {
           newOrder.price = orderedMenu.menu.menuCategory.price;
         }
+
+        newOrder.price -= webDiscountValue;
 
         newOrder.path = null;
         newOrder.customer = customer.id;
