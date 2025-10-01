@@ -19,7 +19,8 @@ import { Settings } from "@src/entities/settings.entity";
     CustomerPrice,
     Order,
     DiscountGroup,
-    Settings
+    Settings,
+
   ])],
   controllers: [MenuController],
   providers: [MenuService, JwtService],

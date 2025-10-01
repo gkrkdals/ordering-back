@@ -69,7 +69,15 @@ export class OrderService {
     const groupId = customer.discountGroupId;
     let type: 'amount' | 'percent' | '' = '', value = 0;
     const webDiscountValue = (await this.settingsRepository.findOneBy({ big: 5, sml: 1 })).value ?? 0;
+    const customPricesArray = await this.customerPriceRepository.findBy({ customer: customer.id });
+    const customPrices: any = {};
 
+    // 커스텀 가격 설정
+    customPricesArray.forEach((item) => {
+      customPrices[item.category] = item.price;
+    })
+
+    // 할인 그룹에 속해있으면 할인 타입과 금액 설정
     if (groupId) {
       const group = await this.discountGroupRepository.findOneBy({ id: groupId });
       if (group) {
@@ -83,8 +91,8 @@ export class OrderService {
       [customer.id]
     );
 
+    // 데이터 찾아옴
     const recentMenus: Menu[] = [];
-
     for (const menuKey of recentMenuOnDigit) {
       const menu = await this.menuRepository.findOne({
         where: {
@@ -97,6 +105,14 @@ export class OrderService {
       recentMenus.push(menu);
     }
 
+    recentMenus.forEach((item) => {
+      const customPrice = customPrices[item.category];
+      if (customPrice) {
+        item.menuCategory.price = customPrice;
+      }
+    })
+
+    // 할인 그룹에 있을 시 할인 타입에 따라 할인
     if (type === 'amount') {
       recentMenus.forEach(item => {
         if (item.isDiscountable === 1) {
@@ -140,7 +156,6 @@ export class OrderService {
   }
 
   async addOrder(customer: JwtCustomer, orderedMenus: OrderedMenuDto[]): Promise<void> {
-    const customPrices = await this.customerPriceRepository.findBy({ customer: customer.id });
     const targetCustomer = await this.customerRepository.findOneBy({ id: customer.id });
     const isThereAnyRequest = orderedMenus.some(menu => menu.request && menu.request.length !== 0);
 
@@ -152,14 +167,7 @@ export class OrderService {
       if (currentMenu.soldOut === 1) {
         throw new BadRequestException();
       } else {
-        const customPrice = customPrices.find(price => price.category === orderedMenu.menu.category);
-
-        if(customPrice) {
-          newOrder.price = customPrice.price;
-        } else {
-          newOrder.price = orderedMenu.menu.menuCategory.price;
-        }
-
+        newOrder.price = orderedMenu.menu.menuCategory.price;
         newOrder.path = null;
         newOrder.customer = customer.id;
         newOrder.menu = orderedMenu.menu.id;
