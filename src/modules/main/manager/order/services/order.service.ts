@@ -22,7 +22,6 @@ import { JwtCustomer } from "@src/types/jwt/JwtCustomer";
 import { Customer } from "@src/entities/customer/customer.entity";
 import { NoAlarmsService } from "@src/modules/misc/no-alarms/no-alarms.service";
 import { Settings } from "@src/entities/settings.entity";
-import { DiscountType } from "@src/config/constants";
 import { DiscountGroup } from "@src/entities/customer/discount-group.entity";
 
 @Injectable()
@@ -211,18 +210,7 @@ export class OrderService {
     const targetCustomer = await this.customerRepository.findOneBy({ id: customer.id });
     const isThereAnyRequest = request && request.length !== 0;
 
-    const groupId: number | null = targetCustomer.discountGroupId;
-    let type: DiscountType = '', discountValue = 0;
-
-    if (groupId) {
-      const group = await this.discountGroupRepository.findOneBy({ id: groupId });
-      if (group) {
-        type = group.discountType;
-        discountValue = group.discountValue;
-      }
-    }
-
-
+    const discountValue = (await this.settingsRepository.findOneBy({ big: 5, sml: 1 })).value ?? 0;
 
     if (menu.id === 0) {
       newOrder.price = 0;
@@ -235,13 +223,7 @@ export class OrderService {
         newOrder.price = menu.menuCategory.price;
       }
 
-      if (menu.isDiscountable === 1) {
-        if (type === 'amount') {
-          newOrder.price -= discountValue;
-        } else if (type === 'percent') {
-          newOrder.price *= ((100 - discountValue) * 0.01);
-        }
-      }
+      newOrder.price -= discountValue;
     }
 
     newOrder.path = user.id;
