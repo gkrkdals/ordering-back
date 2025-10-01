@@ -6,6 +6,7 @@ import { Customer } from "@src/entities/customer/customer.entity";
 import { Order } from "@src/entities/order/order.entity";
 import { RecentMenu } from "@src/types/models/RecentMenu";
 import { DiscountGroup } from "@src/entities/customer/discount-group.entity";
+import { Settings } from "@src/entities/settings.entity";
 
 @Injectable()
 export class MenuService {
@@ -14,10 +15,13 @@ export class MenuService {
     @InjectRepository(Order) private orderRepository: Repository<Order>,
     @InjectRepository(DiscountGroup)
     private discountGroupRepository: Repository<DiscountGroup>,
+    @InjectRepository(Settings)
+    private settingsRepository: Repository<Settings>
   ) {}
 
   async findAll(customer: Customer): Promise<Menu[]> {
     const groupId: number | null = customer.discountGroupId;
+    const webDiscountValue = (await this.settingsRepository.findOneBy({ big: 5, sml: 1 })).value ?? 0;
     let type: 'amount' | 'percent' | '' = '', value = 0;
 
     if (groupId) {
@@ -44,12 +48,14 @@ export class MenuService {
         if (item.isDiscountable === 1) {
           item.menuCategory.price -= value
         }
+        item.menuCategory.price -= webDiscountValue;
       });
     } else if (type === 'percent') {
       data.forEach(item => {
         if (item.isDiscountable === 1) {
           item.menuCategory.price *= ((100 - value) * 0.01);
         }
+        item.menuCategory.price -= webDiscountValue;
       })
     }
 

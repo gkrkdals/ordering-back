@@ -68,6 +68,7 @@ export class OrderService {
   async getLastOrders(customer: Customer) {
     const groupId = customer.discountGroupId;
     let type: 'amount' | 'percent' | '' = '', value = 0;
+    const webDiscountValue = (await this.settingsRepository.findOneBy({ big: 5, sml: 1 })).value ?? 0;
 
     if (groupId) {
       const group = await this.discountGroupRepository.findOneBy({ id: groupId });
@@ -101,13 +102,15 @@ export class OrderService {
         if (item.isDiscountable === 1) {
           item.menuCategory.price -= value
         }
+        item.menuCategory.price -= webDiscountValue;
       });
     } else if (type === 'percent') {
       recentMenus.forEach(item => {
         if (item.isDiscountable === 1) {
           item.menuCategory.price *= ((100 - value) * 0.01);
         }
-      })
+        item.menuCategory.price -= webDiscountValue;
+      });
     }
 
     return recentMenus
@@ -137,7 +140,6 @@ export class OrderService {
   async addOrder(customer: JwtCustomer, orderedMenus: OrderedMenuDto[]): Promise<void> {
     const customPrices = await this.customerPriceRepository.findBy({ customer: customer.id });
     const targetCustomer = await this.customerRepository.findOneBy({ id: customer.id });
-    const webDiscountValue = (await this.settingsRepository.findOneBy({ big: 5, sml: 1 })).value ?? 0;
     const isThereAnyRequest = orderedMenus.some(menu => menu.request && menu.request.length !== 0);
 
     for(const orderedMenu of orderedMenus) {
@@ -155,8 +157,6 @@ export class OrderService {
         } else {
           newOrder.price = orderedMenu.menu.menuCategory.price;
         }
-
-        newOrder.price -= webDiscountValue;
 
         newOrder.path = null;
         newOrder.customer = customer.id;
