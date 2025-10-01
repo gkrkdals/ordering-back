@@ -128,7 +128,9 @@ export class OrderService {
     }
 
     recentMenus.forEach(item => {
-      item.menuCategory.price -= webDiscountValue;
+      if (item.isDiscountable === 1) {
+        item.menuCategory.price -= webDiscountValue;
+      }
     })
 
     return recentMenus
