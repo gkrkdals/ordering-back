@@ -48,16 +48,18 @@ export class MenuService {
         if (item.isDiscountable === 1) {
           item.menuCategory.price -= value
         }
-        item.menuCategory.price -= webDiscountValue;
       });
     } else if (type === 'percent') {
       data.forEach(item => {
         if (item.isDiscountable === 1) {
           item.menuCategory.price *= ((100 - value) * 0.01);
         }
-        item.menuCategory.price -= webDiscountValue;
       })
     }
+
+    data.forEach(item => {
+      item.menuCategory.price -= webDiscountValue;
+    });
 
     return data;
   }
