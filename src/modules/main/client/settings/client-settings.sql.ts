@@ -101,4 +101,52 @@ export class ClientSettingsSql {
 
       ORDER BY p.delivered_time
   `;
+
+  static getCreditHistory = `
+      SELECT
+        SUM(misu) AS misu,
+        SUM(ordered) AS ordered,
+        SUM(charged) AS charged,
+        SUM(misu) + SUM(ordered) - SUM(charged) AS remaining
+      FROM
+      (
+        SELECT 
+          IFNULL(SUM(credit_diff), 0) * -1 AS misu,
+          0 AS ordered,
+          0 AS charged,
+          0 AS remaining
+        FROM customer_credit 
+        WHERE customer = ? AND time <= ?
+
+        UNION ALL
+
+        SELECT
+          0 AS misu, 
+          IFNULL(SUM(a.price), 0) AS ordered,
+          0 AS charged,
+          0 AS remaining
+        FROM \`order\` a
+                  LEFT JOIN (SELECT order_code,
+                                    MAX(status) status
+                            FROM order_status
+                            GROUP BY order_code) b ON a.id = b.order_code
+        WHERE a.customer = ?
+          AND (a.time BETWEEN ? AND ?)
+          AND b.status != 8
+
+        UNION ALL
+
+        SELECT
+          0 AS misu,
+          0 AS ordered, 
+          IFNULL(SUM(credit_diff), 0) AS charged,
+          0 AS remaining
+        FROM customer_credit 
+        WHERE customer = ? AND (time BETWEEN ? AND ?) AND (status = 5 OR status = 7 OR status IS NULL)
+
+        UNION ALL
+
+        SELECT 0 AS misu, 0 AS ordered, 0 AS charged, 0 AS remaining
+      ) t
+  `;
 }
