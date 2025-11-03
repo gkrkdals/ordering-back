@@ -96,13 +96,13 @@ export class CalculationService {
         { v: row.path ?? '', t: "s", s: p },
         { v: row.delivered_time === null ? '' : dateToString(new Date(row.delivered_time)), t: "s", s: p },
         { v: row.credit_by ?? '', t: "s", s: p },
-        { v: row.credit_in === null ? '' : parseInt(row.credit_in), t: "n", s: q },
+        // { v: row.credit_in === null ? '' : parseInt(row.credit_in), t: "n", s: q },
         { v: row.disposal_time === null ? '' : dateToString(new Date(row.disposal_time)), t: "s", s: p },
         { v: row.disposal_manager ?? '', t: "s", s: p },
-        { v: row.disposal_in === null ? '' : parseInt(row.disposal_in), t: "n", s: q },
+        // { v: row.disposal_in === null ? '' : parseInt(row.disposal_in), t: "n", s: q },
         { v: row.master_time === null ? '' : dateToString(new Date(row.master_time)), t: "s", s: p },
         { v: row.master_manager ?? '', t: "s", s: p },
-        { v: row.master_in === null ? '' : parseInt(row.master_in), t: "n", s: q },
+        { v: this.getIn(row), t: "n", s: q },
         { v: this.getMethod(row), t: "s", s: p },
         { v: row.memo, t: "s", s: p },
         { v: row.bigo ?? '', t: "s", s: p }
@@ -126,7 +126,7 @@ export class CalculationService {
       { v: '매출', t: "s", s },
       { f: `SUBTOTAL(109, D4:D${length + 5})`, t: "n", s: { ...s, numFmt: '₩#,###' } },
       { v: '입금', t: "s", s },
-      { f: `SUBTOTAL(109, I4:I${length + 5}) + SUBTOTAL(109, L4:L${length + 5}) + SUBTOTAL(109, O4:O${length + 5})`, t: "n", s: { ...s, numFmt: '₩#,###' } },
+      { f: `SUBTOTAL(109, M4:M${length + 5})`, t: "n", s: { ...s, numFmt: '₩#,###' } },
       { v: '차액', t: "s", s },
       { f: 'C1-E1', t: "n", s: { ...s, numFmt: '₩#,###' } },
     ]
@@ -361,18 +361,6 @@ export class CalculationService {
     return time === null ? '' : dateToString(new Date(time));
   }
 
-  getIn(row: ExcelData) {
-    if (row.credit_in) {
-      return parseInt(row.credit_in);
-    } else if (row.disposal_in) {
-      return parseInt(row.disposal_in);
-    } else if (row.master_in) {
-      return parseInt(row.master_in);
-    }
-
-    return '';
-  }
-
   getMethod(row: ExcelData) {
     if (parseInt(row.credit_in) !== 0 && !isNaN(parseInt(row.credit_in))) {
       return '배달완료';
@@ -381,6 +369,18 @@ export class CalculationService {
     } else if (parseInt(row.master_in) !== 0 && !isNaN(parseInt(row.master_in))) {
       return '마스터'
     }
+    return '';
+  }
+
+  getIn(row: ExcelData) {
+    if (row.credit_in && !isNaN(parseInt(row.credit_in))) {
+      return parseInt(row.credit_in);
+    } else if (row.disposal_in && !isNaN(parseInt(row.disposal_in))) {
+      return parseInt(row.disposal_in);
+    } else if (row.master_in && !isNaN(parseInt(row.master_in))) {
+      return parseInt(row.master_in);
+    }
+
     return '';
   }
 }
