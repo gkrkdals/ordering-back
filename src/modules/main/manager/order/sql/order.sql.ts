@@ -1,7 +1,8 @@
 export class OrderSql {
   static getOrderStatus = `
       SELECT t.*,
-             crd.credit
+             crd.credit,
+             u.nickname by_nickname
       FROM (SELECT b.id,
                    c.id   order_id,
                    a.order_code,
@@ -20,11 +21,19 @@ export class OrderSql {
                    f.tel,
                    f.floor,
                    c.memo,
-                   b.location
-            FROM (SELECT order_code,
-                         MAX(status) status
-                  FROM order_status
-                  GROUP BY order_code) a,
+                   b.location,
+                   a.by
+            FROM (SELECT os1.order_code,
+                         os1.status,
+                         os1.by
+                  FROM order_status os1
+                  INNER JOIN (
+                      SELECT order_code, MAX(status) AS max_status
+                      FROM order_status
+                      GROUP BY order_code
+                  ) os2
+                    ON os1.order_code = os2.order_code
+                   AND os1.status = os2.max_status) a,
                  order_status b,
                  \`order\` c,
                  \`menu\` d,
@@ -40,6 +49,7 @@ export class OrderSql {
               AND g.id = f.category) t
                LEFT JOIN (SELECT customer, SUM(credit_diff) * -1 credit FROM customer_credit GROUP BY customer) crd
                          ON crd.customer = t.customer
+               LEFT JOIN user u ON t.by = u.id
       WHERE (t.customer_name LIKE ?
           OR t.menu_name LIKE ?
           OR t.request LIKE ?
