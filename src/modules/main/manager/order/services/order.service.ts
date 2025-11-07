@@ -113,7 +113,7 @@ export class OrderService {
     const data: OrderStatusRaw[] = await this
       .orderStatusRepository
       .query(
-        OrderSql.getOrderStatus.replace('^', orderBy),
+        OrderSql.getOrderStatus.replace(';', orderBy),
         [
           remainingMode,
           ...likes,

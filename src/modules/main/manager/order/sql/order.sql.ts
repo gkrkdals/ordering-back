@@ -1,4 +1,5 @@
 export class OrderSql {
+  // language=MySQL
   static getOrderStatus = `
       SELECT t.*,
              crd.credit,
@@ -58,8 +59,9 @@ export class OrderSql {
         AND (t.status >= ? AND t.status <= ?)
         AND (ISNULL(?) OR (t.time >= ? AND t.time <= ?))
         AND (ISNULL(?) OR (t.status <= ?))
-          ^`;
+          ;`;
 
+  // language=MySQL
   static getSales = `
       SELECT SUM(price) AS sales
       FROM \`order\` a
