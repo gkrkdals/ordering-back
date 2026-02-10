@@ -58,6 +58,7 @@ export class SettingsService {
 
   async getOrderHistory(customerId: number, startDate: string, endDate: string) {
     const [startString, endString] = this.getStartAndEnd(startDate, endDate);
+    console.log("history")
 
     const result = await this.orderRepository.query(
       ClientSettingsSql.getOrderData,
@@ -96,34 +97,6 @@ export class SettingsService {
       customerId, startString, endString,
       customerId, startString, endString,
     ]))[0];
-
-    // const misu = (await this.customerCreditRepository.query(
-    //   "SELECT IFNULL(SUM(credit_diff), 0) * -1 AS credit FROM customer_credit WHERE customer = ? AND time <= ?",
-    //   [customerId, startString]
-    // ))[0].credit;
-
-    // const ordered = (await this.orderRepository.query(
-    //   `SELECT IFNULL(SUM(a.price), 0) AS price
-    //    FROM \`order\` a
-    //             LEFT JOIN (SELECT order_code,
-    //                               MAX(status) status
-    //                        FROM order_status
-    //                        GROUP BY order_code) b ON a.id = b.order_code
-    //    WHERE a.customer = ?
-    //      AND (a.time BETWEEN ? AND ?)
-    //      AND b.status != 8`,
-    //   [customerId, startString, endString]
-    // ))[0].price;
-
-    // const charged = (await this.customerCreditRepository.query(
-    //   "SELECT IFNULL(SUM(credit_diff), 0) AS credit FROM customer_credit WHERE customer = ? AND (time BETWEEN ? AND ?) AND (STATUS = 5 OR credit_diff > 0)",
-    //   [customerId, startString, endString]
-    // ))[0].credit;
-
-    // const remaining = (await this.customerCreditRepository.query(
-    //   "SELECT IFNULL(SUM(credit_diff), 0) * -1 AS credit FROM customer_credit WHERE customer = ? AND time <= ?",
-    //   [customerId, endString]
-    // ))[0].credit;
 
     return result;
   }

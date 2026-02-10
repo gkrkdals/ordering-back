@@ -110,43 +110,48 @@ export class ClientSettingsSql {
         SUM(misu) + SUM(ordered) - SUM(charged) AS remaining
       FROM
       (
+        -- 1. 기초 미수 (misu)
         SELECT 
-          IFNULL(SUM(credit_diff), 0) * -1 AS misu,
+          IFNULL(SUM(p.credit_diff), 0) * -1 AS misu,
           0 AS ordered,
           0 AS charged,
           0 AS remaining
-        FROM customer_credit 
-        WHERE customer = ? AND time <= ?
+        FROM customer_credit p
+        LEFT JOIN \`order\` q ON p.order_code = q.id  -- 메뉴 필터를 위해 조인 추가
+        WHERE p.customer = ? 
+          AND p.time < ?                            -- 시간 조건 수정 (<= 에서 < 로)
 
         UNION ALL
 
+        -- 2. 당기 주문액 (ordered)
         SELECT
           0 AS misu, 
           IFNULL(SUM(a.price), 0) AS ordered,
           0 AS charged,
           0 AS remaining
         FROM \`order\` a
-                  LEFT JOIN (SELECT order_code,
-                                    MAX(status) status
-                            FROM order_status
-                            GROUP BY order_code) b ON a.id = b.order_code
+        LEFT JOIN (
+            SELECT order_code, MAX(status) status
+            FROM order_status
+            GROUP BY order_code
+        ) b ON a.id = b.order_code
         WHERE a.customer = ?
-          AND (a.time BETWEEN ? AND ?)
-          AND b.status != 8
+          AND (a.time >= ? AND a.time <= ?)         -- BETWEEN 로직 명확화
+          AND (b.status != 8 OR b.status IS NULL)   -- 상태값 8 제외 (NULL 처리 포함)
 
         UNION ALL
 
+        -- 3. 당기 입금액 (charged)
         SELECT
           0 AS misu,
           0 AS ordered, 
-          IFNULL(SUM(credit_diff), 0) AS charged,
+          IFNULL(SUM(p.credit_diff), 0) AS charged,
           0 AS remaining
-        FROM customer_credit 
-        WHERE customer = ? AND (time BETWEEN ? AND ?) AND (status = 5 OR status = 7 OR status IS NULL)
-
-        UNION ALL
-
-        SELECT 0 AS misu, 0 AS ordered, 0 AS charged, 0 AS remaining
+        FROM customer_credit p
+        LEFT JOIN \`order\` q ON p.order_code = q.id  -- 메뉴 필터를 위해 조인 추가
+        WHERE p.customer = ? 
+          AND (p.time >= ? AND p.time <= ?)         -- BETWEEN과 동일
+          AND (p.status = 5 OR p.status = 7 OR p.order_code = 0) -- 위 쿼리의 d, e, f 조건 합산
       ) t
   `;
 }

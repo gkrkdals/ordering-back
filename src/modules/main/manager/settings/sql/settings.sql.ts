@@ -1,7 +1,8 @@
 export class SettingsSql {
 
   static getOrdinaryData = `
-      SELECT *
+      SELECT 
+          *
       FROM (SELECT t.customer,
                    t.customer_name,
                    t.menu,
@@ -157,8 +158,6 @@ export class SettingsSql {
               AND (b.time < ?)
               AND (a.customer = ? OR ISNULL(?))
               AND (status = 5 or status IS NULL)) p
-
-
       ORDER BY p.delivered_time
   `;
 
