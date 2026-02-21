@@ -87,7 +87,12 @@ export class OrderService {
     }
 
     const recentMenuOnDigit: { id: number; menu: number }[] = await this.orderRepository.query(
-      'SELECT MAX(id) AS id, menu FROM `order` WHERE customer = ? AND menu != 0 GROUP BY menu ORDER BY id DESC LIMIT 10',
+      `SELECT 
+        MAX(o.id) AS id, 
+        o.menu FROM \`order\` o
+      LEFT JOIN menu m ON o.menu = m.id
+      WHERE o.customer = ? AND o.menu != 0 AND m.withdrawn != 1 
+      GROUP BY menu ORDER BY id DESC LIMIT 10`,
       [customer.id]
     );
 

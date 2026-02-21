@@ -102,7 +102,13 @@ export class MenuService {
 
   async findRecentMenus(customer: Customer) {
     return (await this.orderRepository.find({
-      where: { customer: customer.id },
+      where: { 
+        customer: customer.id,
+        menuJoin: {
+          id: Not(0),
+          withdrawn: Not(1),
+        }
+      },
       relations: {
         menuJoin: {
           menuCategory: true
