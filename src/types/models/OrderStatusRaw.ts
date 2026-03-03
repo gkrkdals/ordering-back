@@ -17,4 +17,5 @@ export interface OrderStatusRaw {
   floor: string;
   memo: string;
   location: string;
+  used_point: any;
 }

@@ -7,7 +7,7 @@ import { Order } from "@src/entities/order/order.entity";
 import { OrderStatus } from "@src/entities/order/order-status.entity";
 import { JwtService } from "@nestjs/jwt";
 import { DishDisposalService } from "@src/modules/main/client/order/services/dish-disposal.service";
-import { CustomerPrice } from "@src/entities/customer-price";
+import { CustomerPrice } from "@src/entities/customer/customer-price.entity";
 import { CustomerCredit } from "@src/entities/customer/customer-credit.entity";
 import { Menu } from "@src/entities/menu/menu.entity";
 import { User } from "@src/entities/user.entity";
@@ -17,6 +17,7 @@ import { Customer } from "@src/entities/customer/customer.entity";
 import { NoAlarmsModule } from "@src/modules/misc/no-alarms/no-alarms.module";
 import { DiscountGroup } from "@src/entities/customer/discount-group.entity";
 import { Settings } from "@src/entities/settings.entity";
+import { PointHistory } from "@src/entities/point-history.entity";
 
 @Module({
   imports: [
@@ -30,7 +31,8 @@ import { Settings } from "@src/entities/settings.entity";
       Menu,
       Customer,
       DiscountGroup,
-      Settings
+      Settings,
+      PointHistory,
     ]),
     SocketModule,
     FirebaseModule,

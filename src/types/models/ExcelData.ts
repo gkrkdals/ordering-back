@@ -16,6 +16,7 @@ export interface ExcelData {
   master_time: string;
   master_manager: string;
   master_in: string;
+  point_amt: string;
   memo: string;
   hex: string;
   bigo: string;

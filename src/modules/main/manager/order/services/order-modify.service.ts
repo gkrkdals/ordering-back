@@ -17,6 +17,9 @@ import { PermissionEnum } from "@src/types/enum/PermissionEnum";
 import { JwtUser } from "@src/types/jwt/JwtUser";
 import { FirebaseService } from "@src/modules/firebase/firebase.service";
 import { NoAlarmsService } from "@src/modules/misc/no-alarms/no-alarms.service";
+import { PointHistory } from "@src/entities/point-history.entity";
+import { PointEnum } from "@src/types/enum/PointEnum";
+import { Customer } from "@src/entities/customer/customer.entity";
 
 @Injectable()
 export class OrderModifyService {
@@ -29,6 +32,10 @@ export class OrderModifyService {
     private readonly customerCreditRepository: Repository<CustomerCredit>,
     @InjectRepository(OrderChange)
     private readonly orderChangeRepository: Repository<OrderChange>,
+    @InjectRepository(PointHistory)
+    private readonly pointHistoryRepository: Repository<PointHistory>,
+    @InjectRepository(Customer)
+    private readonly customerRepository: Repository<Customer>,
 
     private readonly orderGateway: OrderGateway,
     private readonly fcmService: FirebaseService,
@@ -148,6 +155,54 @@ export class OrderModifyService {
       creditDiff: LessThan(0)
     });
 
+    // 1. 이미 취소된 내역이 있는지 확인 (중복 취소 방지)
+    const isAlreadyCanceled = await this.pointHistoryRepository.findOneBy({
+      orderId: orderCode,
+      pathType: PointEnum.CANCELED,
+    });
+
+    if (!isAlreadyCanceled) {
+      // 2. 해당 주문에서 적립금을 '사용한' 원본 내역 찾기
+      const usedPointHistory = await this.pointHistoryRepository.findOneBy({
+        orderId: orderCode,
+        pathType: PointEnum.USE,
+      });
+
+      // 3. 방어 로직
+      if (usedPointHistory) {
+        // 4. PK 충돌 방지: 기존 객체에서 'id'만 쏙 빼고 나머지 데이터만 가져오기
+        const { id, ...historyDataWithoutId } = usedPointHistory;
+
+        // 새로운 취소 내역 추가
+        await this.pointHistoryRepository.insert({
+          ...historyDataWithoutId, 
+          pathType: PointEnum.CANCELED,
+          amount: usedPointHistory.amount * -1, // 음수였던 사용액을 양수로 반전
+        });
+
+        // 고객 잔액 복구
+        await this.customerRepository.increment(
+          { id: currentOrder.customer },
+          'pointBalance',
+          usedPointHistory.amount * -1,
+        );
+
+        await this.customerRepository.update({
+          id: currentOrder.customer
+        }, {
+          memo: '적립금 사용 취소'
+        });
+
+        // 고객 신용 테이블에 적립금 사용 내역 기록
+        this.customerCreditRepository.insert({
+          orderCode,
+          customer: currentOrder.customer,
+          creditDiff: usedPointHistory.amount * 100, // 포인트 사용 금액으로 기록 (1포인트당 1000원)
+        });
+      }
+    }
+    // 끝
+
     const newDebt = new CustomerCredit();
     newDebt.customer = currentOrder.customer;
     newDebt.orderCode = orderCode;
@@ -179,6 +234,57 @@ export class OrderModifyService {
     await this.customerCreditRepository.delete({
       orderCode: canceledOrder.orderCode
     });
+
+    const orderCode = canceledOrder.orderCode;
+    const customer = await this.orderRepository.findOneBy({ id: orderCode }).then(order => order.customer);
+
+    // 1. 이미 취소된 내역이 있는지 확인 (중복 취소 방지)
+    const isAlreadyCanceled = await this.pointHistoryRepository.findOneBy({
+      orderId: orderCode,
+      pathType: PointEnum.CANCELED,
+    });
+
+    if (!isAlreadyCanceled) {
+      // 2. 해당 주문에서 적립금을 '사용한' 원본 내역 찾기
+      const usedPointHistory = await this.pointHistoryRepository.findOneBy({
+        orderId: orderCode,
+        pathType: PointEnum.USE,
+      });
+
+      // 3. 방어 로직
+      if (usedPointHistory) {
+        // 4. PK 충돌 방지: 기존 객체에서 'id'만 쏙 빼고 나머지 데이터만 가져오기
+        const { id, ...historyDataWithoutId } = usedPointHistory;
+
+        // 새로운 취소 내역 추가
+        await this.pointHistoryRepository.insert({
+          ...historyDataWithoutId, 
+          pathType: PointEnum.CANCELED,
+          amount: usedPointHistory.amount * -1, // 음수였던 사용액을 양수로 반전
+        });
+
+        // 고객 잔액 복구
+        await this.customerRepository.increment(
+          { id: customer },
+          'pointBalance',
+          usedPointHistory.amount * -1,
+        );
+
+        await this.customerRepository.update({
+          id: customer
+        }, {
+          memo: '적립금 사용 취소'
+        });
+
+        // 고객 신용 테이블에 적립금 사용 내역 기록
+        this.customerCreditRepository.insert({
+          orderCode,
+          customer: customer,
+          creditDiff: usedPointHistory.amount * 100, // 포인트 사용 금액으로 기록 (1포인트당 1000원)
+        });
+      }
+    }
+    // 끝
 
     if (canceledOrder.status === StatusEnum.PendingReceipt) {
       await this.clearAlarm();

@@ -3,7 +3,9 @@ export class SettingsSql {
   static getOrdinaryData = `
       SELECT 
           *
-      FROM (SELECT t.customer,
+      FROM (
+            -- 일반 주문 데이터
+            SELECT t.customer,
                    t.customer_name,
                    t.menu,
                    t.menu_name,
@@ -22,7 +24,10 @@ export class SettingsSql {
                    null                                     AS                              master_in,
                    IFNULL(t.request, '')                                                                memo,
                    t.hex,
-                   IFNULL(t.memo, '') AS bigo
+                   IFNULL(t.memo, '') AS bigo,
+                   ph.created_at AS point_time,
+                   ph.amount AS point_amt,
+                   ph.path_type AS point_type
             FROM (SELECT a.id   order_code,
                          a.customer,
                          b.name customer_name,
@@ -59,6 +64,7 @@ export class SettingsSql {
                                 WHERE status = 7) disposal
                                ON t.order_code = disposal.order_code
                      LEFT JOIN customer_credit cred ON cred.status = 7 AND cred.order_code = t.order_code
+                     LEFT JOIN point_history ph ON ph.order_id = t.order_code AND ph.path_type = 'MENU'
             WHERE t.order_time >= ?
               AND t.order_time <= ?
               AND (t.customer = ? OR ISNULL(?))
@@ -66,6 +72,7 @@ export class SettingsSql {
 
             UNION ALL
 
+            -- 그릇수거 데이터
             SELECT *
             FROM (SELECT customer.id             customer,
                          customer.name           customer_name,
@@ -86,7 +93,11 @@ export class SettingsSql {
                          null                 AS master_in,
                          ''                      memo,
                          hex,
-                         '' bigo
+                         '' bigo,
+                          null point_time,
+                          null point_amt,
+                          null point_type
+
                   FROM customer_credit
                            LEFT JOIN user on customer_credit.by = user.id
                            LEFT JOIN customer on customer_credit.customer = customer.id
@@ -117,11 +128,16 @@ export class SettingsSql {
                          customer_credit.credit_diff master_in,
                          ''                          memo,
                          hex,
-                         customer_credit.memo bigo
+                         customer_credit.memo bigo,
+                         point_history.created_at point_time,
+                          point_history.amount point_amt,
+                          point_history.path_type point_type
+                          
                   from customer_credit
                            LEFT JOIN user ON customer_credit.\`by\` = user.id
                            LEFT JOIN customer ON customer_credit.customer = customer.id
                            LEFT JOIN customer_category on customer.category = customer_category.id
+                           LEFT JOIN point_history ON point_history.customer_id = customer.id AND point_history.path_type = 'BOWL'
 
                   WHERE (customer_credit.time >= ? AND customer_credit.time <= ?)
                     AND (customer = ? OR ISNULL(?))
@@ -129,6 +145,7 @@ export class SettingsSql {
 
             UNION ALL
 
+            -- 마스터입금 데이터
             SELECT d.id          customer,
                    d.name        customer_name,
                    ''            menu,
@@ -148,7 +165,11 @@ export class SettingsSql {
                    a.credit_diff master_in,
                    ''            memo,
                    hex,
-                   a.memo bigo
+                   a.memo bigo,
+                   null point_time,
+                    null point_amt,
+                    null point_type
+
             FROM customer_credit a
                      LEFT JOIN \`order\` b ON a.order_code = b.id
                      LEFT JOIN user c ON a.\`by\` = c.id
@@ -157,7 +178,43 @@ export class SettingsSql {
             WHERE (a.time >= ? AND a.time <= ?)
               AND (b.time < ?)
               AND (a.customer = ? OR ISNULL(?))
-              AND (status = 5 or status IS NULL)) p
+              AND (status = 5 or status IS NULL)
+              
+            UNION ALL
+
+            -- 적립금 사용 데이터
+            SELECT d.id          customer,
+                   d.name        customer_name,
+                   ''            menu,
+                   ''            menu_name,
+                   null          path,
+                   null          price,
+                   null          order_time,
+                   null          delivered_time,
+                   null          credit_by,
+                   null         credit_time,
+                   null          credit_in,
+                   null AS       disposal_time,
+                   null AS       disposal_manager,
+                   null          disposal_in,
+                   a.created_at        master_time,
+                   null          master_manager,
+                   a.amount      master_in,
+                   '저억리입그음'            memo,
+                   hex,
+                   a.path_type bigo,
+                   a.created_at point_time,
+                   a.amount * 100 point_amt,
+                   a.path_type point_type
+            FROM point_history a
+                 LEFT JOIN customer d ON a.customer_id = d.id
+                 LEFT JOIN customer_category on d.category = customer_category.id
+            WHERE (a.created_at >= ? AND a.created_at <= ?)
+              AND (a.customer_id = ? OR ISNULL(?))
+              AND (a.path_type = 'USE' OR a.path_type = 'CANCELED')
+              ) p
+
+            
       ORDER BY p.delivered_time
   `;
 
@@ -172,6 +229,10 @@ export class SettingsSql {
              (IFNULL(b.price, 0) + IFNULL(c.misu, 0) -
               (IFNULL(d.deposit_amt, 0) + IFNULL(e.deposit_amt, 0) + IFNULL(f.deposit_amt, 0))) sum,
              IFNULL(g.total_credit, 0) * -1                                                 AS  total_credit,
+             -- 👇 적립금 데이터 추가
+             IFNULL(points.earned_point, 0)                                                 AS  earned_point,
+             IFNULL(points.used_point, 0)                                                   AS  used_point,
+             IFNULL(a.point_balance, 0) * 100                                               AS  point_balance,
              ''                                                                                 bigo,
              h.hex
       FROM customer a
@@ -222,6 +283,31 @@ export class SettingsSql {
                                  SUM(credit_diff) total_credit
                           FROM customer_credit
                           GROUP BY customer) g ON g.customer = a.id
+                          -- 👇 적립금 집계 서브쿼리 추가
+               LEFT JOIN (
+                  SELECT customer_id,
+                         SUM(IF(path_type = 'USE' OR path_type = 'CANCELED', amount, 0)) * -100 as used_point,
+                         SUM(IF(path_type != 'USE' AND path_type != 'CANCELED', amount, 0)) * 100 as earned_point
+                  FROM point_history
+                  WHERE created_at >= ? AND created_at <= ?
+                  GROUP BY customer_id
+               ) points ON points.customer_id = a.id
+                
                LEFT JOIN customer_category h ON h.id = a.category
   `;
+
+  static getMisu = `
+      SELECT 
+             SUM(credit_diff) * -1 misu
+      FROM customer_credit p
+                LEFT JOIN \`order\` q on p.order_code = q.id
+      WHERE p.time < ?
+        AND (ISNULL(?) OR q.menu = ?)
+  `;
+
+  static getTotalCredit = `
+      SELECT SUM(credit_diff) * -1 AS total_credit FROM customer_credit`;
+
+  static getTotalPoint = `
+      SELECT SUM(point_balance) AS total_point FROM customer`;
 }

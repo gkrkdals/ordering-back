@@ -1,7 +1,8 @@
 import { Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 import { CustomerCategory } from "@src/entities/customer/customer-category.entity";
-import { CustomerPrice } from "@src/entities/customer-price";
+import { CustomerPrice } from "@src/entities/customer/customer-price.entity";
 import { DiscountGroup } from "@src/entities/customer/discount-group.entity";
+import { PointHistory } from "@src/entities/point-history.entity";
 
 @Entity()
 export class Customer {
@@ -54,4 +55,20 @@ export class Customer {
   @JoinColumn({ name: 'discount_group_id' })
   @OneToOne(() => DiscountGroup)
   discountGroup: DiscountGroup | null;
+
+  @Column({ name: 'reward_per_menu', default: 0 })
+  rewardPerMenu: number;
+
+  @Column({ name: 'reward_per_bowl', default: 0 })
+  rewardPerBowl: number;
+
+  @Column({ name: 'point_balance', default: 0 })
+  pointBalance: number;
+
+  @Column({ name: 'is_sold_out', type: 'tinyint', default: 0 })
+  isSoldOut: number;
+
+  // 적립금 내역과의 1:N 관계 매핑
+  @OneToMany(() => PointHistory, (pointHistory) => pointHistory.customerJoin)
+  pointHistories: PointHistory[];
 }

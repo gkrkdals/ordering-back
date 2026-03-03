@@ -5,7 +5,7 @@ import { Not, Repository } from "typeorm";
 import { GetCustomerResponseDto } from "@src/modules/main/manager/customer/dto/response/get-customer-response.dto";
 import { countToTotalPage } from "@src/utils/data";
 import { CustomerCategory } from "@src/entities/customer/customer-category.entity";
-import { CustomerPrice } from "@src/entities/customer-price";
+import { CustomerPrice } from "@src/entities/customer/customer-price.entity";
 import { UpdateCustomerPriceDto } from "@src/modules/main/manager/customer/dto/update-customer-price.dto";
 import { CustomerSql } from "@src/modules/main/manager/customer/sql/CustomerSql";
 import { CustomerRaw } from "@src/types/models/CustomerRaw";
@@ -122,7 +122,7 @@ export class CustomerService {
   async updateCustomer(customer: Customer) {
     const updatedCustomer = await this.customerRepository.findOneBy({ id: customer.id });
     customer.discountGroupId = parseInt(customer['discount_group_id'].toString());
-
+    
     if (updatedCustomer) {
       updatedCustomer.name = customer.name;
       updatedCustomer.address = customer.address;
@@ -131,6 +131,9 @@ export class CustomerService {
       updatedCustomer.floor = customer.floor;
       updatedCustomer.tel = customer.tel;
       updatedCustomer.discountGroupId = customer.discountGroupId === -1 ? null : customer.discountGroupId;
+      updatedCustomer.rewardPerBowl = customer.rewardPerBowl;
+      updatedCustomer.rewardPerMenu = customer.rewardPerMenu;
+      updatedCustomer.isSoldOut = customer['is_sold_out'];
       await this.customerRepository.save(updatedCustomer);
     }
   }

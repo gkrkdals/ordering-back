@@ -2,6 +2,7 @@ export class OrderSql {
   // language=MySQL
   static getOrderStatus = `
       SELECT t.*,
+              IFNULL(ph.amount, 0) * -1 used_point,
              crd.credit,
              u.nickname by_nickname
       FROM (SELECT b.id,
@@ -51,6 +52,14 @@ export class OrderSql {
                LEFT JOIN (SELECT customer, SUM(credit_diff) * -1 credit FROM customer_credit GROUP BY customer) crd
                          ON crd.customer = t.customer
                LEFT JOIN user u ON t.by = u.id
+               LEFT JOIN (
+                  SELECT 
+                      order_id, 
+                      SUM(amount) AS amount
+                  FROM point_history
+                  WHERE path_type IN ('USE', 'CANCELED')
+                  GROUP BY order_id
+              ) ph ON ph.order_id = t.order_id
       WHERE (t.customer_name LIKE ?
           OR t.menu_name LIKE ?
           OR t.request LIKE ?

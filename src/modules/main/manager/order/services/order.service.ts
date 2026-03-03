@@ -10,7 +10,7 @@ import { OrderStatusRaw } from "@src/types/models/OrderStatusRaw";
 import { countSkip, countToTotalPage } from "@src/utils/data";
 import { OrderCategory } from "@src/entities/order/order-category.entity";
 import { Menu } from "@src/entities/menu/menu.entity";
-import { CustomerPrice } from "@src/entities/customer-price";
+import { CustomerPrice } from "@src/entities/customer/customer-price.entity";
 import { OrderGateway } from "@src/modules/socket/order.gateway";
 import { Pending } from "@src/types/models/Pending";
 import { dateToString, getOrderAvailableTimes } from "@src/utils/date";
@@ -141,7 +141,10 @@ export class OrderService {
     const { limit, name } = this.getModificationLimitAndItsName(user);
 
     return {
-      data,
+      data: data.map(d => ({
+        ...d,
+        used_point: Number(d.used_point),
+      })),
       currentPage: page,
       totalPage: countToTotalPage(count),
       count,

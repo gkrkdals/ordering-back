@@ -66,7 +66,13 @@ export class SettingsService {
         startString, endString, customerId,
         startString, endString, customerId,
         startString, endString, customerId,
+
+        
+        startString, endString, customerId,
+        startString, endString, customerId,
+        
         startString, endString, startString, customerId,
+
       ]
     );
 

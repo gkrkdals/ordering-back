@@ -7,7 +7,7 @@ import { Order } from "@src/entities/order/order.entity";
 import { RecentMenu } from "@src/types/models/RecentMenu";
 import { DiscountGroup } from "@src/entities/customer/discount-group.entity";
 import { Settings } from "@src/entities/settings.entity";
-import { CustomerPrice } from "@src/entities/customer-price";
+import { CustomerPrice } from "@src/entities/customer/customer-price.entity";
 
 @Injectable()
 export class MenuService {
@@ -83,6 +83,10 @@ export class MenuService {
     data.forEach(item => {
       if (item.isDiscountable === 1) {
         item.menuCategory.price -= webDiscountValue;
+      }
+
+      if (customer.isSoldOut === 1) {
+        item.soldOut = 1;
       }
     });
 

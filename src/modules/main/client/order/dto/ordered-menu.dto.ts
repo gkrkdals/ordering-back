@@ -4,3 +4,8 @@ export class OrderedMenuDto {
   menu: Menu;
   request: string;
 }
+
+export class OrderMenuWithPointDto {
+  orderedMenus: OrderedMenuDto[];
+  point: number;
+}

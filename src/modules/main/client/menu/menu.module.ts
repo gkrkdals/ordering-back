@@ -6,7 +6,7 @@ import { MenuService } from "@src/modules/main/client/menu/menu.service";
 import { MenuCategory } from "@src/entities/menu/menu-category.entity";
 import { Customer } from "@src/entities/customer/customer.entity";
 import { JwtService } from "@nestjs/jwt";
-import { CustomerPrice } from "@src/entities/customer-price";
+import { CustomerPrice } from "@src/entities/customer/customer-price.entity";
 import { Order } from "@src/entities/order/order.entity";
 import { DiscountGroup } from "@src/entities/customer/discount-group.entity";
 import { Settings } from "@src/entities/settings.entity";

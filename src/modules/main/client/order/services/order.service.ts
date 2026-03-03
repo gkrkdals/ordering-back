@@ -2,14 +2,14 @@ import { BadRequestException, Injectable } from "@nestjs/common";
 import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
 import { OrderCategory } from "@src/entities/order/order-category.entity";
 import { DataSource, LessThan, Not, Repository } from "typeorm";
-import { OrderedMenuDto } from "@src/modules/main/client/order/dto/ordered-menu.dto";
+import { OrderedMenuDto, OrderMenuWithPointDto } from "@src/modules/main/client/order/dto/ordered-menu.dto";
 import { Order } from "@src/entities/order/order.entity";
 import { Customer } from "@src/entities/customer/customer.entity";
 import { StatusEnum } from "@src/types/enum/StatusEnum";
 import { OrderSql } from "@src/modules/main/client/order/sql/OrderSql";
 import { OrderSummaryResponseDto } from "@src/modules/main/client/order/dto/response/order-summary-response.dto";
 import { OrderGateway } from "@src/modules/socket/order.gateway";
-import { CustomerPrice } from "@src/entities/customer-price";
+import { CustomerPrice } from "@src/entities/customer/customer-price.entity";
 import { CustomerCredit } from "@src/entities/customer/customer-credit.entity";
 import { OrderStatus } from "@src/entities/order/order-status.entity";
 import { getOrderAvailableTimes } from "@src/utils/date";
@@ -19,6 +19,8 @@ import { JwtCustomer } from "@src/types/jwt/JwtCustomer";
 import { NoAlarmsService } from "@src/modules/misc/no-alarms/no-alarms.service";
 import { DiscountGroup } from "@src/entities/customer/discount-group.entity";
 import { Settings } from "@src/entities/settings.entity";
+import { PointHistory } from "@src/entities/point-history.entity";
+import { PointEnum } from "@src/types/enum/PointEnum";
 
 @Injectable()
 export class OrderService {
@@ -43,6 +45,8 @@ export class OrderService {
     private readonly settingsRepository: Repository<Settings>,
     @InjectDataSource()
     private readonly datasource: DataSource,
+    @InjectRepository(PointHistory)
+    private readonly pointHistoryRepository: Repository<PointHistory>,
 
     private readonly orderGateway: OrderGateway,
     private readonly fcmService: FirebaseService,
@@ -136,6 +140,10 @@ export class OrderService {
       if (item.isDiscountable === 1) {
         item.menuCategory.price -= webDiscountValue;
       }
+
+      if (customer.isSoldOut === 1) {
+        item.soldOut = 1;
+      }
     })
 
     return recentMenus
@@ -162,9 +170,13 @@ export class OrderService {
     return this.datasource.query(OrderSql.getOrderStatus, [customer.id, first, last]);
   }
 
-  async addOrder(customer: JwtCustomer, orderedMenus: OrderedMenuDto[]): Promise<void> {
+  async addOrder(customer: JwtCustomer, om: OrderMenuWithPointDto): Promise<void> {
+    const { orderedMenus, point } = om;
+
     const targetCustomer = await this.customerRepository.findOneBy({ id: customer.id });
     const isThereAnyRequest = orderedMenus.some(menu => menu.request && menu.request.length !== 0);
+
+    let isPointUsed = false;
 
     for(const orderedMenu of orderedMenus) {
       const newOrder = new Order();
@@ -179,7 +191,43 @@ export class OrderService {
         newOrder.customer = customer.id;
         newOrder.menu = orderedMenu.menu.id;
         newOrder.request = orderedMenu.request;
-        await this.orderRepository.save(newOrder);
+        const orderMade = await this.orderRepository.save(newOrder);
+
+        // 1. 적립금 '사용' 로직 (첫 번째 메뉴 주문 건에만 묶어서 1회만 실행)
+        if (point && point > 0 && !isPointUsed) {
+          const pointHistory = new PointHistory();
+          pointHistory.customerId = targetCustomer.id;
+          pointHistory.amount = -(point * 10);
+          pointHistory.orderId = orderMade.id; 
+          pointHistory.description = '주문 적립금 사용';
+          pointHistory.pathType = PointEnum.USE;
+          await this.pointHistoryRepository.save(pointHistory);
+
+          targetCustomer.pointBalance -= (point * 10); // 잔액 메모리에서 차감
+          isPointUsed = true; // 이후 루프에서는 실행되지 않도록 잠금!
+
+          orderMade.price -= (point * 1000); // 주문 금액에서 적립금 차감 (1포인트당 1000원)
+          await this.orderRepository.save(orderMade); // 변경된 주문 금액 저장
+
+          // 고객 신용 테이블에 적립금 사용 내역 기록
+          this.customerCreditRepository.insert({
+            orderCode: orderMade.id,
+            customer: targetCustomer.id,
+            creditDiff: point * 1000,
+            memo: '적립금 사용',
+          });
+        }
+
+        // 2. 메뉴 '적립' 로직 (이건 메뉴마다 매번 쌓이는 게 맞음)
+        const menuPoint = new PointHistory();
+        menuPoint.customerId = targetCustomer.id;
+        menuPoint.amount = targetCustomer.rewardPerMenu;
+        menuPoint.orderId = orderMade.id;
+        menuPoint.description = '주문 메뉴 적립금';
+        menuPoint.pathType = PointEnum.MENU;
+        await this.pointHistoryRepository.save(menuPoint);
+
+        targetCustomer.pointBalance += targetCustomer.rewardPerMenu; // 잔액 메모리에서 더하기
       }
     }
 

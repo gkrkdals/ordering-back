@@ -5,7 +5,7 @@ import { OrderStatus } from "@src/entities/order/order-status.entity";
 import { OrderCategory } from "@src/entities/order/order-category.entity";
 import { OrderController } from "@src/modules/main/manager/order/order.controller";
 import { CustomerCredit } from "@src/entities/customer/customer-credit.entity";
-import { CustomerPrice } from "@src/entities/customer-price";
+import { CustomerPrice } from "@src/entities/customer/customer-price.entity";
 import { OrderChange } from "@src/entities/order/order-change.entity";
 import { OrderService } from "@src/modules/main/manager/order/services/order.service";
 import { OrderModifyService } from "@src/modules/main/manager/order/services/order-modify.service";
@@ -19,6 +19,7 @@ import { Customer } from "@src/entities/customer/customer.entity";
 import { Menu } from "@src/entities/menu/menu.entity";
 import { NoAlarmsModule } from "@src/modules/misc/no-alarms/no-alarms.module";
 import { DiscountGroup } from "@src/entities/customer/discount-group.entity";
+import { PointHistory } from "@src/entities/point-history.entity";
 
 @Module({
   imports: [
@@ -34,7 +35,8 @@ import { DiscountGroup } from "@src/entities/customer/discount-group.entity";
       Customer,
       Menu,
       Settings,
-      DiscountGroup
+      DiscountGroup,
+      PointHistory,
     ]),
     SocketModule,
     FirebaseModule,

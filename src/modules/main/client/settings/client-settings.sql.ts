@@ -44,7 +44,7 @@ export class ClientSettingsSql {
 
             SELECT *
             FROM (SELECT 
-                         ''                   menu_name,
+                         '그릇수거입금'                   menu_name,
                          ''                 price,
                          ''                 order_time,
                          credit_diff          credit_in,
@@ -63,7 +63,7 @@ export class ClientSettingsSql {
                   UNION ALL
 
                   SELECT 
-                         ''                          menu_name,
+                         '마스터입금'                          menu_name,
                          ''                        price,
                          ''                        order_time,
                          customer_credit.credit_diff credit_in,
@@ -76,7 +76,45 @@ export class ClientSettingsSql {
                            LEFT JOIN customer_category on customer.category = customer_category.id
                   WHERE (customer_credit.time >= ? AND customer_credit.time <= ?)
                     AND customer = ?
-                    AND order_code = 0) a
+                    AND order_code = 0
+
+                    UNION ALL
+
+              SELECT 
+                      '적립금사용'                          menu_name,
+                      ''                        price,
+                      ''                        order_time,
+                      customer_credit.credit_diff credit_in,
+                      customer_credit.time        delivered_time,
+                      '' hex,
+                      null cancelled
+              from customer_credit
+                        LEFT JOIN user ON customer_credit.\`by\` = user.id
+                        LEFT JOIN customer ON customer_credit.customer = customer.id
+                        LEFT JOIN customer_category on customer.category = customer_category.id
+              WHERE (customer_credit.time >= ? AND customer_credit.time <= ?)
+                AND customer_credit.memo = '적립금 사용'
+                AND customer = ?
+
+                UNION ALL
+
+              SELECT 
+                      '적립금사용취소'                          menu_name,
+                      ''                        price,
+                      ''                        order_time,
+                      customer_credit.credit_diff credit_in,
+                      customer_credit.time        delivered_time,
+                      '' hex,
+                      null cancelled
+              from customer_credit
+                        LEFT JOIN user ON customer_credit.\`by\` = user.id
+                        LEFT JOIN customer ON customer_credit.customer = customer.id
+                        LEFT JOIN customer_category on customer.category = customer_category.id
+              WHERE (customer_credit.time >= ? AND customer_credit.time <= ?)
+                AND customer_credit.memo = '적립금 사용 취소'
+                AND customer = ?
+
+                    ) a
 
             UNION ALL
 
@@ -97,6 +135,8 @@ export class ClientSettingsSql {
               AND (b.time < ?)
               AND a.customer = ?
               AND status = 5) p
+
+              
 
 
       ORDER BY p.delivered_time
