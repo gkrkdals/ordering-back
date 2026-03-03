@@ -184,25 +184,25 @@ export class CalculationService {
       {}, {}, {}, // A~C 정산 기간 아래 빈칸 (위와 병합됨)
       { f: `SUBTOTAL(104, A5:A${length + 4})`, t: "n", s }, // 수량 값
       // E열 (금액): D열(가격)의 합계
-      { f: `(SUBTOTAL(109, D5:D${length + 4}))/100`, t: "n", s: sNum }, 
+      { f: `(SUBTOTAL(109, D5:D${length + 4}))/1000`, t: "n", s: sNum }, 
       
       // F열 (미수): 정산 시작일 이전의 미수금 (★일단 빈칸)
-      { v: misu / 100, t: "n", s: sNum }, 
+      { v: misu / 1000, t: "n", s: sNum }, 
       
       // G열 (입금액): N열(입금액)의 합계 (사진 요청사항 반영)
-      { f: `(SUBTOTAL(109, N5:N${length + 4}))/100`, t: "n", s: sNum }, 
+      { f: `(SUBTOTAL(109, N5:N${length + 4}))/1000`, t: "n", s: sNum }, 
       
       // H열 (합계): 금액(E2) + 미수(F2) - 입금액(G2)
       { f: 'E2+F2-G2', t: "n", s: sNum }, 
       
       // I열 (총잔액): 전체 누적 잔액 (★일단 빈칸)
-      { v: totalCredit / 100, t: "n", s: sNum }, 
+      { v: totalCredit / 1000, t: "n", s: sNum }, 
       
       // J열 (적립금): M열(적립금)의 합계 (사진 요청사항 반영)
-      { f: `(SUBTOTAL(109, M5:M${length + 4}))/100`, t: "n", s: sNum }, 
+      { f: `(SUBTOTAL(109, M5:M${length + 4}))/1000`, t: "n", s: sNum }, 
       
       // K열 (적립금 사용): 해당 기간 내 사용액 (★일단 빈칸)
-      { v: usedPointTotal / 100, t: "n", s: sNum }, 
+      { v: usedPointTotal / 1000, t: "n", s: sNum }, 
       
       // L열 (적립금잔액): 현재 남아있는 총 적립금 (★일단 빈칸)
       { v: totalPoint / 100, t: "n", s: sNum },
@@ -380,14 +380,14 @@ export class CalculationService {
       const title2 = [
         {}, {}, {},
         { v: summary.cnt, t: 'n', s: p },
-        { v: summary.price / 100, t: 'n', s: q },
-        { v: summary.misu / 100, t: 'n', s: q },
-        { v: (Number(summary.deposit_amt)) / 100, t: 'n', s: q },
-        { v: summary.sum / 100, t: 'n', s: q },
-        { v: summary.total_credit / 100, t: 'n', s: q },
-        { v: summary.earned_point / 100, t: 'n', s: q },
-        { v: summary.used_point / 100, t: 'n', s: q },
-        { v: summary.point_balance / 100, t: 'n', s: q },
+        { v: summary.price / 1000, t: 'n', s: q },
+        { v: summary.misu / 1000, t: 'n', s: q },
+        { v: (Number(summary.deposit_amt)) / 1000, t: 'n', s: q },
+        { v: summary.sum / 1000, t: 'n', s: q },
+        { v: summary.total_credit / 1000, t: 'n', s: q },
+        { v: summary.earned_point / 1000, t: 'n', s: q },
+        { v: summary.used_point / 1000, t: 'n', s: q },
+        { v: summary.point_balance / 1000, t: 'n', s: q },
       ];
 
       const merge = [
