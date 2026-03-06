@@ -94,14 +94,15 @@ export class SettingsSql {
                          ''                      memo,
                          hex,
                          '' bigo,
-                          null point_time,
-                          null point_amt,
-                          null point_type
+                         point_history.created_at point_time,
+                         point_history.amount point_amt,
+                         point_history.path_type point_type
 
                   FROM customer_credit
                            LEFT JOIN user on customer_credit.by = user.id
                            LEFT JOIN customer on customer_credit.customer = customer.id
                            LEFT JOIN customer_category on customer.category = customer_category.id
+                           LEFT JOIN point_history on customer.id = point_history.customer_id AND point_history.order_id = customer_credit.order_code AND path_type = 'BOWL'
                   WHERE status = 7
                     AND credit_diff > 0
                     AND (customer_credit.time >= ? AND customer_credit.time <= ?)
@@ -129,15 +130,14 @@ export class SettingsSql {
                          ''                          memo,
                          hex,
                          customer_credit.memo bigo,
-                         point_history.created_at point_time,
-                          point_history.amount point_amt,
-                          point_history.path_type point_type
+                         null point_time,
+                         null point_amt,
+                         null point_type
                           
                   from customer_credit
                            LEFT JOIN user ON customer_credit.\`by\` = user.id
                            LEFT JOIN customer ON customer_credit.customer = customer.id
                            LEFT JOIN customer_category on customer.category = customer_category.id
-                           LEFT JOIN point_history ON point_history.customer_id = customer.id AND point_history.path_type = 'BOWL'
 
                   WHERE (customer_credit.time >= ? AND customer_credit.time <= ?)
                     AND (customer = ? OR ISNULL(?))

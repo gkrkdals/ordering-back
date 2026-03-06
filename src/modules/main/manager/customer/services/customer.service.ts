@@ -134,6 +134,7 @@ export class CustomerService {
       updatedCustomer.rewardPerBowl = customer.rewardPerBowl;
       updatedCustomer.rewardPerMenu = customer.rewardPerMenu;
       updatedCustomer.isSoldOut = customer['is_sold_out'];
+      updatedCustomer.pointBalance = customer['point_balance'];
       await this.customerRepository.save(updatedCustomer);
     }
   }

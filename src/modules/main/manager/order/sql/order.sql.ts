@@ -22,6 +22,7 @@ export class OrderSql {
                    f.address,
                    f.tel,
                    f.floor,
+                   f.point_balance,
                    c.memo,
                    b.location,
                    a.by
