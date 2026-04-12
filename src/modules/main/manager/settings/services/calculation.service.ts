@@ -12,6 +12,7 @@ import { eachCustomerHeader, eachCustomerHeaderWidth, header, mainHeader, mainHe
 import * as fs from "node:fs";
 import { MainCalculation } from "@src/modules/main/manager/settings/interfaces/MainCalculation";
 import { Customer } from "@src/entities/customer/customer.entity";
+import { format } from "node:path";
 // import { CustomerCalculation } from "@src/modules/main/manager/settings/interfaces/CustomerCalculation";
 
 @Injectable()
@@ -28,6 +29,7 @@ export class CalculationService {
     const startDate = new Date(start);
     const endDate = new Date(end);
     const today = new Date();
+    console.log('Received parameters:', { menu, type, start, end });
 
     startDate.setHours(9, 0, 0, 0);
     if (isSameDay(startDate, endDate) && isSameDay(startDate, today)) {
@@ -51,7 +53,7 @@ export class CalculationService {
 
     const wb = XLSX.utils.book_new();
 
-    const excelData = await this.getSummarySheet(startString, endString, menuParam, customerParam, wb);
+    const excelData = await this.getSummarySheet(startString, endString, menuParam, customerParam, wb, start, end);
     const allData = await this.getAllCustomerSheet(startString, endString, menuParam, wb);
     await this.getEachCustomersSheet(wb, excelData, allData, startString, endString);
 
@@ -62,7 +64,7 @@ export class CalculationService {
     stream.pipe(res);
   }
 
-  async getSummarySheet(start: string, end: string, menu: string | null, customer: string | null, wb: XLSX.WorkBook) {
+  async getSummarySheet(start: string, end: string, menu: string | null, customer: string | null, wb: XLSX.WorkBook, startParam: string, endParam: string) {
     const excelData: ExcelData[] = await this.orderRepository.query(
       SettingsSql.getOrdinaryData,
       [
@@ -157,10 +159,11 @@ export class CalculationService {
     // 'yyyy-mm-dd hh:mm:ss' 형태에서 앞의 10자리('yyyy-mm-dd')만 잘라내기
     const formattedStart = start.substring(0, 10);
     const formattedEnd = end.substring(0, 10);
+    console.log(start, end, formattedStart, formattedEnd);
 
     // 1. 새로운 헤더 (첫 번째 줄)
     const summaryHeader = [
-      { v: `${formattedStart} ~ ${formattedEnd}`, t: "s", s: sTime }, // A~C (정산 기간)
+      { v: `${startParam} ~ ${endParam}`, t: "s", s: sTime }, // A~C (정산 기간)
       {}, // B (병합용)
       {}, // C (병합용)
       { v: '수량', t: "s", s },
