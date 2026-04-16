@@ -13,6 +13,7 @@ import { BusinessHoursService } from "@src/modules/main/manager/settings/service
 import { CronModule } from "@src/modules/misc/cron/cron.module";
 import { MenuCategory } from "@src/entities/menu/menu-category.entity";
 import { Menu } from "@src/entities/menu/menu.entity";
+import { ExcelService } from "./services/excel.service";
 
 @Module({
   imports: [
@@ -26,6 +27,6 @@ import { Menu } from "@src/entities/menu/menu.entity";
     CronModule,
   ],
   controllers: [SettingsController, BusinessHoursController],
-  providers: [SettingsService, BusinessHoursService, NoAlarmsService, CalculationService, JwtService],
+  providers: [SettingsService, BusinessHoursService, NoAlarmsService, CalculationService, JwtService, ExcelService],
 })
 export class SettingsModule {}
