@@ -64,7 +64,16 @@ export class SettingsSql {
                                 WHERE status = 7) disposal
                                ON t.order_code = disposal.order_code
                      LEFT JOIN customer_credit cred ON cred.status = 7 AND cred.order_code = t.order_code
-                     LEFT JOIN point_history ph ON ph.order_id = t.order_code AND ph.path_type = 'MENU'
+                     LEFT JOIN (
+                            SELECT order_id, created_at, amount, path_type
+                            FROM (
+                            SELECT order_id, created_at, amount, path_type,
+                                   ROW_NUMBER() OVER (PARTITION BY order_id ORDER BY amount DESC, created_at DESC) as rn
+                            FROM point_history 
+                            WHERE path_type = 'MENU'
+                            ) helper
+                            WHERE rn = 1
+                     ) ph ON ph.order_id = t.order_code
             WHERE t.order_time >= ?
               AND t.order_time <= ?
               AND (t.customer = ? OR ISNULL(?))

@@ -54,12 +54,22 @@ export class CalculationService {
     const customerParam = null;
 
     // 1. 데이터 조회 및 가공 (비즈니스 로직)
-    const { displayData, allData, summaryParams } = await this.prepareCalculationData(startString, endString, String(menuParam), customerParam, start, end);
+    const { displayData, allData, summaryParams } = await this.prepareCalculationData(startString, endString, menuParam?.toString() || null, customerParam, start, end);
 
-    // 2. 엑셀 생성 (ExcelService 위임)
-    const wb = this.excelService.generateWorkbook(displayData, allData, summaryParams);
+    // 2. 고객 정보 조회
+    const customers = await this.customerRepository.find({
+      relations: {
+        categoryJoin: true
+      },
+      order: {
+        name: 'ASC'
+      }
+    });
 
-    // 3. 파일로 저장 후 스트림 응답
+    // 3. 엑셀 생성 (ExcelService 위임) - 고객 정보 포함
+    const wb = this.excelService.generateWorkbook(displayData, allData, summaryParams, customers, startString, endString);
+
+    // 4. 파일로 저장 후 스트림 응답
     const filename = 'calculation.xlsx';
     XLSX.writeFile(wb, filename, { bookType: 'xlsx', type: 'binary' });
 
