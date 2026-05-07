@@ -110,4 +110,14 @@ export class SettingsController {
   async updateDiscount(@Body('value') value: number) {
     await this.settingService.updateDiscount(value);
   }
+
+  @Get('disposal-time')
+  async getDisposalTime() {
+    return this.settingService.getDisposalTime();
+  }
+
+  @Put('disposal-time')
+  async updateDisposalTime(@Body() dto: { start_time: string | null; end_time: string | null }) {
+    return this.settingService.updateDisposalTime(dto.start_time, dto.end_time);
+  }
 }

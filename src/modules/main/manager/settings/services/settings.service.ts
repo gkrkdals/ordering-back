@@ -112,4 +112,64 @@ export class SettingsService {
     discountSetting.value = value;
     await this.settingsRepository.save(discountSetting);
   }
+
+  async getDisposalTime() {
+    const disposalSetting = await this.settingsRepository.findOneBy({ big: 6, sml: 1 });
+    
+    if (!disposalSetting || !disposalSetting.stringValue) {
+      return {
+        start_time: null,
+        end_time: null,
+      };
+    }
+
+    const [startTime, endTime] = disposalSetting.stringValue.split('~');
+    return {
+      start_time: startTime || null,
+      end_time: endTime || null,
+    };
+  }
+
+  async updateDisposalTime(startTime: string | null, endTime: string | null) {
+    // 검증: 둘 다 입력되거나 둘 다 null
+    if ((startTime === null && endTime !== null) || (startTime !== null && endTime === null)) {
+      throw new Error('Both start_time and end_time must be provided or both must be null');
+    }
+
+    // 시간 형식 검증 (HH:MM)
+    if (startTime) {
+      if (!/^\d{2}:\d{2}$/.test(startTime)) {
+        throw new Error('Invalid time format. Please use HH:MM format');
+      }
+    }
+    if (endTime) {
+      if (!/^\d{2}:\d{2}$/.test(endTime)) {
+        throw new Error('Invalid time format. Please use HH:MM format');
+      }
+    }
+
+    let disposalSetting = await this.settingsRepository.findOneBy({ big: 6, sml: 1 });
+    
+    if (!disposalSetting) {
+      disposalSetting = new Settings();
+      disposalSetting.big = 6;
+      disposalSetting.sml = 1;
+      disposalSetting.name = 'disposal_time';
+    }
+
+    // 저장 형식: "hh:mm~hh:mm" 또는 null
+    if (startTime && endTime) {
+      disposalSetting.stringValue = `${startTime}~${endTime}`;
+    } else {
+      disposalSetting.stringValue = null;
+    }
+
+    await this.settingsRepository.save(disposalSetting);
+
+    return {
+      start_time: startTime,
+      end_time: endTime,
+      message: '그릇 수거 시간이 저장되었습니다.',
+    };
+  }
 }
