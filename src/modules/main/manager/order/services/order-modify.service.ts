@@ -203,6 +203,25 @@ export class OrderModifyService {
     }
     // 끝
 
+    // 그릇수거 적립금(BOWL) 취소 처리
+    const bowlHistory = await this.pointHistoryRepository.findOneBy({
+      orderId: orderCode,
+      pathType: PointEnum.BOWL,
+    });
+
+    if (bowlHistory && bowlHistory.isCanceled !== 1) {
+      await this.customerRepository.decrement(
+        { id: currentOrder.customer },
+        'pointBalance',
+        bowlHistory.amount,
+      );
+
+      await this.pointHistoryRepository.update(
+        { id: bowlHistory.id },
+        { isCanceled: 1 },
+      );
+    }
+
     const newDebt = new CustomerCredit();
     newDebt.customer = currentOrder.customer;
     newDebt.orderCode = orderCode;
