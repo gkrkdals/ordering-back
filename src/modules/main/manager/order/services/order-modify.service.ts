@@ -187,14 +187,8 @@ export class OrderModifyService {
           usedPointHistory.amount * -1,
         );
 
-        await this.customerRepository.update({
-          id: currentOrder.customer
-        }, {
-          memo: '적립금 사용 취소'
-        });
-
         // 고객 신용 테이블에 적립금 사용 내역 기록
-        this.customerCreditRepository.insert({
+        await this.customerCreditRepository.insert({
           orderCode,
           customer: currentOrder.customer,
           creditDiff: usedPointHistory.amount * 100, // 포인트 사용 금액으로 기록 (1포인트당 1000원)
@@ -218,6 +212,25 @@ export class OrderModifyService {
 
       await this.pointHistoryRepository.update(
         { id: bowlHistory.id },
+        { isCanceled: 1 },
+      );
+    }
+
+    // 메뉴 적립금(MENU) 취소 처리
+    const menuHistory = await this.pointHistoryRepository.findOneBy({
+      orderId: orderCode,
+      pathType: PointEnum.MENU,
+    });
+
+    if (menuHistory && menuHistory.isCanceled !== 1) {
+      await this.customerRepository.decrement(
+        { id: currentOrder.customer },
+        'pointBalance',
+        menuHistory.amount,
+      );
+
+      await this.pointHistoryRepository.update(
+        { id: menuHistory.id },
         { isCanceled: 1 },
       );
     }
@@ -289,14 +302,8 @@ export class OrderModifyService {
           usedPointHistory.amount * -1,
         );
 
-        await this.customerRepository.update({
-          id: customer
-        }, {
-          memo: '적립금 사용 취소'
-        });
-
         // 고객 신용 테이블에 적립금 사용 내역 기록
-        this.customerCreditRepository.insert({
+        await this.customerCreditRepository.insert({
           orderCode,
           customer: customer,
           creditDiff: usedPointHistory.amount * 100, // 포인트 사용 금액으로 기록 (1포인트당 1000원)
@@ -304,6 +311,44 @@ export class OrderModifyService {
       }
     }
     // 끝
+
+    // 메뉴 적립금(MENU) 취소 처리
+    const menuHistory = await this.pointHistoryRepository.findOneBy({
+      orderId: orderCode,
+      pathType: PointEnum.MENU,
+    });
+
+    if (menuHistory && menuHistory.isCanceled !== 1) {
+      await this.customerRepository.decrement(
+        { id: customer },
+        'pointBalance',
+        menuHistory.amount,
+      );
+
+      await this.pointHistoryRepository.update(
+        { id: menuHistory.id },
+        { isCanceled: 1 },
+      );
+    }
+
+    // 그릇수거 적립금(BOWL) 취소 처리
+    const bowlHistory = await this.pointHistoryRepository.findOneBy({
+      orderId: orderCode,
+      pathType: PointEnum.BOWL,
+    });
+
+    if (bowlHistory && bowlHistory.isCanceled !== 1) {
+      await this.customerRepository.decrement(
+        { id: customer },
+        'pointBalance',
+        bowlHistory.amount,
+      );
+
+      await this.pointHistoryRepository.update(
+        { id: bowlHistory.id },
+        { isCanceled: 1 },
+      );
+    }
 
     if (canceledOrder.status === StatusEnum.PendingReceipt) {
       await this.clearAlarm();
@@ -376,6 +421,48 @@ export class OrderModifyService {
     });
 
     if (newStatus === StatusEnum.PendingReceipt) {
+      // 주문 삭제 전 적립금 역처리
+      const order = await this.orderRepository.findOneBy({ id: orderCode });
+      if (order) {
+        const customerId = order.customer;
+
+        // MENU 적립금 취소
+        const menuHistory = await this.pointHistoryRepository.findOneBy({
+          orderId: orderCode,
+          pathType: PointEnum.MENU,
+        });
+        if (menuHistory && menuHistory.isCanceled !== 1) {
+          await this.customerRepository.decrement(
+            { id: customerId }, 'pointBalance', menuHistory.amount,
+          );
+        }
+
+        // USE 적립금 사용 복구
+        const useHistory = await this.pointHistoryRepository.findOneBy({
+          orderId: orderCode,
+          pathType: PointEnum.USE,
+        });
+        if (useHistory) {
+          await this.customerRepository.increment(
+            { id: customerId }, 'pointBalance', useHistory.amount * -1,
+          );
+        }
+
+        // BOWL 적립금 취소
+        const bowlHistory = await this.pointHistoryRepository.findOneBy({
+          orderId: orderCode,
+          pathType: PointEnum.BOWL,
+        });
+        if (bowlHistory && bowlHistory.isCanceled !== 1) {
+          await this.customerRepository.decrement(
+            { id: customerId }, 'pointBalance', bowlHistory.amount,
+          );
+        }
+
+        // 주문에 연결된 포인트 이력 삭제 (SET NULL 방지)
+        await this.pointHistoryRepository.delete({ orderId: orderCode });
+      }
+
       await this.orderRepository.delete({
         id: orderCode
       })

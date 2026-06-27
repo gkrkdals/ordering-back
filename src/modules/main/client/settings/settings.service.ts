@@ -120,4 +120,12 @@ export class SettingsService {
 
     return [dateToString(start), dateToString(end)];
   }
+
+  async getMinUsePoint() {
+    const setting = await this.settingsRepository.findOneBy({ big: 7, sml: 1 });
+    if (!setting) {
+      return 3000;
+    }
+    return setting.value ?? 3000;
+  }
 }

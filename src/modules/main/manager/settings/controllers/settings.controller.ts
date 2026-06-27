@@ -120,4 +120,14 @@ export class SettingsController {
   async updateDisposalTime(@Body() dto: { start_time: string | null; end_time: string | null }) {
     return this.settingService.updateDisposalTime(dto.start_time, dto.end_time);
   }
+
+  @Get('min-use-point')
+  async getMinUsePoint() {
+    return this.settingService.getMinUsePoint();
+  }
+
+  @Put('min-use-point')
+  async updateMinUsePoint(@Body('value') value: number) {
+    return this.settingService.updateMinUsePoint(value);
+  }
 }

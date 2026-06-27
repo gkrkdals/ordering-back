@@ -54,4 +54,9 @@ export class SettingsController {
       credit: await this.settingsService.getCreditHistory(customerId, startDate, endDate),
     }
   }
+
+  @Get('min-use-point')
+  async getMinUsePoint() {
+    return this.settingsService.getMinUsePoint();
+  }
 }

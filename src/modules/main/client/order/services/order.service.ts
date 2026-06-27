@@ -195,6 +195,11 @@ export class OrderService {
 
         // 1. 적립금 '사용' 로직 (첫 번째 메뉴 주문 건에만 묶어서 1회만 실행)
         if (point && point > 0 && !isPointUsed) {
+          // 잔액 음수 방어: 사용하려는 포인트가 잔액을 초과하면 거부
+          if ((point * 10) > targetCustomer.pointBalance) {
+            throw new BadRequestException('적립금 잔액이 부족합니다');
+          }
+
           const pointHistory = new PointHistory();
           pointHistory.customerId = targetCustomer.id;
           pointHistory.amount = -(point * 10);
@@ -210,7 +215,7 @@ export class OrderService {
           await this.orderRepository.save(orderMade); // 변경된 주문 금액 저장
 
           // 고객 신용 테이블에 적립금 사용 내역 기록
-          this.customerCreditRepository.insert({
+          await this.customerCreditRepository.insert({
             orderCode: orderMade.id,
             customer: targetCustomer.id,
             creditDiff: point * 1000,
@@ -245,5 +250,55 @@ export class OrderService {
       this.orderGateway.newOrder(noAlarm);
       await this.fcmService.newOrder();
     }
+  }
+
+  async usePoint(customer: JwtCustomer, point: number): Promise<void> {
+    if (!point || point <= 0) {
+      throw new BadRequestException('올바른 적립금 사용 금액을 입력해주세요');
+    }
+
+    const targetCustomer = await this.customerRepository.findOneBy({ id: customer.id });
+    if (!targetCustomer) {
+      throw new BadRequestException('존재하지 않는 고객입니다');
+    }
+
+    const minPointSetting = await this.settingsRepository.findOneBy({ big: 7, sml: 1 });
+    const minPoint = minPointSetting ? (minPointSetting.value ?? 3000) : 3000;
+    if (point * 1000 < minPoint) {
+      throw new BadRequestException(`${minPoint.toLocaleString()}원 이상 사용 가능합니다`);
+    }
+
+    const requiredPointBalance = point * 10;
+    if (requiredPointBalance > targetCustomer.pointBalance) {
+      throw new BadRequestException('적립금 잔액이 부족합니다');
+    }
+
+    // 1. 적립금 사용 이력 기록
+    const pointHistory = new PointHistory();
+    pointHistory.customerId = targetCustomer.id;
+    pointHistory.amount = -requiredPointBalance;
+    pointHistory.orderId = null; // 특정 주문과 묶이지 않은 단독 사용
+    pointHistory.description = '적립금 사용';
+    pointHistory.pathType = PointEnum.USE;
+    await this.pointHistoryRepository.save(pointHistory);
+
+    // 2. 고객 잔액 차감
+    targetCustomer.pointBalance -= requiredPointBalance;
+    await this.customerRepository.save(targetCustomer);
+
+    // 3. 고객 신용(외상) 테이블에 '마스터 입금' 형태로 차감액 기록 (1포인트당 1000원 환산)
+    const creditDiffAmount = point * 1000;
+    const newCreditInfo = new CustomerCredit();
+    newCreditInfo.orderCode = 0; // 단독 사용이므로 임의 코드 0
+    newCreditInfo.customer = targetCustomer.id;
+    newCreditInfo.creditDiff = creditDiffAmount;
+    newCreditInfo.time = new Date();
+    newCreditInfo.memo = '적립금 사용';
+    newCreditInfo.status = null;
+    await this.customerCreditRepository.save(newCreditInfo);
+
+    // 4. 실시간 소켓 갱신 알림
+    this.orderGateway.refresh();
+    this.orderGateway.refreshClient();
   }
 }

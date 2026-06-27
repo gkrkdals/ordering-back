@@ -63,4 +63,9 @@ export class OrderController {
   async createDishDisposals(@CustomerData() customer: Customer, @Body() body: CreateDishDisposalDto) {
     return this.dishDisposalService.createDishDisposal(customer, body);
   }
+
+  @Post('point/use')
+  async usePoint(@CustomerData() customer: JwtCustomer, @Body('point') point: number): Promise<void> {
+    return this.orderService.usePoint(customer, point);
+  }
 }
