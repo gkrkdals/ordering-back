@@ -172,4 +172,24 @@ export class SettingsService {
       message: '그릇 수거 시간이 저장되었습니다.',
     };
   }
+
+  async getMinUsePoint() {
+    const setting = await this.settingsRepository.findOneBy({ big: 7, sml: 1 });
+    if (!setting) {
+      return 3000;
+    }
+    return setting.value ?? 3000;
+  }
+
+  async updateMinUsePoint(value: number) {
+    let setting = await this.settingsRepository.findOneBy({ big: 7, sml: 1 });
+    if (!setting) {
+      setting = new Settings();
+      setting.big = 7;
+      setting.sml = 1;
+      setting.name = 'min_use_point';
+    }
+    setting.value = value;
+    await this.settingsRepository.save(setting);
+  }
 }
