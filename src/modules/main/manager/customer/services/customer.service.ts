@@ -11,6 +11,7 @@ import { CustomerSql } from "@src/modules/main/manager/customer/sql/CustomerSql"
 import { CustomerRaw } from "@src/types/models/CustomerRaw";
 import * as XLSX from "xlsx-js-style";
 import { DiscountGroup } from "@src/entities/customer/discount-group.entity";
+import { PointHistory } from "@src/entities/point-history.entity";
 
 @Injectable()
 export class CustomerService {
@@ -23,6 +24,8 @@ export class CustomerService {
     private readonly customerPriceRepository: Repository<CustomerPrice>,
     @InjectRepository(DiscountGroup)
     private readonly discountGroupRepository: Repository<DiscountGroup>,
+    @InjectRepository(PointHistory)
+    private readonly pointHistoryRepository: Repository<PointHistory>,
   ) {}
 
   async getCustomer(
@@ -212,5 +215,16 @@ export class CustomerService {
 
   async setAllGroup(groupId: number) {
     await this.customerRepository.update({}, { discountGroupId: groupId === -1 ? null : groupId });
+  }
+
+  /**
+   * 고객의 적립금 내역을 최신순으로 조회합니다.
+   * isCanceled=1인 항목은 프론트에서 고동색 '취소됨'으로 표기됩니다.
+   */
+  async getPointHistory(customerId: number): Promise<PointHistory[]> {
+    return this.pointHistoryRepository.find({
+      where: { customerId },
+      order: { createdAt: 'DESC' },
+    });
   }
 }

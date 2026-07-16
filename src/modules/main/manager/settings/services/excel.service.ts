@@ -171,12 +171,15 @@ export class ExcelService {
         { v: row.sum, t: 'n' },
         { v: row.total_credit, t: 'n' },
         { v: row.cnt, t: 'n' },
+        { v: row.earned_point ? row.earned_point / 1000 : 0, t: 'n' },
+        { v: row.used_point ? row.used_point / 1000 : 0, t: 'n' },
+        { v: row.point_balance ? row.point_balance / 1000 : 0, t: 'n' },
         { v: row.bigo, t: 's' },
       ];
 
       ret.forEach((cell, index) => {
         cell.s = this.getColoredTheme(i);
-        if (index >= 2 && index <= 6) cell.s.numFmt = '#,###';
+        if (index >= 2 && index <= 10) cell.s.numFmt = '#,###';
       });
 
       if (row.hex !== 'FFFFFF') ret[0].s.fill = { fgColor: { rgb: `FF${row.hex}` } };
@@ -192,12 +195,15 @@ export class ExcelService {
       { f: `SUBTOTAL(109, F3:F${length + 5})`, t: 'n', s: { ...sBold, numFmt: '₩#,###'} },
       { f: `SUBTOTAL(109, G3:G${length + 5})`, t: 'n', s: { ...sBold, numFmt: '₩#,###'} },
       { f: `SUBTOTAL(109, H3:H${length + 5})`, t: 'n', s: sBold },
+      { f: `SUBTOTAL(109, I3:I${length + 5})`, t: 'n', s: { ...sBold, numFmt: '₩#,###'} },
+      { f: `SUBTOTAL(109, J3:J${length + 5})`, t: 'n', s: { ...sBold, numFmt: '₩#,###'} },
+      { f: `SUBTOTAL(109, K3:K${length + 5})`, t: 'n', s: { ...sBold, numFmt: '₩#,###'} },
       { v: '', t: 's' },
     ];
 
     const ws = XLSX.utils.aoa_to_sheet([topRow, mainHeader, ...data]);
     ws['!cols'] = mainHeaderWidth;
-    ws['!autofilter'] = { ref: 'A2:I2' };
+    ws['!autofilter'] = { ref: 'A2:L2' };
     XLSX.utils.book_append_sheet(wb, ws, '전체정보');
   }
 

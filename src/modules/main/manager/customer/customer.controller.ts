@@ -105,4 +105,9 @@ export class CustomerController {
   async setAllGroup(@Body('groupId') groupId: number) {
     await this.customerService.setAllGroup(groupId);
   }
+
+  @Get('point-history')
+  async getPointHistory(@Query('id') id: number) {
+    return this.customerService.getPointHistory(id);
+  }
 }

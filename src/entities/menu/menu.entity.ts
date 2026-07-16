@@ -27,4 +27,7 @@ export class Menu {
 
   @Column({ name: 'is_discountable', default: 1 })
   isDiscountable: number;
+
+  @Column({ name: 'is_rewardable', default: 1 })
+  isRewardable: number;
 }

@@ -223,16 +223,18 @@ export class OrderService {
           });
         }
 
-        // 2. 메뉴 '적립' 로직 (이건 메뉴마다 매번 쌓이는 게 맞음)
-        const menuPoint = new PointHistory();
-        menuPoint.customerId = targetCustomer.id;
-        menuPoint.amount = targetCustomer.rewardPerMenu;
-        menuPoint.orderId = orderMade.id;
-        menuPoint.description = '주문 메뉴 적립금';
-        menuPoint.pathType = PointEnum.MENU;
-        await this.pointHistoryRepository.save(menuPoint);
+        // 2. 메뉴 '적립' 로직 (적립 가능한 메뉴만)
+        if (currentMenu.isRewardable === 1) {
+          const menuPoint = new PointHistory();
+          menuPoint.customerId = targetCustomer.id;
+          menuPoint.amount = targetCustomer.rewardPerMenu;
+          menuPoint.orderId = orderMade.id;
+          menuPoint.description = '주문 메뉴 적립금';
+          menuPoint.pathType = PointEnum.MENU;
+          await this.pointHistoryRepository.save(menuPoint);
 
-        targetCustomer.pointBalance += targetCustomer.rewardPerMenu; // 잔액 메모리에서 더하기
+          targetCustomer.pointBalance += targetCustomer.rewardPerMenu; // 잔액 메모리에서 더하기
+        }
       }
     }
 

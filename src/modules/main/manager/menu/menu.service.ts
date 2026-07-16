@@ -104,6 +104,7 @@ export class MenuService {
       updatedMenu.name = menu.name;
       updatedMenu.soldOut = menu.soldOut;
       updatedMenu.isDiscountable = menu.isDiscountable;
+      updatedMenu.isRewardable = menu.isRewardable;
       await this.menuRepository.save(updatedMenu);
     }
   }

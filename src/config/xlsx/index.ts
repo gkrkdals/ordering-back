@@ -55,6 +55,9 @@ export const mainHeader = [
   { v: '합계', t: 's', s: headerTheme },
   { v: '총 잔액', t: 's', s: headerTheme },
   { v: '수', t: 's', s: headerTheme },
+  { v: '적립금', t: 's', s: headerTheme },
+  { v: '적립금사용', t: 's', s: headerTheme },
+  { v: '적립금잔액', t: 's', s: headerTheme },
   { v: '비고', t: 's', s: headerTheme },
 ]
 
@@ -67,6 +70,9 @@ export const mainHeaderWidth = [
   { wch: 13 },
   { wch: 13 },
   { wch: 6 },
+  { wch: 13 },
+  { wch: 13 },
+  { wch: 13 },
   { wch: 18 },
 ]
 
