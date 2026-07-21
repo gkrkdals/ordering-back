@@ -141,7 +141,8 @@ export class ExcelService {
       { v: totalCredit / 1000, t: "n", s: sNum },
       { f: `(SUBTOTAL(109, M5:M${length + 4}))/1000`, t: "n", s: sNum },
       { v: usedPointTotal / 1000, t: "n", s: sNum },
-      { v: totalPoint / 100, t: "n", s: sNum },
+      // 적립금잔액은 반올림 없이 소수점 2자리까지 그대로 표시
+      { v: totalPoint / 100, t: "n", s: { ...this.STYLES.CENTER, numFmt: '#,##0.00' } },
     ];
 
     const ws = XLSX.utils.aoa_to_sheet([summaryHeader, summaryValue, [], header, ...dataRows]);
@@ -171,9 +172,9 @@ export class ExcelService {
         { v: row.sum, t: 'n' },
         { v: row.total_credit, t: 'n' },
         { v: row.cnt, t: 'n' },
-        { v: row.earned_point ? row.earned_point / 1000 : 0, t: 'n' },
-        { v: row.used_point ? row.used_point / 1000 : 0, t: 'n' },
-        { v: row.point_balance ? row.point_balance / 1000 : 0, t: 'n' },
+        { v: row.earned_point ?? 0, t: 'n' },
+        { v: row.used_point ?? 0, t: 'n' },
+        { v: row.point_balance ?? 0, t: 'n' },
         { v: row.bigo, t: 's' },
       ];
 
