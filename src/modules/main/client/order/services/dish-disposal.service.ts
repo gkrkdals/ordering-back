@@ -12,6 +12,7 @@ import { FirebaseService } from "@src/modules/firebase/firebase.service";
 import { PointHistory } from "@src/entities/point-history.entity";
 import { PointEnum } from "@src/types/enum/PointEnum";
 import { Settings } from "@src/entities/settings.entity";
+import { isWithinDisposalTime } from "@src/utils/date";
 
 @Injectable()
 export class DishDisposalService {
@@ -76,34 +77,10 @@ export class DishDisposalService {
    */
   private async validateDisposalTime(): Promise<void> {
     const disposalSetting = await this.settingsRepository.findOneBy({ big: 6, sml: 1 });
+    const stringValue = disposalSetting?.stringValue ?? null;
 
-    if (!disposalSetting || !disposalSetting.stringValue) {
-      return; // 설정값 없으면 항상 허용
-    }
-
-    const [startTime, endTime] = disposalSetting.stringValue.split('~');
-    if (!startTime || !endTime) {
-      return; // 파싱 실패 시 항상 허용
-    }
-
-    const now = new Date();
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
-
-    const [startH, startM] = startTime.split(':').map(Number);
-    const [endH, endM] = endTime.split(':').map(Number);
-    const startMinutes = startH * 60 + startM;
-    const endMinutes = endH * 60 + endM;
-
-    let isWithinRange: boolean;
-    if (startMinutes <= endMinutes) {
-      // 같은 날 범위 (예: 09:00~18:00)
-      isWithinRange = currentMinutes >= startMinutes && currentMinutes <= endMinutes;
-    } else {
-      // 자정을 넘기는 범위 (예: 22:00~06:00)
-      isWithinRange = currentMinutes >= startMinutes || currentMinutes <= endMinutes;
-    }
-
-    if (!isWithinRange) {
+    if (!isWithinDisposalTime(stringValue)) {
+      const [startTime, endTime] = stringValue.split('~');
       throw new BadRequestException(
         `그릇 수거 요청은 ${startTime} ~ ${endTime} 사이에만 가능합니다.`
       );

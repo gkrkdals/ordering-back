@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable } from "@nestjs/common";
 import { UpdateOrderDto } from "@src/modules/main/manager/order/dto/update-order.dto";
 import { InjectRepository } from "@nestjs/typeorm";
 import { OrderStatus } from "@src/entities/order/order-status.entity";
@@ -12,7 +12,8 @@ import { OrderSql } from "@src/modules/main/manager/order/sql/order.sql";
 import { UpdateOrderMenuDto } from "@src/modules/main/manager/order/dto/update-order-menu.dto";
 import { OrderChange } from "@src/entities/order/order-change.entity";
 import { User } from "@src/entities/user.entity";
-import { dateToString, getOrderAvailableTimes } from "@src/utils/date";
+import { dateToString, getOrderAvailableTimes, isWithinDisposalTime } from "@src/utils/date";
+import { Settings } from "@src/entities/settings.entity";
 import { PermissionEnum } from "@src/types/enum/PermissionEnum";
 import { JwtUser } from "@src/types/jwt/JwtUser";
 import { FirebaseService } from "@src/modules/firebase/firebase.service";
@@ -36,6 +37,8 @@ export class OrderModifyService {
     private readonly pointHistoryRepository: Repository<PointHistory>,
     @InjectRepository(Customer)
     private readonly customerRepository: Repository<Customer>,
+    @InjectRepository(Settings)
+    private readonly settingsRepository: Repository<Settings>,
 
     private readonly orderGateway: OrderGateway,
     private readonly fcmService: FirebaseService,
@@ -54,6 +57,11 @@ export class OrderModifyService {
 
     if (user.permission === PermissionEnum.Cook && order.newStatus > StatusEnum.WaitingForDelivery) {
       return;
+    }
+
+    // 그릇수거 시작(수거대기 -> 수거중) 전환은 관리자가 설정한 수거 가능 시간 내에서만 허용
+    if (order.newStatus === StatusEnum.InPickingUp) {
+      await this.validateDisposalTime();
     }
 
     // 상태변경을 일으킨 주문상태의 엔티티를 받아옴
@@ -356,6 +364,24 @@ export class OrderModifyService {
 
     this.orderGateway.refreshClient();
     this.orderGateway.refresh();
+  }
+
+  /**
+   * 관리자가 설정한 그릇수거 가능 시간 범위를 검증합니다.
+   * 설정값이 없으면 항상 허용합니다.
+   *
+   * @private
+   */
+  private async validateDisposalTime() {
+    const disposalSetting = await this.settingsRepository.findOneBy({ big: 6, sml: 1 });
+    const stringValue = disposalSetting?.stringValue ?? null;
+
+    if (!isWithinDisposalTime(stringValue)) {
+      const [startTime, endTime] = stringValue.split('~');
+      throw new BadRequestException(
+        `그릇 수거는 ${startTime} ~ ${endTime} 사이에만 가능합니다.`
+      );
+    }
   }
 
   /**
