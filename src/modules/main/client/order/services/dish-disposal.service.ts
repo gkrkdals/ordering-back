@@ -12,7 +12,7 @@ import { FirebaseService } from "@src/modules/firebase/firebase.service";
 import { PointHistory } from "@src/entities/point-history.entity";
 import { PointEnum } from "@src/types/enum/PointEnum";
 import { Settings } from "@src/entities/settings.entity";
-import { isWithinDisposalTime } from "@src/utils/date";
+import { getPreviousWeekdaySml, getWeekdaySml, isWithinDisposalTime } from "@src/utils/date";
 
 @Injectable()
 export class DishDisposalService {
@@ -72,15 +72,18 @@ export class DishDisposalService {
   }
 
   /**
-   * 관리자가 설정한 그릇수거 가능 시간 범위를 검증합니다.
-   * 설정값이 없으면 항상 허용합니다.
+   * 관리자가 설정한 요일별 그릇수거 가능 시간 범위를 검증합니다.
+   * 해당 요일에 설정값이 없으면 종일 허용합니다.
+   * 자정을 넘기는 구간은 시작 요일이 소유하므로 전날 설정도 함께 확인합니다.
    */
   private async validateDisposalTime(): Promise<void> {
-    const disposalSetting = await this.settingsRepository.findOneBy({ big: 6, sml: 1 });
-    const stringValue = disposalSetting?.stringValue ?? null;
+    const disposalSettings = await this.settingsRepository.findBy({ big: 6 });
+    const sml = getWeekdaySml();
+    const todayValue = disposalSettings.find(s => s.sml === sml)?.stringValue ?? null;
+    const yesterdayValue = disposalSettings.find(s => s.sml === getPreviousWeekdaySml(sml))?.stringValue ?? null;
 
-    if (!isWithinDisposalTime(stringValue)) {
-      const [startTime, endTime] = stringValue.split('~');
+    if (!isWithinDisposalTime(todayValue, yesterdayValue)) {
+      const [startTime, endTime] = (todayValue ?? '').split('~');
       throw new BadRequestException(
         `그릇 수거 요청은 ${startTime} ~ ${endTime} 사이에만 가능합니다.`
       );

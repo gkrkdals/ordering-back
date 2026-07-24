@@ -7,6 +7,8 @@ import { createReadStream } from "fs";
 import Path from "path";
 import { MenuCategory } from "@src/entities/menu/menu-category.entity";
 import { Menu } from "@src/entities/menu/menu.entity";
+import { trimTime, WEEKDAY_NAMES } from "@src/utils/date";
+import { UpdateDisposalTimeDto } from "@src/modules/main/manager/settings/dto/update-disposal-time.dto";
 
 @Injectable()
 export class SettingsService {
@@ -113,64 +115,66 @@ export class SettingsService {
     await this.settingsRepository.save(discountSetting);
   }
 
-  async getDisposalTime() {
-    const disposalSetting = await this.settingsRepository.findOneBy({ big: 6, sml: 1 });
-    
-    if (!disposalSetting || !disposalSetting.stringValue) {
-      return {
-        start_time: null,
-        end_time: null,
-      };
+  /**
+   * 그릇 수거 시간(big=6) 은 요일별 7행(sml 1=월 … 7=일) 구조입니다.
+   * 과거에는 sml=1 단일 행에 전 요일 공통 설정을 저장했으므로,
+   * 누락된 요일 행을 기존 값으로 채워 넣어 기존 동작을 그대로 보존합니다.
+   */
+  private async ensureDisposalRows() {
+    const rows = await this.settingsRepository.findBy({ big: 6 });
+    const legacyValue = rows.find(row => row.sml === 1)?.stringValue ?? null;
+
+    for (let sml = 1; sml <= 7; sml++) {
+      const name = WEEKDAY_NAMES[sml - 1];
+      const existing = rows.find(row => row.sml === sml);
+
+      if (!existing) {
+        const created = new Settings();
+        created.big = 6;
+        created.sml = sml;
+        created.name = name;
+        created.stringValue = legacyValue;
+        rows.push(await this.settingsRepository.save(created));
+        continue;
+      }
+
+      // 과거 단일 행의 name('disposal_time')을 요일 라벨로 교정 — 화면에 그대로 노출됩니다.
+      if (existing.name !== name) {
+        existing.name = name;
+        await this.settingsRepository.save(existing);
+      }
     }
 
-    const [startTime, endTime] = disposalSetting.stringValue.split('~');
-    return {
-      start_time: startTime || null,
-      end_time: endTime || null,
-    };
+    return rows.sort((a, b) => a.sml - b.sml);
   }
 
-  async updateDisposalTime(startTime: string | null, endTime: string | null) {
-    // 검증: 둘 다 입력되거나 둘 다 null
-    if ((startTime === null && endTime !== null) || (startTime !== null && endTime === null)) {
-      throw new Error('Both start_time and end_time must be provided or both must be null');
-    }
+  async getDisposalTimes() {
+    return this.ensureDisposalRows();
+  }
 
-    // 시간 형식 검증 (HH:MM)
-    if (startTime) {
-      if (!/^\d{2}:\d{2}$/.test(startTime)) {
-        throw new Error('Invalid time format. Please use HH:MM format');
+  async updateDisposalTimes(days: UpdateDisposalTimeDto[]) {
+    const rows = await this.ensureDisposalRows();
+
+    for (const day of days) {
+      const currentDay = rows.find(row => row.sml === day.sml);
+
+      if (!currentDay) {
+        continue;
       }
-    }
-    if (endTime) {
-      if (!/^\d{2}:\d{2}$/.test(endTime)) {
-        throw new Error('Invalid time format. Please use HH:MM format');
-      }
-    }
 
-    let disposalSetting = await this.settingsRepository.findOneBy({ big: 6, sml: 1 });
-    
-    if (!disposalSetting) {
-      disposalSetting = new Settings();
-      disposalSetting.big = 6;
-      disposalSetting.sml = 1;
-      disposalSetting.name = 'disposal_time';
+      const sh = trimTime(day.startHour);
+      const sm = trimTime(day.startMinute, false);
+      const eh = trimTime(day.endHour);
+      const em = trimTime(day.endMinute, false);
+
+      // 네 칸이 모두 유효할 때만 제한을 적용하고, 그 외에는 해당 요일을 종일 허용으로 둡니다.
+      const isComplete = [sh, sm, eh, em].every(part => part.length > 0);
+      currentDay.stringValue = isComplete
+        ? `${sh.padStart(2, '0')}:${sm.padStart(2, '0')}~${eh.padStart(2, '0')}:${em.padStart(2, '0')}`
+        : null;
+
+      await this.settingsRepository.save(currentDay);
     }
-
-    // 저장 형식: "hh:mm~hh:mm" 또는 null
-    if (startTime && endTime) {
-      disposalSetting.stringValue = `${startTime}~${endTime}`;
-    } else {
-      disposalSetting.stringValue = null;
-    }
-
-    await this.settingsRepository.save(disposalSetting);
-
-    return {
-      start_time: startTime,
-      end_time: endTime,
-      message: '그릇 수거 시간이 저장되었습니다.',
-    };
   }
 
   async getMinUsePoint() {

@@ -4,6 +4,7 @@ import { Settings } from "@src/entities/settings.entity";
 import { Repository } from "typeorm";
 import { UpdateHoursDto } from "@src/modules/main/manager/settings/dto/update-hours.dto";
 import { CronService } from "@src/modules/misc/cron/cron.service";
+import { trimTime } from "@src/utils/date";
 
 @Injectable()
 export class BusinessHoursService {
@@ -24,33 +25,15 @@ export class BusinessHoursService {
       const currentHour = await this.settingsRepository.findOneBy({ big: 4, sml: hour.sml });
 
       const { startHour, startMinute, endHour, endMinute } = hour;
-      const sh = this.trimTime(startHour);
-      const sm = this.trimTime(startMinute, false);
-      const eh = this.trimTime(endHour);
-      const em = this.trimTime(endMinute, false);
+      const sh = trimTime(startHour);
+      const sm = trimTime(startMinute, false);
+      const eh = trimTime(endHour);
+      const em = trimTime(endMinute, false);
       currentHour.stringValue = `${sh}:${sm}~${eh}:${em}`;
       await this.settingsRepository.save(currentHour);
     }
 
     this.cronService.cancelAllTasks();
     await this.cronService.scheduleTasks();
-  }
-
-  private trimTime(time: string, isHour: boolean = true) {
-    const numberTime = parseInt(time);
-
-    if (isNaN(numberTime)) {
-      return '';
-    }
-
-    if (isHour && (numberTime >= 24 || numberTime < 0)) {
-      return '';
-    }
-
-    if (!isHour && (numberTime >= 60 || numberTime < 0)) {
-      return '';
-    }
-
-    return time;
   }
 }

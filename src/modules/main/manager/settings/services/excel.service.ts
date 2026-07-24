@@ -141,8 +141,7 @@ export class ExcelService {
       { v: totalCredit / 1000, t: "n", s: sNum },
       { f: `(SUBTOTAL(109, M5:M${length + 4}))/1000`, t: "n", s: sNum },
       { v: usedPointTotal / 1000, t: "n", s: sNum },
-      // 적립금잔액은 반올림 없이 소수점 2자리까지 그대로 표시
-      { v: totalPoint / 100, t: "n", s: { ...this.STYLES.CENTER, numFmt: '#,##0.00' } },
+      { v: totalPoint / 10, t: "n", s: sNum },
     ];
 
     const ws = XLSX.utils.aoa_to_sheet([summaryHeader, summaryValue, [], header, ...dataRows]);

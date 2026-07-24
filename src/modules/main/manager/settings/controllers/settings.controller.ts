@@ -21,6 +21,7 @@ import * as Path from "path";
 import { AuthGuard } from "@src/modules/auth/auth.guard";
 import { NoAlarmsService } from "@src/modules/main/manager/settings/services/no-alarms.service";
 import { CalculationService } from "@src/modules/main/manager/settings/services/calculation.service";
+import { UpdateDisposalTimeDto } from "@src/modules/main/manager/settings/dto/update-disposal-time.dto";
 
 @Controller('manager/settings')
 @UseGuards(AuthGuard)
@@ -112,13 +113,13 @@ export class SettingsController {
   }
 
   @Get('disposal-time')
-  async getDisposalTime() {
-    return this.settingService.getDisposalTime();
+  async getDisposalTimes() {
+    return this.settingService.getDisposalTimes();
   }
 
   @Put('disposal-time')
-  async updateDisposalTime(@Body() dto: { start_time: string | null; end_time: string | null }) {
-    return this.settingService.updateDisposalTime(dto.start_time, dto.end_time);
+  async updateDisposalTimes(@Body() days: UpdateDisposalTimeDto[]) {
+    return this.settingService.updateDisposalTimes(days);
   }
 
   @Get('min-use-point')

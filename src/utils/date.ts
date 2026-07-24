@@ -34,35 +34,106 @@ export function isSameDay(day1: Date, day2: Date): boolean {
   return (day1.getFullYear() === day2.getFullYear()) && (day1.getMonth() === day2.getMonth()) && (day1.getDate() === day2.getDate());
 }
 
+/** 요일 라벨. Settings 의 sml 1~7 과 1:1 대응합니다. (sml 1 = 월요일) */
+export const WEEKDAY_NAMES = ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일'];
+
 /**
- * 그릇 수거 가능 시간 설정("HH:MM~HH:MM" 또는 null)을 기준으로
- * 현재 시각이 수거 가능 시간 범위 내인지 판정합니다.
- * 설정값이 없거나 파싱 실패 시 항상 허용(true)합니다.
- * 시작 시간 > 종료 시간이면 자정을 넘기는 범위로 처리합니다. (예: 23:00~02:00)
+ * 날짜를 Settings 의 sml 요일 인덱스(1=월 … 7=일)로 변환합니다.
+ * 자동 품절/해제 설정(big=4)과 동일한 규약입니다.
  */
-export function isWithinDisposalTime(stringValue: string | null, now: Date = new Date()): boolean {
+export function getWeekdaySml(date: Date = new Date()): number {
+  const day = date.getDay(); // 0=일, 1=월 … 6=토
+  return day === 0 ? 7 : day;
+}
+
+/** 전날 요일의 sml 인덱스를 반환합니다. (월요일 → 일요일) */
+export function getPreviousWeekdaySml(sml: number): number {
+  return sml === 1 ? 7 : sml - 1;
+}
+
+interface TimeWindow {
+  start: number;
+  end: number;
+}
+
+/** "HH:MM~HH:MM" 을 분 단위 구간으로 파싱합니다. 값이 없거나 형식이 깨지면 null. */
+function parseTimeWindow(stringValue: string | null | undefined): TimeWindow | null {
   if (!stringValue) {
-    return true; // 설정값 없으면 항상 허용
+    return null;
   }
 
   const [startTime, endTime] = stringValue.split('~');
   if (!startTime || !endTime) {
-    return true; // 파싱 실패 시 항상 허용
+    return null;
+  }
+
+  const [startH, startM] = startTime.split(':').map(Number);
+  const [endH, endM] = endTime.split(':').map(Number);
+
+  if ([startH, startM, endH, endM].some(n => Number.isNaN(n))) {
+    return null;
+  }
+
+  return { start: startH * 60 + startM, end: endH * 60 + endM };
+}
+
+/**
+ * 요일별 그릇 수거 가능 시간 설정을 기준으로 현재 시각이 수거 가능한지 판정합니다.
+ *
+ * - 오늘 요일의 설정값이 없으면 그 요일은 종일 허용입니다.
+ * - 시작 시간 > 종료 시간이면 자정을 넘기는 구간이며, **시작 요일이 구간 전체를 소유**합니다.
+ *   (금요일에 23:00~02:00 설정 → 금 23시부터 토 새벽 2시까지 허용)
+ *
+ * @param todayValue 오늘 요일 설정("HH:MM~HH:MM" 또는 null)
+ * @param yesterdayValue 어제 요일 설정 — 자정을 넘겨 오늘 새벽까지 이어지는 구간 판정용
+ */
+export function isWithinDisposalTime(
+  todayValue: string | null,
+  yesterdayValue: string | null = null,
+  now: Date = new Date(),
+): boolean {
+  const today = parseTimeWindow(todayValue);
+
+  if (!today) {
+    return true; // 미설정 요일 = 종일 허용
   }
 
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-  const [startH, startM] = startTime.split(':').map(Number);
-  const [endH, endM] = endTime.split(':').map(Number);
-  const startMinutes = startH * 60 + startM;
-  const endMinutes = endH * 60 + endM;
-
-  if (startMinutes <= endMinutes) {
+  if (today.start <= today.end) {
     // 같은 날 범위 (예: 09:00~18:00)
-    return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+    if (currentMinutes >= today.start && currentMinutes <= today.end) {
+      return true;
+    }
+  } else if (currentMinutes >= today.start) {
+    // 오늘 시작된 자정 넘김 구간의 앞부분 (예: 23:00~02:00 의 23시 이후)
+    return true;
   }
 
-  // 자정을 넘기는 범위 (예: 22:00~06:00)
-  return currentMinutes >= startMinutes || currentMinutes <= endMinutes;
+  // 어제 시작된 자정 넘김 구간의 뒷부분 (예: 어제 23:00~02:00 의 오늘 새벽)
+  const yesterday = parseTimeWindow(yesterdayValue);
+  return !!yesterday && yesterday.start > yesterday.end && currentMinutes <= yesterday.end;
+}
+
+/**
+ * 시/분 입력값을 검증해 그대로 돌려줍니다. 범위를 벗어나거나 숫자가 아니면 빈 문자열.
+ * 영업시간(자동 품절/해제)과 그릇 수거 시간 저장에서 공용으로 사용합니다.
+ */
+export function trimTime(time: string, isHour: boolean = true): string {
+  const numberTime = parseInt(time);
+
+  if (isNaN(numberTime)) {
+    return '';
+  }
+
+  if (isHour && (numberTime >= 24 || numberTime < 0)) {
+    return '';
+  }
+
+  if (!isHour && (numberTime >= 60 || numberTime < 0)) {
+    return '';
+  }
+
+  return time;
 }
 
