@@ -59,7 +59,7 @@ export class ExcelService {
   generateWorkbook(
     displayData: ExcelData[],
     allData: MainCalculation[],
-    params: { start: string, end: string, misu: number, totalCredit: number, usedPointTotal: number, totalPoint: number },
+    params: { start: string, end: string, misu: number, totalCredit: number, usedPointTotal: number, totalPoint: number, earnedPointTotal: number },
     customers: Customer[] = [],
     startString: string = '',
     endString: string = ''
@@ -82,7 +82,7 @@ export class ExcelService {
    * 상단에 요약 통계를 표시하고 하단에 상세 주문 내역을 나열합니다.
    */
   private addSummarySheet(wb: XLSX.WorkBook, displayData: ExcelData[], params: any) {
-    const { start, end, misu, totalCredit, usedPointTotal, totalPoint } = params;
+    const { start, end, misu, totalCredit, usedPointTotal, totalPoint, earnedPointTotal } = params;
     let numbering = 0;
     const length = displayData.length;
 
@@ -139,7 +139,8 @@ export class ExcelService {
       { f: `(SUBTOTAL(109, N5:N${length + 4}))/1000`, t: "n", s: sNum },
       { f: 'E2+F2-G2', t: "n", s: sNum },
       { v: totalCredit / 1000, t: "n", s: sNum },
-      { f: `(SUBTOTAL(109, M5:M${length + 4}))/1000`, t: "n", s: sNum },
+      // 적립금(J2): 상세 행(M열) 합계가 아닌 point_history 원장 기준 — 전체정보 시트 적립금 합계(I1)와 동일 기준
+      { v: earnedPointTotal / 1000, t: "n", s: sNum },
       { v: usedPointTotal / 1000, t: "n", s: sNum },
       { v: totalPoint / 10, t: "n", s: sNum },
     ];

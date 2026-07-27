@@ -108,6 +108,7 @@ export class CalculationService {
     const totalPoint = (await this.orderRepository.query(SettingsSql.getTotalPoint))[0]?.total_point || 0;
     const misu = (await this.orderRepository.query(SettingsSql.getMisu, [start, menu, menu]))[0]?.misu || 0;
     const totalCredit = (await this.orderRepository.query(SettingsSql.getTotalCredit))[0]?.total_credit || 0;
+    const earnedPointTotal = Number((await this.orderRepository.query(SettingsSql.getEarnedPointTotal, [start, end]))[0]?.earned_point) || 0;
 
     const allData: MainCalculation[] = await this.orderRepository.query(
       SettingsSql.getAllCustomerOrderData,
@@ -130,7 +131,8 @@ export class CalculationService {
         misu,
         totalCredit,
         usedPointTotal,
-        totalPoint
+        totalPoint,
+        earnedPointTotal
       }
     };
   }

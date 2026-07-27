@@ -296,7 +296,7 @@ export class SettingsSql {
                LEFT JOIN (
                   SELECT customer_id,
                          SUM(IF(path_type = 'USE' OR path_type = 'CANCELED', amount, 0)) * -100 as used_point,
-                         SUM(IF(path_type != 'USE' AND path_type != 'CANCELED', amount, 0)) * 100 as earned_point
+                         SUM(IF(path_type != 'USE' AND path_type != 'CANCELED' AND is_canceled = 0, amount, 0)) * 100 as earned_point
                   FROM point_history
                   WHERE created_at >= ? AND created_at <= ?
                   GROUP BY customer_id
@@ -316,6 +316,17 @@ export class SettingsSql {
 
   static getTotalCredit = `
       SELECT SUM(credit_diff) * -1 AS total_credit FROM customer_credit`;
+
+  // 기간 내 적립 합계 (원 단위). 전체정보 시트의 earned_point와 동일한 기준:
+  // point_history.created_at 기준, USE/CANCELED 및 취소된(is_canceled=1) 적립 제외
+  static getEarnedPointTotal = `
+      SELECT IFNULL(SUM(amount), 0) * 100 AS earned_point
+      FROM point_history
+      WHERE path_type != 'USE'
+        AND path_type != 'CANCELED'
+        AND is_canceled = 0
+        AND created_at >= ?
+        AND created_at <= ?`;
 
   static getTotalPoint = `
       SELECT SUM(point_balance) AS total_point FROM customer`;
