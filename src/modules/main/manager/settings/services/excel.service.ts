@@ -131,9 +131,11 @@ export class ExcelService {
     ];
 
     const sNum = { ...this.STYLES.CENTER, numFmt: this.STYLES.CURRENCY_FMT };
+    // 수량(D2): 메뉴 주문 건수만 집계 — 메뉴명이 빈 행(마스터입금/그릇수거입금)과 취소된 주문 제외
+    const menuOrderCount = displayData.filter(row => row.menu_name && row.price !== '취소됨').length;
     const summaryValue = [
       {}, {}, {},
-      { f: `SUBTOTAL(104, A5:A${length + 4})`, t: "n", s: this.STYLES.CENTER },
+      { v: menuOrderCount, t: "n", s: this.STYLES.CENTER },
       { f: `(SUBTOTAL(109, D5:D${length + 4}))/1000`, t: "n", s: sNum },
       { v: misu / 1000, t: "n", s: sNum },
       { f: `(SUBTOTAL(109, N5:N${length + 4}))/1000`, t: "n", s: sNum },
