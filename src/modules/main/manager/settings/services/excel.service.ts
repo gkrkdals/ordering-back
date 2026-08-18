@@ -112,7 +112,7 @@ export class ExcelService {
         { v: this.getIn(row), t: "n", s: q },
         { v: this.getMethod(row), t: "s", s: p },
         { v: row.memo, t: "s", s: p },
-        { v: row.bigo ?? '', t: "s", s: p }
+        { v: this.getBigo(row), t: "s", s: p }
       ];
     });
 
@@ -270,12 +270,21 @@ export class ExcelService {
 
   /**
    * 입금 방식에 따른 상태 텍스트를 반환합니다.
+   * 적립금 사용 건(customer_credit.memo = '적립금 사용')은 마스터입금과 구분해 표기합니다.
    */
   private getMethod(row: ExcelData) {
+    if (row.bigo === '적립금 사용') return '적립금 사용';
     if (parseInt(row.credit_in) !== 0 && !isNaN(parseInt(row.credit_in))) return '배달완료';
     if (parseInt(row.disposal_in) !== 0 && !isNaN(parseInt(row.disposal_in))) return '그릇수거';
     if (parseInt(row.master_in) !== 0 && !isNaN(parseInt(row.master_in))) return '마스터';
     return '';
+  }
+
+  /**
+   * 비고 텍스트를 반환합니다. '적립금 사용'은 입금경로 열로 옮겨 표기하므로 비고에서는 제외합니다.
+   */
+  private getBigo(row: ExcelData) {
+    return row.bigo === '적립금 사용' ? '' : (row.bigo ?? '');
   }
 
   /**
@@ -323,10 +332,10 @@ export class ExcelService {
           { v: row.master_time === null ? '' : dateToString(new Date(row.master_time)), t: "s", s: p },
           { v: row.master_manager ?? '', t: "s", s: p },
           { v: row.master_in === null ? '' : parseInt(row.master_in), t: "n", s: q },
-          { v: row.path ?? '', t: "s", s: p },
+          { v: this.getMethod(row), t: "s", s: p },
           { v: row.point_amt !== null && !isNaN(parseInt(row.point_amt)) ? parseInt(row.point_amt) * 100 : '', t: "n", s: q },
           { v: row.memo, t: "s", s: p },
-          { v: row.bigo ?? '', t: "s", s: p }
+          { v: this.getBigo(row), t: "s", s: p }
         ];
       });
 

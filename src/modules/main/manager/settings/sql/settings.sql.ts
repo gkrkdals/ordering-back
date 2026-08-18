@@ -69,8 +69,9 @@ export class SettingsSql {
                             FROM (
                             SELECT order_id, created_at, amount, path_type,
                                    ROW_NUMBER() OVER (PARTITION BY order_id ORDER BY amount DESC, created_at DESC) as rn
-                            FROM point_history 
+                            FROM point_history
                             WHERE path_type = 'MENU'
+                              AND is_canceled = 0
                             ) helper
                             WHERE rn = 1
                      ) ph ON ph.order_id = t.order_code
@@ -111,11 +112,53 @@ export class SettingsSql {
                            LEFT JOIN user on customer_credit.by = user.id
                            LEFT JOIN customer on customer_credit.customer = customer.id
                            LEFT JOIN customer_category on customer.category = customer_category.id
-                           LEFT JOIN point_history on customer.id = point_history.customer_id AND point_history.order_id = customer_credit.order_code AND path_type = 'BOWL'
+                           LEFT JOIN point_history on customer.id = point_history.customer_id AND point_history.order_id = customer_credit.order_code AND path_type = 'BOWL' AND point_history.is_canceled = 0
                   WHERE status = 7
                     AND credit_diff > 0
                     AND (customer_credit.time >= ? AND customer_credit.time <= ?)
                     AND (customer = ? OR ISNULL(?))
+
+                  UNION ALL
+
+                  -- 입금 없이 수거만 된 건의 그릇수거 적립금 (위 branch와 중복되지 않는 BOWL 적립)
+                  SELECT customer.id             customer,
+                         customer.name           customer_name,
+                         ''                      menu,
+                         ''                      menu_name,
+                         null                    path,
+                         null                    price,
+                         null                    order_time,
+                         null                    delivered_time,
+                         null                    credit_by,
+                         null                    credit_time,
+                         null                    credit_in,
+                         IFNULL(os7.time, ph.created_at) AS disposal_time,
+                         u.nickname           as disposal_manager,
+                         null                 AS disposal_in,
+                         null                 AS master_time,
+                         null                 AS master_manager,
+                         null                 AS master_in,
+                         ''                      memo,
+                         hex,
+                         '' bigo,
+                         ph.created_at point_time,
+                         ph.amount point_amt,
+                         ph.path_type point_type
+
+                  FROM point_history ph
+                           LEFT JOIN order_status os7 ON os7.order_code = ph.order_id AND os7.status = 7
+                           LEFT JOIN user u ON u.id = os7.\`by\`
+                           LEFT JOIN customer on ph.customer_id = customer.id
+                           LEFT JOIN customer_category on customer.category = customer_category.id
+                  WHERE ph.path_type = 'BOWL'
+                    AND ph.is_canceled = 0
+                    AND (ph.created_at >= ? AND ph.created_at <= ?)
+                    AND (ph.customer_id = ? OR ISNULL(?))
+                    AND NOT EXISTS (SELECT 1
+                                    FROM customer_credit cc
+                                    WHERE cc.order_code = ph.order_id
+                                      AND cc.status = 7
+                                      AND cc.credit_diff > 0)
 
                   UNION ALL
 

@@ -93,8 +93,9 @@ export class CalculationService {
       SettingsSql.getOrdinaryData,
       [
         start, end, customer, customer, menu, menu,
-        start, end, customer, customer,
-        start, end, customer, customer,
+        start, end, customer, customer, // 그릇수거 입금
+        start, end, customer, customer, // 그릇수거 적립 (입금 없는 건)
+        start, end, customer, customer, // 마스터입금 (order_code=0)
         start, end, start, customer, customer,
         start, end, customer, customer,
       ]
