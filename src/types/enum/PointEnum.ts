@@ -3,4 +3,6 @@ export enum PointEnum {
   BOWL = 'BOWL',
   USE = 'USE',
   CANCELED = 'CANCELED',
+  ADMIN_ADD = 'ADMIN_ADD',
+  ADMIN_REMOVE = 'ADMIN_REMOVE',
 }

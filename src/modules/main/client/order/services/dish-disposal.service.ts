@@ -2,7 +2,7 @@ import { BadRequestException, Injectable } from "@nestjs/common";
 import { Customer } from "@src/entities/customer/customer.entity";
 import { InjectRepository } from "@nestjs/typeorm";
 import { OrderStatus } from "@src/entities/order/order-status.entity";
-import { Repository } from "typeorm";
+import { DataSource, Repository } from "typeorm";
 import { CreateDishDisposalDto } from "@src/modules/main/client/order/dto/create-dish-disposal.dto";
 import { DisposalSql } from "@src/modules/main/client/order/sql/DisposalSql";
 import { StatusEnum } from "@src/types/enum/StatusEnum";
@@ -25,6 +25,7 @@ export class DishDisposalService {
 
     @InjectRepository(Settings)
     private readonly settingsRepository: Repository<Settings>,
+    private readonly datasource: DataSource,
 
     private readonly orderGateway: OrderGateway,
     private readonly fcmService: FirebaseService,
@@ -41,29 +42,50 @@ export class DishDisposalService {
     // 그릇수거 가능 시간 검증
     await this.validateDisposalTime();
 
-    const newOrderStatus = new OrderStatus();
     const { disposal, location } = body;
-    newOrderStatus.orderCode = disposal.order_code;
-    newOrderStatus.status = StatusEnum.InPickingUp;
-    newOrderStatus.location = location;
 
-    await this.orderStatusRepository.save(newOrderStatus);
-    
-    const bowlPoint = new PointHistory();
-    bowlPoint.customerId = customer.id;
-    bowlPoint.orderId = disposal.order_code;
-    bowlPoint.amount = customer.rewardPerBowl;
-    bowlPoint.pathType = PointEnum.BOWL;
-    bowlPoint.description = "그릇수거 적립금";
+    // 상태 기록·적립을 하나의 트랜잭션으로 묶음
+    await this.datasource.transaction(async (em) => {
+      // 같은 주문에 대한 동시 요청 직렬화 (행 잠금)
+      await em.query('SELECT id FROM `order` WHERE id = ? FOR UPDATE', [disposal.order_code]);
 
-    await this.orderStatusRepository.manager.save(bowlPoint);
+      // 중복 수거 요청/중복 적립 방어
+      const existingStatus = await em.getRepository(OrderStatus).findOneBy({
+        orderCode: disposal.order_code,
+        status: StatusEnum.InPickingUp,
+      });
+      const existingBowlPoint = await em.getRepository(PointHistory).findOneBy({
+        orderId: disposal.order_code,
+        pathType: PointEnum.BOWL,
+      });
 
-    
-    const currentCustomer = await this.customerRepository.findOne({ where: { id: customer.id } });
-    currentCustomer.pointBalance += currentCustomer.rewardPerBowl;
-    
-    await this.orderStatusRepository.manager.save(currentCustomer);
-    
+      if (existingStatus || existingBowlPoint) {
+        throw new BadRequestException('이미 그릇수거가 요청된 주문입니다');
+      }
+
+      const newOrderStatus = new OrderStatus();
+      newOrderStatus.orderCode = disposal.order_code;
+      newOrderStatus.status = StatusEnum.InPickingUp;
+      newOrderStatus.location = location;
+      await em.getRepository(OrderStatus).save(newOrderStatus);
+
+      // 적립액은 JWT의 낡은 값이 아닌 DB의 현재 값을 사용
+      const currentCustomer = await em.getRepository(Customer).findOneBy({ id: customer.id });
+
+      await em.getRepository(PointHistory).insert({
+        customerId: customer.id,
+        orderId: disposal.order_code,
+        amount: currentCustomer.rewardPerBowl,
+        pathType: PointEnum.BOWL,
+        description: "그릇수거 적립금",
+      });
+
+      await em.getRepository(Customer).increment(
+        { id: customer.id },
+        'pointBalance',
+        currentCustomer.rewardPerBowl,
+      );
+    });
 
     this.orderGateway.newDishDisposal();
     await this.fcmService.newDishDisposal();

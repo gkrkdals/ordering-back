@@ -1,7 +1,8 @@
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Customer } from "@src/entities/customer/customer.entity";
-import { Not, Repository } from "typeorm";
+import { DataSource, Not, Repository } from "typeorm";
+import { PointEnum } from "@src/types/enum/PointEnum";
 import { GetCustomerResponseDto } from "@src/modules/main/manager/customer/dto/response/get-customer-response.dto";
 import { countToTotalPage } from "@src/utils/data";
 import { CustomerCategory } from "@src/entities/customer/customer-category.entity";
@@ -26,6 +27,7 @@ export class CustomerService {
     private readonly discountGroupRepository: Repository<DiscountGroup>,
     @InjectRepository(PointHistory)
     private readonly pointHistoryRepository: Repository<PointHistory>,
+    private readonly datasource: DataSource,
   ) {}
 
   async getCustomer(
@@ -137,7 +139,7 @@ export class CustomerService {
       updatedCustomer.rewardPerBowl = customer.rewardPerBowl;
       updatedCustomer.rewardPerMenu = customer.rewardPerMenu;
       updatedCustomer.isSoldOut = customer['is_sold_out'];
-      updatedCustomer.pointBalance = customer['point_balance'];
+      // 적립금 잔액은 감사 이력이 남는 adjustPoint로만 변경 가능
       await this.customerRepository.save(updatedCustomer);
     }
   }
@@ -225,6 +227,52 @@ export class CustomerService {
     return this.pointHistoryRepository.find({
       where: { customerId },
       order: { createdAt: 'DESC' },
+    });
+  }
+
+  /**
+   * 관리자의 적립금 수동 지급/차감. 항상 이력이 남습니다.
+   *
+   * @param customerId 대상 고객 id
+   * @param mode 0: 지급, 1: 차감
+   * @param amount 백원 단위 적립금 (양의 정수)
+   * @param memo 조정 사유
+   */
+  async adjustPoint(customerId: number, mode: number, amount: number, memo: string) {
+    if (!Number.isInteger(amount) || amount <= 0) {
+      throw new BadRequestException('올바른 적립금 금액을 입력해주세요');
+    }
+
+    if (mode !== 0 && mode !== 1) {
+      throw new BadRequestException();
+    }
+
+    const diff = mode === 0 ? amount : -amount;
+
+    await this.datasource.transaction(async (em) => {
+      const targetCustomer = await em.getRepository(Customer).findOneBy({ id: customerId });
+      if (!targetCustomer) {
+        throw new BadRequestException('존재하지 않는 고객입니다');
+      }
+
+      // 차감 시 잔액이 음수가 되지 않도록 조건부 원자 갱신
+      const result = await em.getRepository(Customer).createQueryBuilder()
+        .update()
+        .set({ pointBalance: () => 'point_balance + :diff' })
+        .where('id = :id AND point_balance + :diff >= 0', { id: customerId, diff })
+        .execute();
+
+      if (result.affected === 0) {
+        throw new BadRequestException('적립금 잔액이 부족합니다');
+      }
+
+      await em.getRepository(PointHistory).insert({
+        customerId,
+        orderId: null,
+        amount: diff,
+        pathType: mode === 0 ? PointEnum.ADMIN_ADD : PointEnum.ADMIN_REMOVE,
+        description: memo || '관리자 적립금 조정',
+      });
     });
   }
 }

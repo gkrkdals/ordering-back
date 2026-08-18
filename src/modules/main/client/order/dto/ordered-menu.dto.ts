@@ -5,7 +5,6 @@ export class OrderedMenuDto {
   request: string;
 }
 
-export class OrderMenuWithPointDto {
+export class CreateOrderDto {
   orderedMenus: OrderedMenuDto[];
-  point: number;
 }

@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Post, UseGuards } from "@nestjs/common";
 import { OrderService } from "@src/modules/main/client/order/services/order.service";
 import { OrderCategory } from "@src/entities/order/order-category.entity";
-import { OrderedMenuDto, OrderMenuWithPointDto } from "@src/modules/main/client/order/dto/ordered-menu.dto";
+import { CreateOrderDto } from "@src/modules/main/client/order/dto/ordered-menu.dto";
 import { CustomerData } from "@src/modules/user/customer.decorator";
 import { Customer } from "@src/entities/customer/customer.entity";
 import { AuthGuard } from "@src/modules/auth/auth.guard";
@@ -50,7 +50,7 @@ export class OrderController {
   }
 
   @Post()
-  async addOrder(@CustomerData() customer: JwtCustomer, @Body() orderedMenu: OrderMenuWithPointDto): Promise<void> {
+  async addOrder(@CustomerData() customer: JwtCustomer, @Body() orderedMenu: CreateOrderDto): Promise<void> {
     return this.orderService.addOrder(customer, orderedMenu);
   }
 

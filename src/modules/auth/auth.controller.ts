@@ -14,6 +14,8 @@ import {
 } from "@nestjs/common";
 import { AuthService } from "./services/auth.service";
 import { AuthGuard } from "./auth.guard";
+import { RolesGuard } from "./roles.guard";
+import { Roles } from "@src/decorators/roles.decorator";
 import { CookieOptions, Response } from "express";
 import { Customer } from "@src/entities/customer/customer.entity";
 import { ManagerSignInDto } from "@src/modules/auth/dto/manager-sign-in.dto";
@@ -108,25 +110,29 @@ export class AuthController {
     await this.authService.refreshToken(user, token);
   }
 
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(['manager'])
   @Get('account')
   async getAccounts() {
     return this.accountService.getAccounts();
   }
 
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(['manager'])
   @Post('account')
   async createAccount(@Body() body: CreateAccountDto) {
     await this.accountService.createAccount(body);
   }
 
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(['manager'])
   @Put('account')
   async updateAccount(@Body('user') account: User) {
     await this.accountService.updateAccount(account);
   }
 
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(['manager'])
   @Delete('account/:id')
   async deleteAccount(@Param('id') id: number) {
     await this.accountService.deleteAccount(id);

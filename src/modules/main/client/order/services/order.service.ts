@@ -1,8 +1,8 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
 import { OrderCategory } from "@src/entities/order/order-category.entity";
-import { DataSource, LessThan, Not, Repository } from "typeorm";
-import { OrderedMenuDto, OrderMenuWithPointDto } from "@src/modules/main/client/order/dto/ordered-menu.dto";
+import { DataSource, In, LessThan, Not, Repository } from "typeorm";
+import { CreateOrderDto } from "@src/modules/main/client/order/dto/ordered-menu.dto";
 import { Order } from "@src/entities/order/order.entity";
 import { Customer } from "@src/entities/customer/customer.entity";
 import { StatusEnum } from "@src/types/enum/StatusEnum";
@@ -170,76 +170,69 @@ export class OrderService {
     return this.datasource.query(OrderSql.getOrderStatus, [customer.id, first, last]);
   }
 
-  async addOrder(customer: JwtCustomer, om: OrderMenuWithPointDto): Promise<void> {
-    const { orderedMenus, point } = om;
+  async addOrder(customer: JwtCustomer, om: CreateOrderDto): Promise<void> {
+    const { orderedMenus } = om;
 
-    const targetCustomer = await this.customerRepository.findOneBy({ id: customer.id });
-    const isThereAnyRequest = orderedMenus.some(menu => menu.request && menu.request.length !== 0);
-
-    let isPointUsed = false;
-
-    for(const orderedMenu of orderedMenus) {
-      const newOrder = new Order();
-      const currentMenu = await this.menuRepository.findOneBy({ id: orderedMenu.menu.id });
-
-      // 메뉴가 품절이 된 경우
-      if (currentMenu.soldOut === 1) {
-        throw new BadRequestException();
-      } else {
-        newOrder.price = orderedMenu.menu.menuCategory.price;
-        newOrder.path = null;
-        newOrder.customer = customer.id;
-        newOrder.menu = orderedMenu.menu.id;
-        newOrder.request = orderedMenu.request;
-        const orderMade = await this.orderRepository.save(newOrder);
-
-        // 1. 적립금 '사용' 로직 (첫 번째 메뉴 주문 건에만 묶어서 1회만 실행)
-        if (point && point > 0 && !isPointUsed) {
-          // 잔액 음수 방어: 사용하려는 포인트가 잔액을 초과하면 거부
-          if ((point * 10) > targetCustomer.pointBalance) {
-            throw new BadRequestException('적립금 잔액이 부족합니다');
-          }
-
-          const pointHistory = new PointHistory();
-          pointHistory.customerId = targetCustomer.id;
-          pointHistory.amount = -(point * 10);
-          pointHistory.orderId = orderMade.id; 
-          pointHistory.description = '주문 적립금 사용';
-          pointHistory.pathType = PointEnum.USE;
-          await this.pointHistoryRepository.save(pointHistory);
-
-          targetCustomer.pointBalance -= (point * 10); // 잔액 메모리에서 차감
-          isPointUsed = true; // 이후 루프에서는 실행되지 않도록 잠금!
-
-          orderMade.price -= (point * 1000); // 주문 금액에서 적립금 차감 (1포인트당 1000원)
-          await this.orderRepository.save(orderMade); // 변경된 주문 금액 저장
-
-          // 고객 신용 테이블에 적립금 사용 내역 기록
-          await this.customerCreditRepository.insert({
-            orderCode: orderMade.id,
-            customer: targetCustomer.id,
-            creditDiff: point * 1000,
-            memo: '적립금 사용',
-          });
-        }
-
-        // 2. 메뉴 '적립' 로직 (적립 가능한 메뉴만)
-        if (currentMenu.isRewardable === 1) {
-          const menuPoint = new PointHistory();
-          menuPoint.customerId = targetCustomer.id;
-          menuPoint.amount = targetCustomer.rewardPerMenu;
-          menuPoint.orderId = orderMade.id;
-          menuPoint.description = '주문 메뉴 적립금';
-          menuPoint.pathType = PointEnum.MENU;
-          await this.pointHistoryRepository.save(menuPoint);
-
-          targetCustomer.pointBalance += targetCustomer.rewardPerMenu; // 잔액 메모리에서 더하기
-        }
-      }
+    if (!Array.isArray(orderedMenus) || orderedMenus.length === 0) {
+      throw new BadRequestException();
     }
 
-    targetCustomer.recentOrder = new Date();
-    await this.customerRepository.save(targetCustomer);
+    const isThereAnyRequest = orderedMenus.some(menu => menu.request && menu.request.length !== 0);
+
+    // 주문 생성·적립·잔금 기록을 하나의 트랜잭션으로 묶음
+    // 적립금 '사용'은 주문에 귀속되지 않고 usePoint 단독 경로로만 이뤄진다
+    await this.datasource.transaction(async (em) => {
+      const targetCustomer = await em.getRepository(Customer).findOneBy({ id: customer.id });
+      if (!targetCustomer) {
+        throw new BadRequestException('존재하지 않는 고객입니다');
+      }
+
+      const createdOrderIds: number[] = [];
+
+      for(const orderedMenu of orderedMenus) {
+        const newOrder = new Order();
+        const currentMenu = await em.getRepository(Menu).findOneBy({ id: orderedMenu.menu.id });
+
+        // 메뉴가 품절이 된 경우
+        if (currentMenu.soldOut === 1) {
+          throw new BadRequestException();
+        } else {
+          newOrder.price = orderedMenu.menu.menuCategory.price;
+          newOrder.path = null;
+          newOrder.customer = customer.id;
+          newOrder.menu = orderedMenu.menu.id;
+          newOrder.request = orderedMenu.request;
+          const orderMade = await em.getRepository(Order).save(newOrder);
+          createdOrderIds.push(orderMade.id);
+
+          // 메뉴 '적립' 로직 (적립 가능한 메뉴만)
+          if (currentMenu.isRewardable === 1) {
+            await em.getRepository(PointHistory).insert({
+              customerId: targetCustomer.id,
+              amount: targetCustomer.rewardPerMenu,
+              orderId: orderMade.id,
+              description: '주문 메뉴 적립금',
+              pathType: PointEnum.MENU,
+            });
+
+            await em.getRepository(Customer).increment(
+              { id: targetCustomer.id },
+              'pointBalance',
+              targetCustomer.rewardPerMenu,
+            );
+          }
+        }
+      }
+
+      // 같은 장바구니에서 생성된 주문들을 하나의 묶음으로 식별 (첫 번째 주문 행의 id를 그룹 id로 사용)
+      await em.getRepository(Order).update(
+        { id: In(createdOrderIds) },
+        { orderGroupId: createdOrderIds[0] },
+      );
+
+      // 잔액은 위에서 원자적으로 갱신되므로 최근 주문 시각만 갱신 (엔티티 통째 저장 금지)
+      await em.getRepository(Customer).update({ id: targetCustomer.id }, { recentOrder: new Date() });
+    });
 
     this.orderGateway.refresh();
     this.orderGateway.refreshClient();
@@ -255,13 +248,9 @@ export class OrderService {
   }
 
   async usePoint(customer: JwtCustomer, point: number): Promise<void> {
-    if (!point || point <= 0) {
+    // 정수(천원 단위)만 허용
+    if (!point || !Number.isInteger(point) || point <= 0) {
       throw new BadRequestException('올바른 적립금 사용 금액을 입력해주세요');
-    }
-
-    const targetCustomer = await this.customerRepository.findOneBy({ id: customer.id });
-    if (!targetCustomer) {
-      throw new BadRequestException('존재하지 않는 고객입니다');
     }
 
     const minPointSetting = await this.settingsRepository.findOneBy({ big: 7, sml: 1 });
@@ -271,35 +260,47 @@ export class OrderService {
     }
 
     const requiredPointBalance = point * 10;
-    if (requiredPointBalance > targetCustomer.pointBalance) {
-      throw new BadRequestException('적립금 잔액이 부족합니다');
-    }
 
-    // 1. 적립금 사용 이력 기록
-    const pointHistory = new PointHistory();
-    pointHistory.customerId = targetCustomer.id;
-    pointHistory.amount = -requiredPointBalance;
-    pointHistory.orderId = null; // 특정 주문과 묶이지 않은 단독 사용
-    pointHistory.description = '적립금 사용';
-    pointHistory.pathType = PointEnum.USE;
-    await this.pointHistoryRepository.save(pointHistory);
+    // 잔액 차감·이력·잔금 기록을 하나의 트랜잭션으로 묶음
+    await this.datasource.transaction(async (em) => {
+      const targetCustomer = await em.getRepository(Customer).findOneBy({ id: customer.id });
+      if (!targetCustomer) {
+        throw new BadRequestException('존재하지 않는 고객입니다');
+      }
 
-    // 2. 고객 잔액 차감
-    targetCustomer.pointBalance -= requiredPointBalance;
-    await this.customerRepository.save(targetCustomer);
+      // 1. 조건부 원자 차감: 동시 요청이 겹쳐도 잔액이 음수가 될 수 없음
+      const result = await em.getRepository(Customer).createQueryBuilder()
+        .update()
+        .set({ pointBalance: () => 'point_balance - :used' })
+        .where('id = :id AND point_balance >= :used')
+        .setParameters({ id: targetCustomer.id, used: requiredPointBalance })
+        .execute();
 
-    // 3. 고객 신용(외상) 테이블에 '마스터 입금' 형태로 차감액 기록 (1포인트당 1000원 환산)
-    const creditDiffAmount = point * 1000;
-    const newCreditInfo = new CustomerCredit();
-    newCreditInfo.orderCode = 0; // 단독 사용이므로 임의 코드 0
-    newCreditInfo.customer = targetCustomer.id;
-    newCreditInfo.creditDiff = creditDiffAmount;
-    newCreditInfo.time = new Date();
-    newCreditInfo.memo = '적립금 사용';
-    newCreditInfo.status = null;
-    await this.customerCreditRepository.save(newCreditInfo);
+      if (result.affected === 0) {
+        throw new BadRequestException('적립금 잔액이 부족합니다');
+      }
 
-    // 4. 실시간 소켓 갱신 알림
+      // 2. 적립금 사용 이력 기록
+      await em.getRepository(PointHistory).insert({
+        customerId: targetCustomer.id,
+        amount: -requiredPointBalance,
+        orderId: null, // 특정 주문과 묶이지 않은 단독 사용
+        description: '적립금 사용',
+        pathType: PointEnum.USE,
+      });
+
+      // 3. 고객 신용(외상) 테이블에 '마스터 입금' 형태로 차감액 기록 (1포인트당 1000원 환산)
+      await em.getRepository(CustomerCredit).insert({
+        orderCode: 0, // 단독 사용이므로 임의 코드 0
+        customer: targetCustomer.id,
+        creditDiff: point * 1000,
+        time: new Date(),
+        memo: '적립금 사용',
+        status: null,
+      });
+    });
+
+    // 4. 실시간 소켓 갱신 알림 (커밋 후)
     this.orderGateway.refresh();
     this.orderGateway.refreshClient();
   }

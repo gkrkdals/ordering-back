@@ -19,12 +19,15 @@ import { Settings } from "@src/entities/settings.entity";
 import { diskStorage } from "multer";
 import * as Path from "path";
 import { AuthGuard } from "@src/modules/auth/auth.guard";
+import { RolesGuard } from "@src/modules/auth/roles.guard";
+import { Roles } from "@src/decorators/roles.decorator";
 import { NoAlarmsService } from "@src/modules/main/manager/settings/services/no-alarms.service";
 import { CalculationService } from "@src/modules/main/manager/settings/services/calculation.service";
 import { UpdateDisposalTimeDto } from "@src/modules/main/manager/settings/dto/update-disposal-time.dto";
 
 @Controller('manager/settings')
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, RolesGuard)
+@Roles(['manager', 'rider', 'cook'])
 export class SettingsController {
   constructor(
     private readonly settingService: SettingsService,
@@ -112,7 +115,9 @@ export class SettingsController {
     await this.settingService.updateDiscount(value);
   }
 
+  // 고객 앱(그릇수거 다이얼로그)도 조회하므로 role 제한 없이 인증만 요구
   @Get('disposal-time')
+  @Roles([])
   async getDisposalTimes() {
     return this.settingService.getDisposalTimes();
   }
