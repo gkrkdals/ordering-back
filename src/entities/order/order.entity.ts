@@ -25,6 +25,11 @@ export class Order {
   @OneToOne(() => Menu)
   menuJoin: Menu;
 
+  // 한 번의 클라이언트 주문(장바구니)으로 생성된 묶음의 식별자 (첫 번째 주문 행의 id)
+  // 관리자 생성 주문 등 묶음이 아닌 주문은 null
+  @Column({ name: 'order_group_id', nullable: true })
+  orderGroupId: number | null;
+
   @Column()
   time: string;
 

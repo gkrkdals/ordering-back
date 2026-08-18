@@ -17,12 +17,15 @@ import { UpdateCustomerPriceDto } from "@src/modules/main/manager/customer/dto/u
 import { CreditService } from "@src/modules/main/manager/customer/services/credit.service";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { AuthGuard } from "@src/modules/auth/auth.guard";
+import { RolesGuard } from "@src/modules/auth/roles.guard";
+import { Roles } from "@src/decorators/roles.decorator";
 import { UserData } from "@src/modules/user/customer.decorator";
 import { User } from "@src/entities/user.entity";
 import { DiscountGroup } from "@src/entities/customer/discount-group.entity";
 
 @Controller('manager/customer')
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, RolesGuard)
+@Roles(['manager', 'rider', 'cook'])
 export class CustomerController {
   constructor(
     private readonly customerService: CustomerService,
@@ -61,11 +64,13 @@ export class CustomerController {
   }
 
   @Put()
+  @Roles(['manager'])
   async updateCustomer(@Body() body: Customer): Promise<void> {
     return this.customerService.updateCustomer(body);
   }
 
   @Delete()
+  @Roles(['manager'])
   async deleteCustomer(@Query('id') id: number) {
     return this.customerService.deleteCustomer(id);
   }
@@ -81,6 +86,7 @@ export class CustomerController {
   }
 
   @Post('credit')
+  @Roles(['manager'])
   async addCustomerCredit(
     @Body('mode') mode: number,
     @Body('customer') customer: number,
@@ -109,5 +115,16 @@ export class CustomerController {
   @Get('point-history')
   async getPointHistory(@Query('id') id: number) {
     return this.customerService.getPointHistory(id);
+  }
+
+  @Post('point')
+  @Roles(['manager'])
+  async adjustCustomerPoint(
+    @Body('customer') customer: number,
+    @Body('mode') mode: number,
+    @Body('amount') amount: number,
+    @Body('memo') memo: string,
+  ) {
+    return this.customerService.adjustPoint(customer, mode, amount, memo);
   }
 }

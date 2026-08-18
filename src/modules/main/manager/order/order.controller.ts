@@ -6,6 +6,8 @@ import { UpdateOrderDto } from "@src/modules/main/manager/order/dto/update-order
 import { UpdateOrderMenuDto } from "@src/modules/main/manager/order/dto/update-order-menu.dto";
 import { OrderModifyService } from "@src/modules/main/manager/order/services/order-modify.service";
 import { AuthGuard } from "@src/modules/auth/auth.guard";
+import { RolesGuard } from "@src/modules/auth/roles.guard";
+import { Roles } from "@src/decorators/roles.decorator";
 import { UserData } from "@src/modules/user/customer.decorator";
 import { User } from "@src/entities/user.entity";
 import { OrderStatusRaw } from "@src/types/models/OrderStatusRaw";
@@ -14,7 +16,8 @@ import { JwtUser } from "@src/types/jwt/JwtUser";
 import { JwtCustomer } from "@src/types/jwt/JwtCustomer";
 
 @Controller('manager/order')
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, RolesGuard)
+@Roles(['manager', 'rider', 'cook'])
 export class OrderController {
   constructor(
     private readonly orderService: OrderService,
@@ -31,7 +34,9 @@ export class OrderController {
     return this.orderService.stopAlarmIfNoPending();
   }
 
+  // 고객 앱(주문 상세)도 조회하므로 role 제한 없이 인증만 요구
   @Get('category')
+  @Roles([])
   async getOrderCategories() {
     return this.orderService.getOrderCategories();
   }
@@ -85,6 +90,7 @@ export class OrderController {
   }
 
   @Put('rollback')
+  @Roles(['manager'])
   async rollback(
     @Body('orderCode') orderCode: number,
     @Body('oldStatus') oldStatus: number,
