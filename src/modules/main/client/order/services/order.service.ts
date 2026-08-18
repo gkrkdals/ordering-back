@@ -21,6 +21,7 @@ import { DiscountGroup } from "@src/entities/customer/discount-group.entity";
 import { Settings } from "@src/entities/settings.entity";
 import { PointHistory } from "@src/entities/point-history.entity";
 import { PointEnum } from "@src/types/enum/PointEnum";
+import { POINT_USE_UNIT } from "@src/types/point";
 
 @Injectable()
 export class OrderService {
@@ -247,19 +248,24 @@ export class OrderService {
     }
   }
 
-  async usePoint(customer: JwtCustomer, point: number): Promise<void> {
-    // 정수(천원 단위)만 허용
-    if (!point || !Number.isInteger(point) || point <= 0) {
+  async usePoint(customer: JwtCustomer, amount: number): Promise<void> {
+    // amount는 '원' 단위 정수
+    if (!amount || !Number.isInteger(amount) || amount <= 0) {
       throw new BadRequestException('올바른 적립금 사용 금액을 입력해주세요');
     }
 
     const minPointSetting = await this.settingsRepository.findOneBy({ big: 7, sml: 1 });
     const minPoint = minPointSetting ? (minPointSetting.value ?? 3000) : 3000;
-    if (point * 1000 < minPoint) {
-      throw new BadRequestException(`${minPoint.toLocaleString()}원 이상 사용 가능합니다`);
+
+    // 고객 화면의 안내 문구와 동일한 문장으로 거절 사유를 알린다
+    const policyMessage =
+      `${minPoint.toLocaleString()}원 이상 ${POINT_USE_UNIT.toLocaleString()}원단위`;
+
+    if (amount < minPoint || amount % POINT_USE_UNIT !== 0) {
+      throw new BadRequestException(policyMessage);
     }
 
-    const requiredPointBalance = point * 10;
+    const requiredPointBalance = amount / 100;
 
     // 잔액 차감·이력·잔금 기록을 하나의 트랜잭션으로 묶음
     await this.datasource.transaction(async (em) => {
@@ -289,11 +295,11 @@ export class OrderService {
         pathType: PointEnum.USE,
       });
 
-      // 3. 고객 신용(외상) 테이블에 '마스터 입금' 형태로 차감액 기록 (1포인트당 1000원 환산)
+      // 3. 고객 신용(외상) 테이블에 '마스터 입금' 형태로 차감액(원) 기록
       await em.getRepository(CustomerCredit).insert({
         orderCode: 0, // 단독 사용이므로 임의 코드 0
         customer: targetCustomer.id,
-        creditDiff: point * 1000,
+        creditDiff: amount,
         time: new Date(),
         memo: '적립금 사용',
         status: null,

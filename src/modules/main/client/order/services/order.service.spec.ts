@@ -92,31 +92,53 @@ describe('OrderService (적립금)', () => {
     };
     pointHistoryRepoMock = { insert: jest.fn().mockResolvedValue(undefined) };
     creditRepoMock = { insert: jest.fn().mockResolvedValue(undefined) };
-    settingsRepoMock = { findOneBy: jest.fn().mockResolvedValue({ big: 7, sml: 1, value: 3000 }) };
+    settingsRepoMock = {
+      // 최소 사용 금액(원). 사용 단위는 설정이 아닌 상수(1,000원)입니다.
+      findOneBy: jest.fn().mockResolvedValue({ big: 7, sml: 1, value: 3000 }),
+    };
     createService();
   });
 
   describe('usePoint', () => {
     it('정수가 아닌 금액은 거부한다', async () => {
-      await expect(service.usePoint({ id: 1 } as any, 3.5)).rejects.toThrow(BadRequestException);
+      await expect(service.usePoint({ id: 1 } as any, 3500.5)).rejects.toThrow(BadRequestException);
+      expect(pointHistoryRepoMock.insert).not.toHaveBeenCalled();
+    });
+
+    it('1,000원 단위가 아니면 거부한다', async () => {
+      await expect(service.usePoint({ id: 1 } as any, 3050))
+        .rejects.toThrow('3,000원 이상 1,000원단위');
       expect(pointHistoryRepoMock.insert).not.toHaveBeenCalled();
     });
 
     it('최소 사용 금액 미만이면 거부한다', async () => {
-      await expect(service.usePoint({ id: 1 } as any, 2)).rejects.toThrow('3,000원 이상 사용 가능합니다');
+      await expect(service.usePoint({ id: 1 } as any, 2000))
+        .rejects.toThrow('3,000원 이상 1,000원단위');
+    });
+
+    it('사용 단위에 맞지 않으면 거부한다', async () => {
+      await expect(service.usePoint({ id: 1 } as any, 3500))
+        .rejects.toThrow('3,000원 이상 1,000원단위');
+    });
+
+    it('설정 행이 없으면 기본값(3,000원 이상 1,000원단위)을 적용한다', async () => {
+      settingsRepoMock.findOneBy.mockResolvedValue(null);
+      await expect(service.usePoint({ id: 1 } as any, 2000))
+        .rejects.toThrow('3,000원 이상 1,000원단위');
     });
 
     it('잔액 부족(원자 갱신 실패) 시 이력을 남기지 않고 거부한다', async () => {
       customerQb.execute.mockResolvedValue({ affected: 0 });
-      await expect(service.usePoint({ id: 1 } as any, 5)).rejects.toThrow('적립금 잔액이 부족합니다');
+      await expect(service.usePoint({ id: 1 } as any, 5000))
+        .rejects.toThrow('적립금 잔액이 부족합니다');
       expect(pointHistoryRepoMock.insert).not.toHaveBeenCalled();
       expect(creditRepoMock.insert).not.toHaveBeenCalled();
     });
 
-    it('성공 시 조건부 차감·USE 이력·잔금 기록이 모두 수행된다', async () => {
-      await service.usePoint({ id: 1 } as any, 5);
+    it('성공 시 원 단위 금액이 백원 단위 잔액으로 환산되어 차감된다', async () => {
+      await service.usePoint({ id: 1 } as any, 5000);
 
-      expect(customerQb.setParameters).toHaveBeenCalledWith({ id: 1, used: 50 });
+      expect(customerQb.setParameters).toHaveBeenCalledWith({ id: 1, used: 50 }); // 5,000원 / 100
       expect(pointHistoryRepoMock.insert).toHaveBeenCalledWith(expect.objectContaining({
         customerId: 1,
         amount: -50,
@@ -124,10 +146,17 @@ describe('OrderService (적립금)', () => {
       }));
       expect(creditRepoMock.insert).toHaveBeenCalledWith(expect.objectContaining({
         customer: 1,
-        creditDiff: 5000,
+        creditDiff: 5000, // 잔금은 원 단위로 기록
         memo: '적립금 사용',
       }));
       expect(gatewayMock.refresh).toHaveBeenCalled();
+    });
+
+    it('사용 단위는 설정과 무관하게 1,000원 고정이다', async () => {
+      // 설정 행이 어떤 값이든 100원 단위 금액은 허용되지 않는다
+      await expect(service.usePoint({ id: 1 } as any, 3100))
+        .rejects.toThrow('3,000원 이상 1,000원단위');
+      expect(settingsRepoMock.findOneBy).toHaveBeenCalledTimes(1); // 최소 금액만 조회
     });
   });
 

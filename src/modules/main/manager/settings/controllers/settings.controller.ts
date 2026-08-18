@@ -136,4 +136,14 @@ export class SettingsController {
   async updateMinUsePoint(@Body('value') value: number) {
     return this.settingService.updateMinUsePoint(value);
   }
+
+  @Get('point-use-policy')
+  async getPointUsePolicy() {
+    return this.settingService.getPointUsePolicy();
+  }
+
+  @Put('point-use-policy')
+  async updatePointUsePolicy(@Body('minUsePoint') minUsePoint: number) {
+    return this.settingService.updatePointUsePolicy(minUsePoint);
+  }
 }

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Get, Post, UseGuards } from "@nestjs/common";
 import { OrderService } from "@src/modules/main/client/order/services/order.service";
 import { OrderCategory } from "@src/entities/order/order-category.entity";
 import { CreateOrderDto } from "@src/modules/main/client/order/dto/ordered-menu.dto";
@@ -65,7 +65,16 @@ export class OrderController {
   }
 
   @Post('point/use')
-  async usePoint(@CustomerData() customer: JwtCustomer, @Body('point') point: number): Promise<void> {
-    return this.orderService.usePoint(customer, point);
+  async usePoint(
+    @CustomerData() customer: JwtCustomer,
+    @Body('amount') amount: number,
+    @Body('point') legacyPoint: number,
+  ): Promise<void> {
+    // 구버전 앱은 '천원' 단위의 point를 보낸다 — 원 단위로 오해석되어 과소 차감되는 것을 막는다
+    if (amount === undefined && legacyPoint !== undefined) {
+      throw new BadRequestException('앱을 최신 버전으로 업데이트한 후 이용해주세요');
+    }
+
+    return this.orderService.usePoint(customer, amount);
   }
 }

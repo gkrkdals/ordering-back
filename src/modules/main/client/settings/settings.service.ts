@@ -10,6 +10,7 @@ import { dateToString, isSameDay } from "@src/utils/date";
 import { Order } from "@src/entities/order/order.entity";
 import { CustomerCredit } from "@src/entities/customer/customer-credit.entity";
 import { ClientSettingsSql } from "@src/modules/main/client/settings/client-settings.sql";
+import { POINT_USE_UNIT } from "@src/types/point";
 
 @Injectable()
 export class SettingsService {
@@ -127,5 +128,17 @@ export class SettingsService {
       return 3000;
     }
     return setting.value ?? 3000;
+  }
+
+  /**
+   * 적립금 사용 정책을 조회합니다. 사용 단위는 1,000원 고정입니다. 두 값 모두 원 단위입니다.
+   */
+  async getPointUsePolicy() {
+    const minSetting = await this.settingsRepository.findOneBy({ big: 7, sml: 1 });
+
+    return {
+      minUsePoint: minSetting ? (minSetting.value ?? 3000) : 3000,
+      useUnit: POINT_USE_UNIT,
+    };
   }
 }

@@ -59,4 +59,9 @@ export class SettingsController {
   async getMinUsePoint() {
     return this.settingsService.getMinUsePoint();
   }
+
+  @Get('point-use-policy')
+  async getPointUsePolicy() {
+    return this.settingsService.getPointUsePolicy();
+  }
 }

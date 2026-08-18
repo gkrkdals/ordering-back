@@ -1,4 +1,4 @@
-import { Injectable, StreamableFile } from "@nestjs/common";
+import { BadRequestException, Injectable, StreamableFile } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { Settings } from "@src/entities/settings.entity";
@@ -9,6 +9,7 @@ import { MenuCategory } from "@src/entities/menu/menu-category.entity";
 import { Menu } from "@src/entities/menu/menu.entity";
 import { trimTime, WEEKDAY_NAMES } from "@src/utils/date";
 import { UpdateDisposalTimeDto } from "@src/modules/main/manager/settings/dto/update-disposal-time.dto";
+import { POINT_USE_UNIT } from "@src/types/point";
 
 @Injectable()
 export class SettingsService {
@@ -186,12 +187,40 @@ export class SettingsService {
   }
 
   async updateMinUsePoint(value: number) {
-    let setting = await this.settingsRepository.findOneBy({ big: 7, sml: 1 });
+    await this.upsertSetting(7, 1, 'min_use_point', value);
+  }
+
+  /**
+   * 적립금 사용 정책을 조회합니다. 최소 사용 금액만 설정 대상이고,
+   * 사용 단위는 1,000원 고정(POINT_USE_UNIT)입니다. 두 값 모두 원 단위입니다.
+   */
+  async getPointUsePolicy() {
+    const minSetting = await this.settingsRepository.findOneBy({ big: 7, sml: 1 });
+
+    return {
+      minUsePoint: minSetting ? (minSetting.value ?? 3000) : 3000,
+      useUnit: POINT_USE_UNIT,
+    };
+  }
+
+  async updatePointUsePolicy(minUsePoint: number) {
+    // 사용 단위가 1,000원이므로 최소 금액도 1,000원 단위여야 안내 문구와 어긋나지 않는다
+    if (!Number.isInteger(minUsePoint) || minUsePoint <= 0 || minUsePoint % POINT_USE_UNIT !== 0) {
+      throw new BadRequestException(
+        `최소 사용 금액은 ${POINT_USE_UNIT.toLocaleString()}원 단위로 입력해주세요`
+      );
+    }
+
+    await this.upsertSetting(7, 1, 'min_use_point', minUsePoint);
+  }
+
+  private async upsertSetting(big: number, sml: number, name: string, value: number) {
+    let setting = await this.settingsRepository.findOneBy({ big, sml });
     if (!setting) {
       setting = new Settings();
-      setting.big = 7;
-      setting.sml = 1;
-      setting.name = 'min_use_point';
+      setting.big = big;
+      setting.sml = sml;
+      setting.name = name;
     }
     setting.value = value;
     await this.settingsRepository.save(setting);
