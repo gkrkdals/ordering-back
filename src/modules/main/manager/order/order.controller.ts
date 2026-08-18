@@ -90,7 +90,6 @@ export class OrderController {
   }
 
   @Put('rollback')
-  @Roles(['manager'])
   async rollback(
     @Body('orderCode') orderCode: number,
     @Body('oldStatus') oldStatus: number,
