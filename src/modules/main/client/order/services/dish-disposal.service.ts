@@ -13,6 +13,7 @@ import { PointHistory } from "@src/entities/point-history.entity";
 import { PointEnum } from "@src/types/enum/PointEnum";
 import { Settings } from "@src/entities/settings.entity";
 import { getPreviousWeekdaySml, getWeekdaySml, isWithinDisposalTime } from "@src/utils/date";
+import { CustomerSettingsService } from "@src/modules/misc/customer-settings/customer-settings.service";
 
 @Injectable()
 export class DishDisposalService {
@@ -29,6 +30,7 @@ export class DishDisposalService {
 
     private readonly orderGateway: OrderGateway,
     private readonly fcmService: FirebaseService,
+    private readonly customerSettingsService: CustomerSettingsService,
   ) {}
 
   async getDishDisposals(customer: Customer): Promise<Disposal[]> {
@@ -69,22 +71,24 @@ export class DishDisposalService {
       newOrderStatus.location = location;
       await em.getRepository(OrderStatus).save(newOrderStatus);
 
-      // 적립액은 JWT의 낡은 값이 아닌 DB의 현재 값을 사용
-      const currentCustomer = await em.getRepository(Customer).findOneBy({ id: customer.id });
+      // 적립액은 JWT의 낡은 값이 아닌 DB의 현재 값을 사용하며, 고객 개별 > 그룹 순으로 해석한다
+      const { perBowl } = await this.customerSettingsService.resolveRewards({ id: customer.id });
 
-      await em.getRepository(PointHistory).insert({
-        customerId: customer.id,
-        orderId: disposal.order_code,
-        amount: currentCustomer.rewardPerBowl,
-        pathType: PointEnum.BOWL,
-        description: "그릇수거 적립금",
-      });
+      if (perBowl > 0) {
+        await em.getRepository(PointHistory).insert({
+          customerId: customer.id,
+          orderId: disposal.order_code,
+          amount: perBowl,
+          pathType: PointEnum.BOWL,
+          description: "그릇수거 적립금",
+        });
 
-      await em.getRepository(Customer).increment(
-        { id: customer.id },
-        'pointBalance',
-        currentCustomer.rewardPerBowl,
-      );
+        await em.getRepository(Customer).increment(
+          { id: customer.id },
+          'pointBalance',
+          perBowl,
+        );
+      }
     });
 
     this.orderGateway.newDishDisposal();

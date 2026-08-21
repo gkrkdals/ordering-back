@@ -15,6 +15,7 @@ describe('DishDisposalService.createDishDisposal (BOWL 적립)', () => {
   let settingsRepoMock: any;
   let gatewayMock: any;
   let fcmMock: any;
+  let customerSettingsMock: any;
 
   const ORDER_CODE = 42;
   // JWT에 실린 낡은 값(3)과 DB의 현재 값(7)을 다르게 두어 fresh 값 사용을 검증
@@ -53,6 +54,8 @@ describe('DishDisposalService.createDishDisposal (BOWL 적립)', () => {
     // 그릇수거 가능 시간 미설정 → 종일 허용
     settingsRepoMock = { findBy: jest.fn().mockResolvedValue([]) };
     gatewayMock = { newDishDisposal: jest.fn(), refresh: jest.fn() };
+    // 적립액 해석은 CustomerSettingsService가 담당한다 (고객 개별 > 그룹)
+    customerSettingsMock = { resolveRewards: jest.fn().mockResolvedValue({ perMenu: 0, perBowl: 7 }) };
     fcmMock = { newDishDisposal: jest.fn().mockResolvedValue(undefined) };
 
     service = new DishDisposalService(
@@ -62,10 +65,11 @@ describe('DishDisposalService.createDishDisposal (BOWL 적립)', () => {
       datasource as any,    // datasource
       gatewayMock,          // orderGateway
       fcmMock,              // fcmService
+      customerSettingsMock, // customerSettingsService
     );
   });
 
-  it('성공 시 이력과 잔액 모두 DB의 현재 적립액으로 반영한다', async () => {
+  it('성공 시 이력과 잔액 모두 해석된 적립액(고객 개별 > 그룹)으로 반영한다', async () => {
     await service.createDishDisposal(jwtCustomer, body);
 
     expect(emOrderStatusRepoMock.save).toHaveBeenCalledWith(expect.objectContaining({
@@ -75,10 +79,20 @@ describe('DishDisposalService.createDishDisposal (BOWL 적립)', () => {
     expect(emPointHistoryRepoMock.insert).toHaveBeenCalledWith(expect.objectContaining({
       customerId: 1,
       orderId: ORDER_CODE,
-      amount: 7, // JWT의 3이 아닌 DB의 7
+      amount: 7, // JWT의 3이 아닌 해석된 값 7
       pathType: PointEnum.BOWL,
     }));
     expect(emCustomerRepoMock.increment).toHaveBeenCalledWith({ id: 1 }, 'pointBalance', 7);
+  });
+
+  it('적립액이 0이면 수거 요청만 남기고 적립 이력은 만들지 않는다', async () => {
+    customerSettingsMock.resolveRewards.mockResolvedValue({ perMenu: 0, perBowl: 0 });
+
+    await service.createDishDisposal(jwtCustomer, body);
+
+    expect(emOrderStatusRepoMock.save).toHaveBeenCalled();
+    expect(emPointHistoryRepoMock.insert).not.toHaveBeenCalled();
+    expect(emCustomerRepoMock.increment).not.toHaveBeenCalled();
   });
 
   it('이미 BOWL 이력이 있으면 중복 적립을 거부한다', async () => {

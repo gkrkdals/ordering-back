@@ -13,7 +13,6 @@ import {
 import { CustomerService } from "@src/modules/main/manager/customer/services/customer.service";
 import { Customer } from "@src/entities/customer/customer.entity";
 import { GetCustomerResponseDto } from "@src/modules/main/manager/customer/dto/response/get-customer-response.dto";
-import { UpdateCustomerPriceDto } from "@src/modules/main/manager/customer/dto/update-customer-price.dto";
 import { CreditService } from "@src/modules/main/manager/customer/services/credit.service";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { AuthGuard } from "@src/modules/auth/auth.guard";
@@ -22,6 +21,7 @@ import { Roles } from "@src/decorators/roles.decorator";
 import { UserData } from "@src/modules/user/customer.decorator";
 import { User } from "@src/entities/user.entity";
 import { DiscountGroup } from "@src/entities/customer/discount-group.entity";
+import { UpdateGroupPriceDto } from "@src/modules/main/manager/customer/dto/update-group-price.dto";
 
 @Controller('manager/customer')
 @UseGuards(AuthGuard, RolesGuard)
@@ -75,16 +75,6 @@ export class CustomerController {
     return this.customerService.deleteCustomer(id);
   }
 
-  @Get('price')
-  async getCustomerPrice(@Query('id') id: number) {
-    return this.customerService.getCustomerPrice(id);
-  }
-
-  @Put('price')
-  async updateCustomerPrice(@Body() body: UpdateCustomerPriceDto) {
-    return this.customerService.updateCustomerPrice(body);
-  }
-
   @Post('credit')
   @Roles(['manager'])
   async addCustomerCredit(
@@ -95,6 +85,17 @@ export class CustomerController {
     @UserData() user: User,
   ) {
     return this.creditService.addCredit(mode, customer, price, user, memo);
+  }
+
+  // 그룹별 메뉴카테고리 가격 (고객별 price 엔드포인트와 같은 규약, 단위는 천원)
+  @Get('group/price')
+  async getGroupPrice(@Query('groupId') groupId: number) {
+    return this.customerService.getGroupPrice(groupId);
+  }
+
+  @Put('group/price')
+  async updateGroupPrice(@Body() body: UpdateGroupPriceDto) {
+    return this.customerService.updateGroupPrice(body);
   }
 
   @Get('discount-group')

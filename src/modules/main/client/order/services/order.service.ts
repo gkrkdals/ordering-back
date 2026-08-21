@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
 import { OrderCategory } from "@src/entities/order/order-category.entity";
-import { DataSource, In, LessThan, Not, Repository } from "typeorm";
+import { Between, DataSource, In, LessThan, Not, Repository } from "typeorm";
 import { CreateOrderDto } from "@src/modules/main/client/order/dto/ordered-menu.dto";
 import { Order } from "@src/entities/order/order.entity";
 import { Customer } from "@src/entities/customer/customer.entity";
@@ -9,10 +9,9 @@ import { StatusEnum } from "@src/types/enum/StatusEnum";
 import { OrderSql } from "@src/modules/main/client/order/sql/OrderSql";
 import { OrderSummaryResponseDto } from "@src/modules/main/client/order/dto/response/order-summary-response.dto";
 import { OrderGateway } from "@src/modules/socket/order.gateway";
-import { CustomerPrice } from "@src/entities/customer/customer-price.entity";
 import { CustomerCredit } from "@src/entities/customer/customer-credit.entity";
 import { OrderStatus } from "@src/entities/order/order-status.entity";
-import { getOrderAvailableTimes } from "@src/utils/date";
+import { getBusinessDayRange, getOrderAvailableTimes } from "@src/utils/date";
 import { Menu } from "@src/entities/menu/menu.entity";
 import { FirebaseService } from "@src/modules/firebase/firebase.service";
 import { JwtCustomer } from "@src/types/jwt/JwtCustomer";
@@ -22,10 +21,12 @@ import { Settings } from "@src/entities/settings.entity";
 import { PointHistory } from "@src/entities/point-history.entity";
 import { PointEnum } from "@src/types/enum/PointEnum";
 import { POINT_USE_UNIT } from "@src/types/point";
+import { CustomerSettingsService } from "@src/modules/misc/customer-settings/customer-settings.service";
+import { applyMenuPrices } from "@src/utils/price";
 import { GetPointHistoryResponseDto } from "@src/modules/main/client/order/dto/response/get-point-history-response.dto";
 
 /** 고객 화면에 내려주는 적립금 내역의 최대 건수 */
-const POINT_HISTORY_LIMIT = 100;
+const POINT_HISTORY_LIMIT = 500;
 
 @Injectable()
 export class OrderService {
@@ -36,8 +37,6 @@ export class OrderService {
     private orderRepository: Repository<Order>,
     @InjectRepository(OrderStatus)
     private orderStatusRepository: Repository<OrderStatus>,
-    @InjectRepository(CustomerPrice)
-    private readonly customerPriceRepository: Repository<CustomerPrice>,
     @InjectRepository(CustomerCredit)
     private readonly customerCreditRepository: Repository<CustomerCredit>,
     @InjectRepository(Menu)
@@ -56,6 +55,7 @@ export class OrderService {
     private readonly orderGateway: OrderGateway,
     private readonly fcmService: FirebaseService,
     private readonly noAlarmsService: NoAlarmsService,
+    private readonly customerSettingsService: CustomerSettingsService,
   ) {}
 
   getOrderCategories(): Promise<OrderCategory[]> {
@@ -75,25 +75,8 @@ export class OrderService {
   }
 
   async getLastOrders(customer: Customer) {
-    const groupId = customer.discountGroupId;
-    let type: 'amount' | 'percent' | '' = '', value = 0;
-    const webDiscountValue = (await this.settingsRepository.findOneBy({ big: 5, sml: 1 })).value ?? 0;
-    const customPricesArray = await this.customerPriceRepository.findBy({ customer: customer.id });
-    const customPrices: any = {};
-
-    // 커스텀 가격 설정
-    customPricesArray.forEach((item) => {
-      customPrices[item.category] = item.price;
-    })
-
-    // 할인 그룹에 속해있으면 할인 타입과 금액 설정
-    if (groupId) {
-      const group = await this.discountGroupRepository.findOneBy({ id: groupId });
-      if (group) {
-        type = group.discountType;
-        value = group.discountValue;
-      }
-    }
+    // 가격은 고객 개별 > 그룹 > 전역 순으로 해석된다 (utils/price.ts)
+    const priceContext = await this.customerSettingsService.loadPriceContext(customer);
 
     const recentMenuOnDigit: { id: number; menu: number }[] = await this.orderRepository.query(
       `SELECT 
@@ -119,37 +102,11 @@ export class OrderService {
       recentMenus.push(menu);
     }
 
-    recentMenus.forEach((item) => {
-      const customPrice = customPrices[item.category];
-      if (customPrice) {
-        item.menuCategory.price = customPrice;
-      }
-    })
+    applyMenuPrices(recentMenus, priceContext);
 
-    // 할인 그룹에 있을 시 할인 타입에 따라 할인
-    if (type === 'amount') {
-      recentMenus.forEach(item => {
-        if (item.isDiscountable === 1) {
-          item.menuCategory.price -= value
-        }
-      });
-    } else if (type === 'percent') {
-      recentMenus.forEach(item => {
-        if (item.isDiscountable === 1) {
-          item.menuCategory.price *= ((100 - value) * 0.01);
-        }
-      });
+    if (customer.isSoldOut === 1) {
+      recentMenus.forEach(item => { item.soldOut = 1; });
     }
-
-    recentMenus.forEach(item => {
-      if (item.isDiscountable === 1) {
-        item.menuCategory.price -= webDiscountValue;
-      }
-
-      if (customer.isSoldOut === 1) {
-        item.soldOut = 1;
-      }
-    })
 
     return recentMenus
   }
@@ -184,6 +141,9 @@ export class OrderService {
 
     const isThereAnyRequest = orderedMenus.some(menu => menu.request && menu.request.length !== 0);
 
+    // 적립액은 고객 개별 > 그룹 순으로 해석한다 (트랜잭션 밖에서 미리 확정)
+    const { perMenu: rewardPerMenu } = await this.customerSettingsService.resolveRewards(customer);
+
     // 주문 생성·적립·잔금 기록을 하나의 트랜잭션으로 묶음
     // 적립금 '사용'은 주문에 귀속되지 않고 usePoint 단독 경로로만 이뤄진다
     await this.datasource.transaction(async (em) => {
@@ -211,10 +171,10 @@ export class OrderService {
           createdOrderIds.push(orderMade.id);
 
           // 메뉴 '적립' 로직 (적립 가능한 메뉴만)
-          if (currentMenu.isRewardable === 1) {
+          if (currentMenu.isRewardable === 1 && rewardPerMenu > 0) {
             await em.getRepository(PointHistory).insert({
               customerId: targetCustomer.id,
-              amount: targetCustomer.rewardPerMenu,
+              amount: rewardPerMenu,
               orderId: orderMade.id,
               description: '주문 메뉴 적립금',
               pathType: PointEnum.MENU,
@@ -223,7 +183,7 @@ export class OrderService {
             await em.getRepository(Customer).increment(
               { id: targetCustomer.id },
               'pointBalance',
-              targetCustomer.rewardPerMenu,
+              rewardPerMenu,
             );
           }
         }
@@ -322,17 +282,35 @@ export class OrderService {
    * 화면에서는 해당 행을 '적립취소'로 표시한다.
    *
    * @param customer JWT에서 얻은 본인 정보
+   * @param startDate 조회 시작일 (yyyy-MM-dd). 생략하면 최근 건부터
+   * @param endDate 조회 종료일 (yyyy-MM-dd)
    */
-  async getPointHistory(customer: JwtCustomer): Promise<GetPointHistoryResponseDto> {
+  async getPointHistory(
+    customer: JwtCustomer,
+    startDate?: string,
+    endDate?: string,
+  ): Promise<GetPointHistoryResponseDto> {
+    // 주문내역 조회와 같은 영업일 규칙(09시 시작)을 쓴다
+    let period = {};
+    if (startDate && endDate) {
+      // created_at은 Date 컬럼이므로 문자열 범위를 Date로 바꿔 넘긴다
+      const [start, end] = getBusinessDayRange(startDate, endDate);
+      period = { createdAt: Between(new Date(start), new Date(end)) };
+    }
+
     const [histories, targetCustomer] = await Promise.all([
+      // 상한에 걸릴 때 잘려나가는 쪽이 오래된 건이 되도록 최신순으로 뽑은 뒤 뒤집는다
       this.pointHistoryRepository.find({
-        where: { customerId: customer.id },
+        where: { customerId: customer.id, ...period },
         relations: { orderJoin: { menuJoin: true } },
         order: { createdAt: 'DESC', id: 'DESC' },
         take: POINT_HISTORY_LIMIT,
       }),
       this.customerRepository.findOneBy({ id: customer.id }),
     ]);
+
+    // 화면에는 시간 순(오래된 것 → 최신)으로 보여준다
+    histories.reverse();
 
     return {
       // 목록만 최신이고 잔액이 낡는 일이 없도록 잔액도 함께 내려준다

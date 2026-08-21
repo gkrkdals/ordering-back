@@ -5,46 +5,21 @@ import { Like, Not, Repository } from "typeorm";
 import { Customer } from "@src/entities/customer/customer.entity";
 import { Order } from "@src/entities/order/order.entity";
 import { RecentMenu } from "@src/types/models/RecentMenu";
-import { DiscountGroup } from "@src/entities/customer/discount-group.entity";
-import { Settings } from "@src/entities/settings.entity";
-import { CustomerPrice } from "@src/entities/customer/customer-price.entity";
+import { CustomerSettingsService } from "@src/modules/misc/customer-settings/customer-settings.service";
+import { applyMenuPrices } from "@src/utils/price";
 
 @Injectable()
 export class MenuService {
   constructor(
     @InjectRepository(Menu) private menuRepository: Repository<Menu>,
     @InjectRepository(Order) private orderRepository: Repository<Order>,
-    @InjectRepository(DiscountGroup)
-    private discountGroupRepository: Repository<DiscountGroup>,
-    @InjectRepository(Settings)
-    private settingsRepository: Repository<Settings>,
-    @InjectRepository(CustomerPrice)
-    private customerPriceRepository: Repository<CustomerPrice>,
+    private readonly customerSettingsService: CustomerSettingsService,
   ) {}
 
   async findAll(customer: Customer): Promise<Menu[]> {
-    const groupId: number | null = customer.discountGroupId;
-    const webDiscountValue = (await this.settingsRepository.findOneBy({ big: 5, sml: 1 })).value ?? 0;
-    const customPricesArray = await this.customerPriceRepository.findBy({ customer: customer.id });
-    const customPrices: any = {};
+    // 가격은 고객 개별 > 그룹 > 전역 순으로 해석된다 (utils/price.ts)
+    const priceContext = await this.customerSettingsService.loadPriceContext(customer);
 
-    let type: 'amount' | 'percent' | '' = '', value = 0;
-
-    // 커스텀 가격 설정
-    customPricesArray.forEach((item) => {
-      customPrices[item.category] = item.price;
-    });
-
-    // 할인 그룹에 속해있으면 할인 타입과 금액 설정
-    if (groupId) {
-      const group = await this.discountGroupRepository.findOneBy({ id: groupId });
-      if (group) {
-        type = group.discountType;
-        value = group.discountValue;
-      }
-    }
-
-    // 데이터 찾아옴
     const data = await this.menuRepository.find({
       relations: { menuCategory: true },
       where: {
@@ -56,39 +31,11 @@ export class MenuService {
       }
     });
 
-    // 커스텀 가격 적용
-    data.forEach((item) => {
-      const customPrice = customPrices[item.category];
-      if (customPrice) {
-        item.menuCategory.price = customPrice;
-      }
-    })
+    applyMenuPrices(data, priceContext);
 
-    // 할인 그룹에 있을 시 할인 타입에 따라 할인
-    if (type === 'amount') {
-      data.forEach(item => {
-        if (item.isDiscountable === 1) {
-          item.menuCategory.price -= value
-        }
-      });
-    } else if (type === 'percent') {
-      data.forEach(item => {
-        if (item.isDiscountable === 1) {
-          item.menuCategory.price *= ((100 - value) * 0.01);
-        }
-      })
+    if (customer.isSoldOut === 1) {
+      data.forEach(item => { item.soldOut = 1; });
     }
-
-    // 웹할인 가격만큼 할인
-    data.forEach(item => {
-      if (item.isDiscountable === 1) {
-        item.menuCategory.price -= webDiscountValue;
-      }
-
-      if (customer.isSoldOut === 1) {
-        item.soldOut = 1;
-      }
-    });
 
     return data;
   }

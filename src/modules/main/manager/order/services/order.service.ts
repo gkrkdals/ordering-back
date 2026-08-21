@@ -10,9 +10,9 @@ import { GetOrderDetailResponseDto } from "@src/modules/main/manager/order/dto/r
 import { OrderStatusRaw } from "@src/types/models/OrderStatusRaw";
 import { countSkip, countToTotalPage } from "@src/utils/data";
 import { withSearchPattern } from "@src/utils/hangul";
+import { CustomerSettingsService } from "@src/modules/misc/customer-settings/customer-settings.service";
 import { OrderCategory } from "@src/entities/order/order-category.entity";
 import { Menu } from "@src/entities/menu/menu.entity";
-import { CustomerPrice } from "@src/entities/customer/customer-price.entity";
 import { OrderGateway } from "@src/modules/socket/order.gateway";
 import { Pending } from "@src/types/models/Pending";
 import { dateToString, getOrderAvailableTimes } from "@src/utils/date";
@@ -39,8 +39,6 @@ export class OrderService {
     @InjectRepository(OrderCategory)
     private readonly orderCategoryRepository: Repository<OrderCategory>,
 
-    @InjectRepository(CustomerPrice)
-    private readonly customerPriceRepository: Repository<CustomerPrice>,
 
     @InjectRepository(Customer)
     private readonly customerRepository: Repository<Customer>,
@@ -56,6 +54,8 @@ export class OrderService {
     private readonly fcmService: FirebaseService,
 
     private readonly noAlarmsService: NoAlarmsService,
+
+    private readonly customerSettingsService: CustomerSettingsService,
   ) {}
 
   async pendingStatusForManager() {
@@ -238,20 +238,15 @@ export class OrderService {
 
   async createNewOrder(menu: Menu, customer: JwtCustomer, request: string, user: User) {
     const newOrder = new Order();
-    const customerPrices = await this.customerPriceRepository.findBy({ customer: customer.id });
     const targetCustomer = await this.customerRepository.findOneBy({ id: customer.id });
     const isThereAnyRequest = request && request.length !== 0;
 
     if (menu.id === 0) {
+      // 추가메뉴는 금액을 나중에 입력받으므로 0으로 둔다
       newOrder.price = 0;
     } else {
-      const customPrice = customerPrices.find(price => price.category === menu.category);
-
-      if(customPrice) {
-        newOrder.price = customPrice.price;
-      } else {
-        newOrder.price = menu.menuCategory.price;
-      }
+      // 고객 개별 > 그룹 > 전역 순의 기준가 (관리자 주문은 기존대로 할인 미적용)
+      newOrder.price = await this.customerSettingsService.resolveBasePrice(customer, menu);
     }
 
     newOrder.path = user.id;

@@ -7,12 +7,12 @@ import { GetCustomerResponseDto } from "@src/modules/main/manager/customer/dto/r
 import { countToTotalPage } from "@src/utils/data";
 import { withSearchPattern } from "@src/utils/hangul";
 import { CustomerCategory } from "@src/entities/customer/customer-category.entity";
-import { CustomerPrice } from "@src/entities/customer/customer-price.entity";
-import { UpdateCustomerPriceDto } from "@src/modules/main/manager/customer/dto/update-customer-price.dto";
 import { CustomerSql } from "@src/modules/main/manager/customer/sql/CustomerSql";
 import { CustomerRaw } from "@src/types/models/CustomerRaw";
 import * as XLSX from "xlsx-js-style";
 import { DiscountGroup } from "@src/entities/customer/discount-group.entity";
+import { GroupPrice } from "@src/entities/customer/group-price.entity";
+import { UpdateGroupPriceDto } from "@src/modules/main/manager/customer/dto/update-group-price.dto";
 import { PointHistory } from "@src/entities/point-history.entity";
 
 @Injectable()
@@ -22,10 +22,10 @@ export class CustomerService {
     private readonly customerRepository: Repository<Customer>,
     @InjectRepository(CustomerCategory)
     private readonly customerCategoryRepository: Repository<CustomerCategory>,
-    @InjectRepository(CustomerPrice)
-    private readonly customerPriceRepository: Repository<CustomerPrice>,
     @InjectRepository(DiscountGroup)
     private readonly discountGroupRepository: Repository<DiscountGroup>,
+    @InjectRepository(GroupPrice)
+    private readonly groupPriceRepository: Repository<GroupPrice>,
     @InjectRepository(PointHistory)
     private readonly pointHistoryRepository: Repository<PointHistory>,
     private readonly datasource: DataSource,
@@ -78,16 +78,6 @@ export class CustomerService {
   }
 
   async getCategories() { return this.customerCategoryRepository.find(); }
-
-  async getCustomerPrice(id: number) {
-    return (await this.customerPriceRepository.find({
-      where: { customer: id },
-      order: { category: 'ASC' }
-    })).map(customerPrice => ({
-      ...customerPrice,
-      price: customerPrice.price / 1000,
-    }));
-  }
 
   async createCustomer(customer: Customer) {
     const newCustomer = new Customer();
@@ -153,27 +143,43 @@ export class CustomerService {
     await this.customerRepository.save(foundCustomer);
   }
 
-  async updateCustomerPrice(body: UpdateCustomerPriceDto) {
-    const customerPrices = await this.customerPriceRepository.findBy({ customer: body.customer });
+  /**
+   * 그룹별 메뉴카테고리 가격 조회. 화면 입력 단위(천원)에 맞춰 내려줍니다.
+   */
+  async getGroupPrice(groupId: number) {
+    return (await this.groupPriceRepository.find({
+      where: { groupId },
+      order: { category: 'ASC' }
+    })).map(groupPrice => ({
+      ...groupPrice,
+      price: groupPrice.price / 1000,
+    }));
+  }
 
-    const { data, customer } = body;
+  /**
+   * 그룹별 메뉴카테고리 가격 저장. 값이 비어 있으면 해당 행을 지워 전역 가격으로 되돌립니다.
+   */
+  async updateGroupPrice(body: UpdateGroupPriceDto) {
+    const { data, groupId } = body;
+    const groupPrices = await this.groupPriceRepository.findBy({ groupId });
+
     for (const priceData of data) {
       const category = priceData.id, price = parseInt(priceData.price) * 1000;
-      const currentPrice = customerPrices.find(price => price.category === priceData.id);
+      const currentPrice = groupPrices.find(groupPrice => groupPrice.category === category);
 
       if (!isNaN(price)) {
         if (currentPrice) {
           currentPrice.price = price;
-          await this.customerPriceRepository.save(currentPrice);
+          await this.groupPriceRepository.save(currentPrice);
         } else {
-          const newCustomerPrice = new CustomerPrice();
-          newCustomerPrice.customer = customer;
-          newCustomerPrice.category = category;
-          newCustomerPrice.price = price;
-          await this.customerPriceRepository.save(newCustomerPrice)
+          const newGroupPrice = new GroupPrice();
+          newGroupPrice.groupId = groupId;
+          newGroupPrice.category = category;
+          newGroupPrice.price = price;
+          await this.groupPriceRepository.save(newGroupPrice);
         }
       } else {
-        await this.customerPriceRepository.delete({ customer, category })
+        await this.groupPriceRepository.delete({ groupId, category });
       }
     }
   }
@@ -205,6 +211,8 @@ export class CustomerService {
       modified.discountType = item.discountType;
       modified.discountValue = item.discountValue;
       modified.description = item.description;
+      modified.rewardPerMenu = toNullableNumber(item.rewardPerMenu);
+      modified.rewardPerBowl = toNullableNumber(item.rewardPerBowl);
       await this.discountGroupRepository.save(modified);
     }
 
@@ -214,6 +222,8 @@ export class CustomerService {
       newGroup.discountType = item.discountType;
       newGroup.discountValue = item.discountValue;
       newGroup.description = item.description;
+      newGroup.rewardPerMenu = toNullableNumber(item.rewardPerMenu);
+      newGroup.rewardPerBowl = toNullableNumber(item.rewardPerBowl);
       await this.discountGroupRepository.save(newGroup);
     }
   }
@@ -278,4 +288,14 @@ export class CustomerService {
       });
     });
   }
+}
+
+/** 빈 문자열·null·NaN은 '미설정'(null)으로 저장한다 */
+function toNullableNumber(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  const parsed = Number(value);
+  return Number.isNaN(parsed) ? null : parsed;
 }

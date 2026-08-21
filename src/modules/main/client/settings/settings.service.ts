@@ -6,7 +6,7 @@ import { Settings } from "@src/entities/settings.entity";
 import { createReadStream } from 'fs';
 import * as Path from 'path';
 import { Response } from "express";
-import { dateToString, isSameDay } from "@src/utils/date";
+import { getBusinessDayRange } from "@src/utils/date";
 import { Order } from "@src/entities/order/order.entity";
 import { CustomerCredit } from "@src/entities/customer/customer-credit.entity";
 import { ClientSettingsSql } from "@src/modules/main/client/settings/client-settings.sql";
@@ -58,7 +58,7 @@ export class SettingsService {
   }
 
   async getOrderHistory(customerId: number, startDate: string, endDate: string) {
-    const [startString, endString] = this.getStartAndEnd(startDate, endDate);
+    const [startString, endString] = getBusinessDayRange(startDate, endDate);
     console.log("history")
 
     const result = await this.orderRepository.query(
@@ -98,7 +98,7 @@ export class SettingsService {
   }
 
   async getCreditHistory(customerId: number, startDate: string, endDate: string) {
-    const [startString, endString] = this.getStartAndEnd(startDate, endDate);
+    const [startString, endString] = getBusinessDayRange(startDate, endDate);
     const result = (await this.customerCreditRepository.query(ClientSettingsSql.getCreditHistory, [
       customerId, startString,
       customerId, startString, endString,
@@ -106,20 +106,6 @@ export class SettingsService {
     ]))[0];
 
     return result;
-  }
-
-  private getStartAndEnd(startDate: string, endDate: string) {
-    const start = new Date(startDate), end = new Date(endDate);
-
-    start.setHours(9, 0, 0, 0);
-    if (isSameDay(start, end)) {
-      end.setHours(23, 59, 59, 999);
-    } else {
-      end.setDate(end.getDate() + 1);
-      end.setHours(8, 59, 59, 999);
-    }
-
-    return [dateToString(start), dateToString(end)];
   }
 
   async getMinUsePoint() {

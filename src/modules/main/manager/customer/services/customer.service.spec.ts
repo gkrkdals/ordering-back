@@ -45,8 +45,8 @@ describe('CustomerService (적립금)', () => {
     service = new CustomerService(
       customerRepoMock,   // customerRepository
       {} as any,          // customerCategoryRepository
-      {} as any,          // customerPriceRepository
       {} as any,          // discountGroupRepository
+      {} as any,          // groupPriceRepository
       {} as any,          // pointHistoryRepository
       datasource as any,  // datasource
     );
