@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
 import { OrderCategory } from "@src/entities/order/order-category.entity";
-import { DataSource, In, LessThan, Not, Repository } from "typeorm";
+import { Between, DataSource, In, LessThan, Not, Repository } from "typeorm";
 import { CreateOrderDto } from "@src/modules/main/client/order/dto/ordered-menu.dto";
 import { Order } from "@src/entities/order/order.entity";
 import { Customer } from "@src/entities/customer/customer.entity";
@@ -12,7 +12,7 @@ import { OrderGateway } from "@src/modules/socket/order.gateway";
 import { CustomerPrice } from "@src/entities/customer/customer-price.entity";
 import { CustomerCredit } from "@src/entities/customer/customer-credit.entity";
 import { OrderStatus } from "@src/entities/order/order-status.entity";
-import { getOrderAvailableTimes } from "@src/utils/date";
+import { getBusinessDayRange, getOrderAvailableTimes } from "@src/utils/date";
 import { Menu } from "@src/entities/menu/menu.entity";
 import { FirebaseService } from "@src/modules/firebase/firebase.service";
 import { JwtCustomer } from "@src/types/jwt/JwtCustomer";
@@ -25,7 +25,7 @@ import { POINT_USE_UNIT } from "@src/types/point";
 import { GetPointHistoryResponseDto } from "@src/modules/main/client/order/dto/response/get-point-history-response.dto";
 
 /** 고객 화면에 내려주는 적립금 내역의 최대 건수 */
-const POINT_HISTORY_LIMIT = 100;
+const POINT_HISTORY_LIMIT = 500;
 
 @Injectable()
 export class OrderService {
@@ -322,17 +322,35 @@ export class OrderService {
    * 화면에서는 해당 행을 '적립취소'로 표시한다.
    *
    * @param customer JWT에서 얻은 본인 정보
+   * @param startDate 조회 시작일 (yyyy-MM-dd). 생략하면 최근 건부터
+   * @param endDate 조회 종료일 (yyyy-MM-dd)
    */
-  async getPointHistory(customer: JwtCustomer): Promise<GetPointHistoryResponseDto> {
+  async getPointHistory(
+    customer: JwtCustomer,
+    startDate?: string,
+    endDate?: string,
+  ): Promise<GetPointHistoryResponseDto> {
+    // 주문내역 조회와 같은 영업일 규칙(09시 시작)을 쓴다
+    let period = {};
+    if (startDate && endDate) {
+      // created_at은 Date 컬럼이므로 문자열 범위를 Date로 바꿔 넘긴다
+      const [start, end] = getBusinessDayRange(startDate, endDate);
+      period = { createdAt: Between(new Date(start), new Date(end)) };
+    }
+
     const [histories, targetCustomer] = await Promise.all([
+      // 상한에 걸릴 때 잘려나가는 쪽이 오래된 건이 되도록 최신순으로 뽑은 뒤 뒤집는다
       this.pointHistoryRepository.find({
-        where: { customerId: customer.id },
+        where: { customerId: customer.id, ...period },
         relations: { orderJoin: { menuJoin: true } },
         order: { createdAt: 'DESC', id: 'DESC' },
         take: POINT_HISTORY_LIMIT,
       }),
       this.customerRepository.findOneBy({ id: customer.id }),
     ]);
+
+    // 화면에는 시간 순(오래된 것 → 최신)으로 보여준다
+    histories.reverse();
 
     return {
       // 목록만 최신이고 잔액이 낡는 일이 없도록 잔액도 함께 내려준다

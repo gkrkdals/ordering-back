@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, Post, UseGuards } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Get, Post, Query, UseGuards } from "@nestjs/common";
 import { OrderService } from "@src/modules/main/client/order/services/order.service";
 import { OrderCategory } from "@src/entities/order/order-category.entity";
 import { CreateOrderDto } from "@src/modules/main/client/order/dto/ordered-menu.dto";
@@ -66,8 +66,12 @@ export class OrderController {
   }
 
   @Get('point/history')
-  async getPointHistory(@CustomerData() customer: JwtCustomer): Promise<GetPointHistoryResponseDto> {
-    return this.orderService.getPointHistory(customer);
+  async getPointHistory(
+    @CustomerData() customer: JwtCustomer,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ): Promise<GetPointHistoryResponseDto> {
+    return this.orderService.getPointHistory(customer, startDate, endDate);
   }
 
   @Post('point/use')

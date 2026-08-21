@@ -30,6 +30,27 @@ export function getOrderAvailableTimes() {
   return [dateToString(ret1), dateToString(ret2)];
 }
 
+/**
+ * 조회 화면에서 고른 날짜 범위를 영업일 기준 시각 범위로 바꿉니다.
+ *
+ * 하루는 09시에 시작한다고 보며(주문 마감 시각과 동일한 규약),
+ * 여러 날을 고르면 마지막 날 다음 날 08:59:59까지 포함합니다.
+ * 주문내역·적립금내역 조회가 같은 규칙을 쓰도록 여기에 둡니다.
+ */
+export function getBusinessDayRange(startDate: string, endDate: string): [string, string] {
+  const start = new Date(startDate), end = new Date(endDate);
+
+  start.setHours(9, 0, 0, 0);
+  if (isSameDay(start, end)) {
+    end.setHours(23, 59, 59, 999);
+  } else {
+    end.setDate(end.getDate() + 1);
+    end.setHours(8, 59, 59, 999);
+  }
+
+  return [dateToString(start), dateToString(end)];
+}
+
 export function isSameDay(day1: Date, day2: Date): boolean {
   return (day1.getFullYear() === day2.getFullYear()) && (day1.getMonth() === day2.getMonth()) && (day1.getDate() === day2.getDate());
 }

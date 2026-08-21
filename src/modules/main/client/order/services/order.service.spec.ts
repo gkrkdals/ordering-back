@@ -223,7 +223,7 @@ describe('OrderService (적립금)', () => {
   describe('getPointHistory', () => {
     const CUSTOMER = { id: 1 } as any;
 
-    it('본인 이력만 최신순 100건까지 조회하고 잔액을 함께 반환한다', async () => {
+    it('본인 이력만 조회하고 잔액을 함께 반환한다', async () => {
       pointHistoryRepoMock.find.mockResolvedValue([
         {
           id: 3, customerId: 1, amount: 5, pathType: PointEnum.MENU, isCanceled: 0,
@@ -236,8 +236,7 @@ describe('OrderService (적립금)', () => {
 
       const findOptions = pointHistoryRepoMock.find.mock.calls[0][0];
       expect(findOptions.where).toEqual({ customerId: 1 });
-      expect(findOptions.take).toBe(100);
-      expect(findOptions.order).toEqual({ createdAt: 'DESC', id: 'DESC' });
+      expect(findOptions.take).toBe(500);
 
       expect(result.balance).toBe(100);
       expect(result.histories).toEqual([
@@ -245,6 +244,36 @@ describe('OrderService (적립금)', () => {
           id: 3, pathType: PointEnum.MENU, amount: 5, isCanceled: 0, menuName: '제육덮밥',
         }),
       ]);
+    });
+
+    it('화면에는 시간 순(오래된 것 → 최신)으로 내려준다', async () => {
+      // 상한에 걸려도 최신 건이 남도록 DB에서는 최신순으로 뽑는다
+      pointHistoryRepoMock.find.mockResolvedValue([
+        { id: 3, amount: 5, pathType: PointEnum.MENU, isCanceled: 0, createdAt: new Date('2026-08-20T12:00:00') },
+        { id: 2, amount: 5, pathType: PointEnum.MENU, isCanceled: 0, createdAt: new Date('2026-08-20T10:00:00') },
+        { id: 1, amount: 5, pathType: PointEnum.MENU, isCanceled: 0, createdAt: new Date('2026-08-19T10:00:00') },
+      ]);
+
+      const result = await service.getPointHistory(CUSTOMER);
+
+      expect(pointHistoryRepoMock.find.mock.calls[0][0].order).toEqual({ createdAt: 'DESC', id: 'DESC' });
+      expect(result.histories.map(history => history.id)).toEqual([1, 2, 3]);
+    });
+
+    it('날짜를 주면 영업일 기준(09시 시작) 범위로 거른다', async () => {
+      await service.getPointHistory(CUSTOMER, '2026-08-19', '2026-08-20');
+
+      const { createdAt } = pointHistoryRepoMock.find.mock.calls[0][0].where;
+      // Between(시작, 끝) — 시작은 19일 09:00, 끝은 21일 08:59:59
+      // (범위 문자열이 초 단위라 밀리초는 잘린다 — 주문내역 조회와 동일)
+      expect(createdAt._value[0]).toEqual(new Date('2026-08-19T09:00:00'));
+      expect(createdAt._value[1]).toEqual(new Date('2026-08-21T08:59:59'));
+    });
+
+    it('날짜가 한쪽만 오면 기간 조건 없이 최근 건을 준다', async () => {
+      await service.getPointHistory(CUSTOMER, '2026-08-19', undefined);
+
+      expect(pointHistoryRepoMock.find.mock.calls[0][0].where).toEqual({ customerId: 1 });
     });
 
     it('회수된 적립은 is_canceled 값을 그대로 내려 화면에서 적립취소로 표시할 수 있다', async () => {
