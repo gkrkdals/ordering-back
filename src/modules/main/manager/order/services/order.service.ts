@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { OrderStatus } from "@src/entities/order/order-status.entity";
 import { And, LessThanOrEqual, MoreThanOrEqual, Repository } from "typeorm";
@@ -6,8 +6,10 @@ import { Order } from "@src/entities/order/order.entity";
 import { OrderSql } from "@src/modules/main/manager/order/sql/order.sql";
 import { StatusEnum } from "@src/types/enum/StatusEnum";
 import { GetOrderResponseDto } from "@src/modules/main/manager/order/dto/response/get-order-response.dto";
+import { GetOrderDetailResponseDto } from "@src/modules/main/manager/order/dto/response/get-order-detail-response.dto";
 import { OrderStatusRaw } from "@src/types/models/OrderStatusRaw";
 import { countSkip, countToTotalPage } from "@src/utils/data";
+import { withSearchPattern } from "@src/utils/hangul";
 import { OrderCategory } from "@src/entities/order/order-category.entity";
 import { Menu } from "@src/entities/menu/menu.entity";
 import { CustomerPrice } from "@src/entities/customer/customer-price.entity";
@@ -95,8 +97,11 @@ export class OrderService {
     user: User,
     isRemaining: boolean
   ): Promise<GetOrderResponseDto> {
-    const like = `%${query}%`;
-    const likes = new Array(5).fill(like);
+    // 초성이 섞인 검색어는 LIKE 대신 음절 범위 정규식(REGEXP)으로 찾는다
+    const [statusSql, statusPattern] = withSearchPattern(OrderSql.getOrderStatus, query);
+    const [countSql, countPattern] = withSearchPattern(OrderSql.getOrderStatusCount, query);
+    const likes = new Array(5).fill(statusPattern);
+    const countLikes = new Array(5).fill(countPattern);
 
     const orderingMode: number | null = isRemaining ? null : 1;
     const remainingMode: number | null = isRemaining ? 1: null;
@@ -113,7 +118,7 @@ export class OrderService {
     const data: OrderStatusRaw[] = await this
       .orderStatusRepository
       .query(
-        OrderSql.getOrderStatus.replace(';', orderBy),
+        statusSql.replace(';', orderBy),
         [
           remainingMode,
           ...likes,
@@ -127,9 +132,9 @@ export class OrderService {
     let { count } = (await this
       .orderStatusRepository
       .query(
-        OrderSql.getOrderStatusCount,
+        countSql,
         [
-          ...likes,
+          ...countLikes,
           StatusEnum.PendingReceipt, StatusEnum.PickupComplete,
           orderingMode, firstTime, lastTime,
           remainingMode, StatusEnum.AwaitingPickup, StatusEnum.InPickingUp,
@@ -199,6 +204,30 @@ export class OrderService {
     return this
       .orderStatusRepository
       .query(OrderSql.getOrderHistory, [orderCode, orderCode]);
+  }
+
+  /**
+   * 주문 수정 화면에서 기존 값을 그대로 불러오기 위한 상세 조회.
+   *
+   * 목록 SQL의 request 컬럼은 미수 탭에서 memo로 치환되므로 수정 화면은 이 값을 써야 한다.
+   */
+  async getOrderDetail(orderCode: number): Promise<GetOrderDetailResponseDto> {
+    const order = await this.orderRepository.findOne({
+      where: { id: orderCode },
+      relations: { menuJoin: true },
+    });
+
+    if (!order) {
+      throw new NotFoundException('존재하지 않는 주문입니다');
+    }
+
+    return {
+      orderCode: order.id,
+      menu: order.menu,
+      menuName: order.menuJoin?.name ?? '',
+      price: order.price,
+      request: order.request ?? '',
+    };
   }
 
   async getMemo(orderCode: number): Promise<string> {

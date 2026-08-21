@@ -1,8 +1,9 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Menu } from "@src/entities/menu/menu.entity";
-import { FindOptionsOrder, Like, MoreThan, Not, Repository } from "typeorm";
+import { FindOptionsOrder, FindOperator, Like, MoreThan, Not, Raw, Repository } from "typeorm";
 import { countToTotalPage } from "@src/utils/data";
+import { hasJamo, SQL_GAP, toSearchPattern } from "@src/utils/hangul";
 import { GetMenuResponseDto } from "@src/modules/main/manager/menu/dto/response/get-menu-response.dto";
 import { MenuCategory } from "@src/entities/menu/menu-category.entity";
 import * as XLSX from 'xlsx-js-style';
@@ -22,7 +23,10 @@ export class MenuService {
     page: number,
     query: string | undefined
   ): Promise<GetMenuResponseDto> {
-    const like = Like(`%${query}%`);
+    // 초성이 섞인 검색어는 음절 범위 정규식으로, 그 외에는 기존 부분일치로 찾는다
+    const like: FindOperator<string> = hasJamo(query ?? '')
+      ? Raw(alias => `${alias} REGEXP :pattern`, { pattern: toSearchPattern(query, SQL_GAP) })
+      : Like(`%${query}%`);
     const findOrder: FindOptionsOrder<Menu> = {}
 
     if (order !== '') {

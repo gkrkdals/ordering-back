@@ -5,6 +5,7 @@ import { DataSource, Not, Repository } from "typeorm";
 import { PointEnum } from "@src/types/enum/PointEnum";
 import { GetCustomerResponseDto } from "@src/modules/main/manager/customer/dto/response/get-customer-response.dto";
 import { countToTotalPage } from "@src/utils/data";
+import { withSearchPattern } from "@src/utils/hangul";
 import { CustomerCategory } from "@src/entities/customer/customer-category.entity";
 import { CustomerPrice } from "@src/entities/customer/customer-price.entity";
 import { UpdateCustomerPriceDto } from "@src/modules/main/manager/customer/dto/update-customer-price.dto";
@@ -36,7 +37,9 @@ export class CustomerService {
     page: number,
     query: string
   ): Promise<GetCustomerResponseDto> {
-    const like = `%${query}%`
+    // 초성이 섞인 검색어는 LIKE 대신 음절 범위 정규식(REGEXP)으로 찾는다
+    const [countSql, countPattern] = withSearchPattern(CustomerSql.getCustomerCount, query);
+    const [customerSql, customerPattern] = withSearchPattern(CustomerSql.getCustomer, query);
 
     let orderBy: string;
     if (order !== '') {
@@ -46,13 +49,13 @@ export class CustomerService {
     }
 
     const { count } = (await this.customerRepository.query(
-      CustomerSql.getCustomerCount,
-      new Array(3).fill(like)
+      countSql,
+      new Array(3).fill(countPattern)
     ))[0];
 
     const customers: CustomerRaw[] = await this.customerRepository.query(
-      CustomerSql.getCustomer.replace('^', orderBy),
-      [like, like, like, like]
+      customerSql.replace('^', orderBy),
+      new Array(4).fill(customerPattern)
     );
 
     return {

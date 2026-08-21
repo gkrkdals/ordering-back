@@ -10,6 +10,7 @@ import { OrderSummaryResponseDto } from "@src/modules/main/client/order/dto/resp
 import { CreateDishDisposalDto } from "@src/modules/main/client/order/dto/create-dish-disposal.dto";
 import { Disposal } from "@src/types/models/Disposal";
 import { JwtCustomer } from "@src/types/jwt/JwtCustomer";
+import { GetPointHistoryResponseDto } from "@src/modules/main/client/order/dto/response/get-point-history-response.dto";
 
 @UseGuards(AuthGuard)
 @Controller('order')
@@ -62,6 +63,11 @@ export class OrderController {
   @Post('dish')
   async createDishDisposals(@CustomerData() customer: Customer, @Body() body: CreateDishDisposalDto) {
     return this.dishDisposalService.createDishDisposal(customer, body);
+  }
+
+  @Get('point/history')
+  async getPointHistory(@CustomerData() customer: JwtCustomer): Promise<GetPointHistoryResponseDto> {
+    return this.orderService.getPointHistory(customer);
   }
 
   @Post('point/use')

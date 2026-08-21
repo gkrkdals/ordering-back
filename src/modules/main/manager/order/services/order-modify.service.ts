@@ -1,8 +1,8 @@
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { UpdateOrderDto } from "@src/modules/main/manager/order/dto/update-order.dto";
 import { InjectRepository } from "@nestjs/typeorm";
 import { OrderStatus } from "@src/entities/order/order-status.entity";
-import { DataSource, In, LessThan, Not, Repository } from "typeorm";
+import { DataSource, EntityManager, In, LessThan, Not, Repository } from "typeorm";
 import { StatusEnum } from "@src/types/enum/StatusEnum";
 import { Order } from "@src/entities/order/order.entity";
 import { CustomerCredit } from "@src/entities/customer/customer-credit.entity";
@@ -20,6 +20,10 @@ import { NoAlarmsService } from "@src/modules/misc/no-alarms/no-alarms.service";
 import { PointHistory } from "@src/entities/point-history.entity";
 import { PointEnum } from "@src/types/enum/PointEnum";
 import { Customer } from "@src/entities/customer/customer.entity";
+import { Menu } from "@src/entities/menu/menu.entity";
+
+/** 적립금 사용을 되돌릴 때 잔금(customer_credit)에 남기는 보정 기록의 메모 */
+const POINT_USE_CANCEL_MEMO = '적립금 사용 취소';
 
 @Injectable()
 export class OrderModifyService {
@@ -130,122 +134,192 @@ export class OrderModifyService {
   }
 
   /**
-   * 주문 메뉴를 업데이트 합니다.
+   * 관리자 화면에서 주문의 메뉴/가격/요청사항을 수정합니다.
    *
-   * @param body 주문 코드, 바뀌기 전과 후의 메뉴
+   * 수정 화면이 기존 값을 그대로 불러오므로 실제로 바뀐 항목만 반영한다.
+   * - 메뉴나 요청사항이 바뀌면 해당 주문의 메뉴 적립금(MENU)을 회수한다.
+   * - 메뉴가 바뀌면 기존 동작대로 적립금 사용(USE)·그릇수거 적립(BOWL)까지 되돌린다.
+   * - 가격이 바뀌면 미수(음수 잔금) 기록을 새 금액으로 다시 쓴다.
+   * - 아무 것도 바뀌지 않았으면 아무 처리도 하지 않는다.
+   *
+   * @param body 주문 코드, 바뀌기 전 메뉴, 바꿀 메뉴/가격/요청사항(생략 시 기존값 유지)
    * @param user 관리자 정보
    */
   async updateOrderMenu(body: UpdateOrderMenuDto, user: User) {
-    const { orderCode, from, to, price, request } = body;
+    const { orderCode } = body;
 
     // 주문 변경·적립금 역처리·잔금 기록을 하나의 트랜잭션으로 묶음
-    await this.datasource.transaction(async (em) => {
+    const changed = await this.datasource.transaction(async (em) => {
       const currentOrder = await em.getRepository(Order).findOneBy({ id: orderCode });
-      currentOrder.menu = to;
-      currentOrder.price = price;
-      currentOrder.request = request;
+
+      if (!currentOrder) {
+        throw new NotFoundException('존재하지 않는 주문입니다');
+      }
+
+      // 값이 오지 않은 항목은 기존 값을 유지한다 (선택적 변경)
+      const nextMenu = (body.to === undefined || body.to === null || Number(body.to) < 0)
+        ? currentOrder.menu
+        : Number(body.to);
+      const nextPrice = (body.price === undefined || body.price === null || Number.isNaN(Number(body.price)))
+        ? currentOrder.price
+        : Number(body.price);
+      const nextRequest = body.request ?? currentOrder.request ?? '';
+
+      const menuChanged = nextMenu !== currentOrder.menu;
+      const priceChanged = nextPrice !== currentOrder.price;
+      const requestChanged = nextRequest !== (currentOrder.request ?? '');
+
+      if (!menuChanged && !priceChanged && !requestChanged) {
+        return false;
+      }
+
+      if (menuChanged) {
+        const targetMenu = await em.getRepository(Menu).findOneBy({ id: nextMenu });
+
+        if (!targetMenu) {
+          throw new BadRequestException('존재하지 않는 메뉴입니다');
+        }
+      }
+
+      const previousMenu = currentOrder.menu;
+      currentOrder.menu = nextMenu;
+      currentOrder.price = nextPrice;
+      currentOrder.request = nextRequest;
       await em.getRepository(Order).save(currentOrder);
 
+      // 수정 이력은 항상 남긴다 (가격·요청사항만 바뀐 경우 from === to)
       const newOrderChange = new OrderChange();
       newOrderChange.orderCode = orderCode;
-      newOrderChange.from = from;
-      newOrderChange.to = to;
+      newOrderChange.from = previousMenu;
+      newOrderChange.to = nextMenu;
       newOrderChange.by = user.id;
       await em.getRepository(OrderChange).save(newOrderChange);
 
-      await em.getRepository(CustomerCredit).delete({
-        orderCode: orderCode,
-        creditDiff: LessThan(0)
-      });
-
-      // 1. 이미 취소된 내역이 있는지 확인 (중복 취소 방지)
-      const isAlreadyCanceled = await em.getRepository(PointHistory).findOneBy({
-        orderId: orderCode,
-        pathType: PointEnum.CANCELED,
-      });
-
-      if (!isAlreadyCanceled) {
-        // 2. 해당 주문에서 적립금을 '사용한' 원본 내역 찾기
-        const usedPointHistory = await em.getRepository(PointHistory).findOneBy({
-          orderId: orderCode,
-          pathType: PointEnum.USE,
+      if (priceChanged) {
+        // 미수(음수) 기록만 새 금액으로 다시 쓴다.
+        // '적립금 사용 취소' 보정 기록은 주문 금액이 아니므로 지우면 안 됨(이중 계상 방지)
+        const debts = await em.getRepository(CustomerCredit).findBy({
+          orderCode: orderCode,
+          creditDiff: LessThan(0),
         });
+        const removableIds = debts
+          .filter(debt => debt.memo !== POINT_USE_CANCEL_MEMO)
+          .map(debt => debt.id);
 
-        // 3. 방어 로직
-        if (usedPointHistory) {
-          // 4. PK 충돌 방지: 기존 객체에서 'id'만 쏙 빼고 나머지 데이터만 가져오기
-          const { id, ...historyDataWithoutId } = usedPointHistory;
-
-          // 새로운 취소 내역 추가
-          await em.getRepository(PointHistory).insert({
-            ...historyDataWithoutId,
-            pathType: PointEnum.CANCELED,
-            amount: usedPointHistory.amount * -1, // 음수였던 사용액을 양수로 반전
-          });
-
-          // 고객 잔액 복구
-          await em.getRepository(Customer).increment(
-            { id: currentOrder.customer },
-            'pointBalance',
-            usedPointHistory.amount * -1,
-          );
-
-          // 고객 신용 테이블에 적립금 사용 취소 내역 기록
-          await em.getRepository(CustomerCredit).insert({
-            orderCode,
-            customer: currentOrder.customer,
-            creditDiff: usedPointHistory.amount * 100, // 포인트 사용 금액으로 기록 (1포인트당 1000원)
-            time: new Date(),
-            memo: '적립금 사용 취소',
-          });
+        if (removableIds.length > 0) {
+          await em.getRepository(CustomerCredit).delete({ id: In(removableIds) });
         }
-      }
-      // 끝
 
-      // 그릇수거 적립금(BOWL) 취소 처리
-      const bowlHistory = await em.getRepository(PointHistory).findOneBy({
-        orderId: orderCode,
-        pathType: PointEnum.BOWL,
-      });
-
-      if (bowlHistory && bowlHistory.isCanceled !== 1) {
-        await em.getRepository(Customer).decrement(
-          { id: currentOrder.customer },
-          'pointBalance',
-          bowlHistory.amount,
-        );
-
-        await em.getRepository(PointHistory).update(
-          { id: bowlHistory.id },
-          { isCanceled: 1 },
-        );
+        const newDebt = new CustomerCredit();
+        newDebt.customer = currentOrder.customer;
+        newDebt.orderCode = orderCode;
+        newDebt.creditDiff = nextPrice * -1;
+        await em.getRepository(CustomerCredit).save(newDebt);
       }
 
-      // 메뉴 적립금(MENU) 취소 처리
-      const menuHistory = await em.getRepository(PointHistory).findOneBy({
-        orderId: orderCode,
-        pathType: PointEnum.MENU,
-      });
-
-      if (menuHistory && menuHistory.isCanceled !== 1) {
-        await em.getRepository(Customer).decrement(
-          { id: currentOrder.customer },
-          'pointBalance',
-          menuHistory.amount,
-        );
-
-        await em.getRepository(PointHistory).update(
-          { id: menuHistory.id },
-          { isCanceled: 1 },
-        );
+      if (menuChanged) {
+        await this.revertUsedPoint(em, orderCode, currentOrder.customer);
+        await this.cancelRewardedPoint(em, orderCode, currentOrder.customer, PointEnum.BOWL);
       }
 
-      const newDebt = new CustomerCredit();
-      newDebt.customer = currentOrder.customer;
-      newDebt.orderCode = orderCode;
-      newDebt.creditDiff = price * -1;
-      await em.getRepository(CustomerCredit).save(newDebt);
+      // 메뉴나 요청사항이 바뀌면 해당 주문의 메뉴 적립금은 취소한다
+      if (menuChanged || requestChanged) {
+        await this.cancelRewardedPoint(em, orderCode, currentOrder.customer, PointEnum.MENU);
+      }
+
+      return true;
     });
+
+    if (changed) {
+      this.orderGateway.refreshClient();
+      this.orderGateway.refresh();
+    }
+
+    return { changed };
+  }
+
+  /**
+   * 주문에 묶인 적립금 사용(USE) 기록을 되돌립니다.
+   *
+   * 이미 취소(CANCELED) 기록이 있으면 중복 처리하지 않습니다.
+   */
+  private async revertUsedPoint(em: EntityManager, orderCode: number, customer: number) {
+    // 1. 이미 취소된 내역이 있는지 확인 (중복 취소 방지)
+    const isAlreadyCanceled = await em.getRepository(PointHistory).findOneBy({
+      orderId: orderCode,
+      pathType: PointEnum.CANCELED,
+    });
+
+    if (isAlreadyCanceled) {
+      return;
+    }
+
+    // 2. 해당 주문에서 적립금을 '사용한' 원본 내역 찾기
+    const usedPointHistory = await em.getRepository(PointHistory).findOneBy({
+      orderId: orderCode,
+      pathType: PointEnum.USE,
+    });
+
+    // 3. 방어 로직
+    if (!usedPointHistory) {
+      return;
+    }
+
+    // 4. PK 충돌 방지: 기존 객체에서 'id'만 쏙 빼고 나머지 데이터만 가져오기
+    const { id, ...historyDataWithoutId } = usedPointHistory;
+
+    // 새로운 취소 내역 추가
+    await em.getRepository(PointHistory).insert({
+      ...historyDataWithoutId,
+      pathType: PointEnum.CANCELED,
+      amount: usedPointHistory.amount * -1, // 음수였던 사용액을 양수로 반전
+    });
+
+    // 고객 잔액 복구
+    await em.getRepository(Customer).increment(
+      { id: customer },
+      'pointBalance',
+      usedPointHistory.amount * -1,
+    );
+
+    // 고객 신용 테이블에 적립금 사용 취소 내역 기록
+    await em.getRepository(CustomerCredit).insert({
+      orderCode,
+      customer: customer,
+      creditDiff: usedPointHistory.amount * 100, // 포인트 사용 금액으로 기록 (1포인트당 100원)
+      time: new Date(),
+      memo: POINT_USE_CANCEL_MEMO,
+    });
+  }
+
+  /**
+   * 주문 건에 적립된 포인트(MENU/BOWL)를 회수하고 취소 플래그를 세웁니다.
+   */
+  private async cancelRewardedPoint(
+    em: EntityManager,
+    orderCode: number,
+    customer: number,
+    pathType: PointEnum.MENU | PointEnum.BOWL,
+  ) {
+    const history = await em.getRepository(PointHistory).findOneBy({
+      orderId: orderCode,
+      pathType: pathType,
+    });
+
+    if (!history || history.isCanceled === 1) {
+      return;
+    }
+
+    await em.getRepository(Customer).decrement(
+      { id: customer },
+      'pointBalance',
+      history.amount,
+    );
+
+    await em.getRepository(PointHistory).update(
+      { id: history.id },
+      { isCanceled: 1 },
+    );
   }
 
   /**
@@ -282,49 +356,8 @@ export class OrderModifyService {
       const currentOrder = await em.getRepository(Order).findOneBy({ id: orderCode });
       const customer = currentOrder.customer;
 
-      // 1. 이미 취소된 내역이 있는지 확인 (중복 취소 방지)
-      const isAlreadyCanceled = await em.getRepository(PointHistory).findOneBy({
-        orderId: orderCode,
-        pathType: PointEnum.CANCELED,
-      });
-
-      if (!isAlreadyCanceled) {
-        // 2. 해당 주문에서 적립금을 '사용한' 원본 내역 찾기
-        const usedPointHistory = await em.getRepository(PointHistory).findOneBy({
-          orderId: orderCode,
-          pathType: PointEnum.USE,
-        });
-
-        // 3. 방어 로직
-        if (usedPointHistory) {
-          // 4. PK 충돌 방지: 기존 객체에서 'id'만 쏙 빼고 나머지 데이터만 가져오기
-          const { id, ...historyDataWithoutId } = usedPointHistory;
-
-          // 새로운 취소 내역 추가
-          await em.getRepository(PointHistory).insert({
-            ...historyDataWithoutId,
-            pathType: PointEnum.CANCELED,
-            amount: usedPointHistory.amount * -1, // 음수였던 사용액을 양수로 반전
-          });
-
-          // 고객 잔액 복구
-          await em.getRepository(Customer).increment(
-            { id: customer },
-            'pointBalance',
-            usedPointHistory.amount * -1,
-          );
-
-          // 고객 신용 테이블에 적립금 사용 취소 내역 기록
-          await em.getRepository(CustomerCredit).insert({
-            orderCode,
-            customer: customer,
-            creditDiff: usedPointHistory.amount * 100, // 포인트 사용 금액으로 기록 (1포인트당 1000원)
-            time: new Date(),
-            memo: '적립금 사용 취소',
-          });
-        }
-      }
-      // 끝
+      // 적립금 사용(USE) 되돌리기
+      await this.revertUsedPoint(em, orderCode, customer);
 
       // 메뉴 적립금(MENU) 취소 처리
       // 묶음 주문(같은 장바구니)은 하나라도 취소되면 묶음 전체의 메뉴 적립을 회수한다.
@@ -358,23 +391,7 @@ export class OrderModifyService {
       }
 
       // 그릇수거 적립금(BOWL) 취소 처리
-      const bowlHistory = await em.getRepository(PointHistory).findOneBy({
-        orderId: orderCode,
-        pathType: PointEnum.BOWL,
-      });
-
-      if (bowlHistory && bowlHistory.isCanceled !== 1) {
-        await em.getRepository(Customer).decrement(
-          { id: customer },
-          'pointBalance',
-          bowlHistory.amount,
-        );
-
-        await em.getRepository(PointHistory).update(
-          { id: bowlHistory.id },
-          { isCanceled: 1 },
-        );
-      }
+      await this.cancelRewardedPoint(em, orderCode, customer, PointEnum.BOWL);
     });
 
     if (canceledOrder.status === StatusEnum.PendingReceipt) {

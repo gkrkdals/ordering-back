@@ -22,6 +22,10 @@ import { Settings } from "@src/entities/settings.entity";
 import { PointHistory } from "@src/entities/point-history.entity";
 import { PointEnum } from "@src/types/enum/PointEnum";
 import { POINT_USE_UNIT } from "@src/types/point";
+import { GetPointHistoryResponseDto } from "@src/modules/main/client/order/dto/response/get-point-history-response.dto";
+
+/** 고객 화면에 내려주는 적립금 내역의 최대 건수 */
+const POINT_HISTORY_LIMIT = 100;
 
 @Injectable()
 export class OrderService {
@@ -309,5 +313,40 @@ export class OrderService {
     // 4. 실시간 소켓 갱신 알림 (커밋 후)
     this.orderGateway.refresh();
     this.orderGateway.refreshClient();
+  }
+
+  /**
+   * 고객이 자신의 적립금 내역을 조회합니다.
+   *
+   * 적립 취소(MENU/BOWL)는 별도 행이 아니라 원본 적립 행의 is_canceled 플래그로 남으므로,
+   * 화면에서는 해당 행을 '적립취소'로 표시한다.
+   *
+   * @param customer JWT에서 얻은 본인 정보
+   */
+  async getPointHistory(customer: JwtCustomer): Promise<GetPointHistoryResponseDto> {
+    const [histories, targetCustomer] = await Promise.all([
+      this.pointHistoryRepository.find({
+        where: { customerId: customer.id },
+        relations: { orderJoin: { menuJoin: true } },
+        order: { createdAt: 'DESC', id: 'DESC' },
+        take: POINT_HISTORY_LIMIT,
+      }),
+      this.customerRepository.findOneBy({ id: customer.id }),
+    ]);
+
+    return {
+      // 목록만 최신이고 잔액이 낡는 일이 없도록 잔액도 함께 내려준다
+      balance: targetCustomer?.pointBalance ?? 0,
+      histories: histories.map(history => ({
+        id: history.id,
+        pathType: history.pathType,
+        amount: history.amount,
+        isCanceled: history.isCanceled,
+        description: history.description,
+        // 주문 삭제 시 order_id가 SET NULL 되므로 과거 이력은 메뉴명이 없을 수 있다
+        menuName: history.orderJoin?.menuJoin?.name ?? null,
+        createdAt: history.createdAt,
+      })),
+    };
   }
 }

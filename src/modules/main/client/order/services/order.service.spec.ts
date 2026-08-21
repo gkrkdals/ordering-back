@@ -90,7 +90,7 @@ describe('OrderService (적립금)', () => {
     menuRepoMock = {
       findOneBy: jest.fn().mockResolvedValue({ id: 1, soldOut: 0, isRewardable: 1 }),
     };
-    pointHistoryRepoMock = { insert: jest.fn().mockResolvedValue(undefined) };
+    pointHistoryRepoMock = { insert: jest.fn().mockResolvedValue(undefined), find: jest.fn().mockResolvedValue([]) };
     creditRepoMock = { insert: jest.fn().mockResolvedValue(undefined) };
     settingsRepoMock = {
       // 최소 사용 금액(원). 사용 단위는 설정이 아닌 상수(1,000원)입니다.
@@ -218,6 +218,57 @@ describe('OrderService (적립금)', () => {
       await service.addOrder({ id: 1 } as any, { orderedMenus } as any);
       expect(pointHistoryRepoMock.insert).not.toHaveBeenCalled();
       expect(customerRepoMock.increment).not.toHaveBeenCalled();
+    });
+  });
+  describe('getPointHistory', () => {
+    const CUSTOMER = { id: 1 } as any;
+
+    it('본인 이력만 최신순 100건까지 조회하고 잔액을 함께 반환한다', async () => {
+      pointHistoryRepoMock.find.mockResolvedValue([
+        {
+          id: 3, customerId: 1, amount: 5, pathType: PointEnum.MENU, isCanceled: 0,
+          description: '주문 메뉴 적립금', createdAt: new Date('2026-08-20T10:00:00'),
+          orderJoin: { id: 10, menuJoin: { name: '제육덮밥' } },
+        },
+      ]);
+
+      const result = await service.getPointHistory(CUSTOMER);
+
+      const findOptions = pointHistoryRepoMock.find.mock.calls[0][0];
+      expect(findOptions.where).toEqual({ customerId: 1 });
+      expect(findOptions.take).toBe(100);
+      expect(findOptions.order).toEqual({ createdAt: 'DESC', id: 'DESC' });
+
+      expect(result.balance).toBe(100);
+      expect(result.histories).toEqual([
+        expect.objectContaining({
+          id: 3, pathType: PointEnum.MENU, amount: 5, isCanceled: 0, menuName: '제육덮밥',
+        }),
+      ]);
+    });
+
+    it('회수된 적립은 is_canceled 값을 그대로 내려 화면에서 적립취소로 표시할 수 있다', async () => {
+      pointHistoryRepoMock.find.mockResolvedValue([
+        {
+          id: 4, customerId: 1, amount: 5, pathType: PointEnum.MENU, isCanceled: 1,
+          description: '주문 메뉴 적립금', createdAt: new Date(), orderJoin: null,
+        },
+      ]);
+
+      const result = await service.getPointHistory(CUSTOMER);
+
+      expect(result.histories[0].isCanceled).toBe(1);
+      // 주문이 삭제되면 order_id가 SET NULL 되므로 메뉴명이 없을 수 있다
+      expect(result.histories[0].menuName).toBeNull();
+    });
+
+    it('고객 정보를 찾지 못해도 잔액 0으로 응답한다', async () => {
+      customerRepoMock.findOneBy.mockResolvedValue(null);
+
+      const result = await service.getPointHistory(CUSTOMER);
+
+      expect(result.balance).toBe(0);
+      expect(result.histories).toEqual([]);
     });
   });
 });

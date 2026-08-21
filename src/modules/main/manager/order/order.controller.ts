@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, Query, Req, UseGuards } from "@nestjs/common";
 import { OrderService } from "@src/modules/main/manager/order/services/order.service";
 import { GetOrderResponseDto } from "@src/modules/main/manager/order/dto/response/get-order-response.dto";
+import { GetOrderDetailResponseDto } from "@src/modules/main/manager/order/dto/response/get-order-detail-response.dto";
 import { Menu } from "@src/entities/menu/menu.entity";
 import { UpdateOrderDto } from "@src/modules/main/manager/order/dto/update-order.dto";
 import { UpdateOrderMenuDto } from "@src/modules/main/manager/order/dto/update-order-menu.dto";
@@ -62,6 +63,12 @@ export class OrderController {
   @Get('history')
   async getOrderHistory(@Query('orderCode') orderCode: number) {
     return this.orderService.getOrderHistory(orderCode);
+  }
+
+  // 주문 수정 화면의 기존값(메뉴/가격/요청사항) 조회
+  @Get('detail')
+  async getOrderDetail(@Query('orderCode') orderCode: number): Promise<GetOrderDetailResponseDto> {
+    return this.orderService.getOrderDetail(orderCode);
   }
 
   @Get('memo')
