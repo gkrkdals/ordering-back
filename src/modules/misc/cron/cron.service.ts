@@ -30,6 +30,7 @@ export class CronService implements OnModuleInit {
    * 그룹 영업시간은 그 그룹의 group_menu_sold_out 만 갱신합니다.
    */
   async scheduleTasks() {
+    // 전역 + 모든 그룹의 영업시간을 함께 읽어 그룹마다 태스크를 건다
     const businessHours = await this.settingsRepository.findBy({ big: 4 });
 
     for (const businessHour of businessHours) {
