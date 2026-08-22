@@ -24,6 +24,7 @@ import { Roles } from "@src/decorators/roles.decorator";
 import { NoAlarmsService } from "@src/modules/main/manager/settings/services/no-alarms.service";
 import { CalculationService } from "@src/modules/main/manager/settings/services/calculation.service";
 import { UpdateDisposalTimeDto } from "@src/modules/main/manager/settings/dto/update-disposal-time.dto";
+import { GLOBAL_GROUP_ID } from "@src/entities/settings.entity";
 
 @Controller('manager/settings')
 @UseGuards(AuthGuard, RolesGuard)
@@ -105,45 +106,57 @@ export class SettingsController {
     await this.settingService.modifyMenuCategories(modified, added);
   }
 
+  // groupId 를 생략하면 전역(전체 공통) 설정을 다룬다
   @Get('discount')
-  async getDiscountValue() {
-    return this.settingService.getDiscountValue();
+  async getDiscountValue(@Query('groupId') groupId?: number) {
+    return this.settingService.getDiscountValue(toGroupId(groupId));
   }
 
   @Put('discount')
-  async updateDiscount(@Body('value') value: number) {
-    await this.settingService.updateDiscount(value);
+  async updateDiscount(@Body('value') value: number, @Body('groupId') groupId?: number) {
+    await this.settingService.updateDiscount(value, toGroupId(groupId));
   }
 
-  // 고객 앱(그릇수거 다이얼로그)도 조회하므로 role 제한 없이 인증만 요구
+  // 고객 앱은 그룹이 반영된 GET /api/order/dish/disposal-time 을 쓴다
   @Get('disposal-time')
-  @Roles([])
-  async getDisposalTimes() {
-    return this.settingService.getDisposalTimes();
+  async getDisposalTimes(@Query('groupId') groupId?: number) {
+    return this.settingService.getDisposalTimes(toGroupId(groupId));
   }
 
   @Put('disposal-time')
-  async updateDisposalTimes(@Body() days: UpdateDisposalTimeDto[]) {
-    return this.settingService.updateDisposalTimes(days);
+  async updateDisposalTimes(
+    @Body('days') days: UpdateDisposalTimeDto[],
+    @Body('groupId') groupId?: number,
+  ) {
+    return this.settingService.updateDisposalTimes(days, toGroupId(groupId));
   }
 
   @Get('min-use-point')
-  async getMinUsePoint() {
-    return this.settingService.getMinUsePoint();
+  async getMinUsePoint(@Query('groupId') groupId?: number) {
+    return this.settingService.getMinUsePoint(toGroupId(groupId));
   }
 
   @Put('min-use-point')
-  async updateMinUsePoint(@Body('value') value: number) {
-    return this.settingService.updateMinUsePoint(value);
+  async updateMinUsePoint(@Body('value') value: number, @Body('groupId') groupId?: number) {
+    return this.settingService.updateMinUsePoint(value, toGroupId(groupId));
   }
 
   @Get('point-use-policy')
-  async getPointUsePolicy() {
-    return this.settingService.getPointUsePolicy();
+  async getPointUsePolicy(@Query('groupId') groupId?: number) {
+    return this.settingService.getPointUsePolicy(toGroupId(groupId));
   }
 
   @Put('point-use-policy')
-  async updatePointUsePolicy(@Body('minUsePoint') minUsePoint: number) {
-    return this.settingService.updatePointUsePolicy(minUsePoint);
+  async updatePointUsePolicy(
+    @Body('minUsePoint') minUsePoint: number,
+    @Body('groupId') groupId?: number,
+  ) {
+    return this.settingService.updatePointUsePolicy(minUsePoint, toGroupId(groupId));
   }
+}
+
+/** 쿼리·바디로 넘어온 groupId 를 숫자로 정규화한다. 없거나 -1 이면 전역(0) */
+function toGroupId(groupId: number | string | undefined): number {
+  const parsed = Number(groupId);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : GLOBAL_GROUP_ID;
 }

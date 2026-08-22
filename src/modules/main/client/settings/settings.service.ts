@@ -2,7 +2,7 @@ import { Injectable, StreamableFile } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Customer } from "@src/entities/customer/customer.entity";
 import { Not, Repository } from "typeorm";
-import { Settings } from "@src/entities/settings.entity";
+import { GLOBAL_GROUP_ID, Settings } from "@src/entities/settings.entity";
 import { createReadStream } from 'fs';
 import * as Path from 'path';
 import { Response } from "express";
@@ -11,6 +11,7 @@ import { Order } from "@src/entities/order/order.entity";
 import { CustomerCredit } from "@src/entities/customer/customer-credit.entity";
 import { ClientSettingsSql } from "@src/modules/main/client/settings/client-settings.sql";
 import { POINT_USE_UNIT } from "@src/types/point";
+import { CustomerSettingsService } from "@src/modules/misc/customer-settings/customer-settings.service";
 
 @Injectable()
 export class SettingsService {
@@ -23,6 +24,8 @@ export class SettingsService {
     private readonly orderRepository: Repository<Order>,
     @InjectRepository(CustomerCredit)
     private readonly customerCreditRepository: Repository<CustomerCredit>,
+
+    private readonly customerSettingsService: CustomerSettingsService,
   ) {}
 
   async updateShowPrice(customerId: number, value: 0 | 1) {
@@ -44,11 +47,11 @@ export class SettingsService {
   }
 
   async getStandardSettings() {
-    return this.settingsRepository.findBy({ big: 2, sml: Not(1) });
+    return this.settingsRepository.findBy({ big: 2, sml: Not(1), groupId: GLOBAL_GROUP_ID });
   }
 
   async getLogo(res: Response) {
-    const filename = (await this.settingsRepository.findOneBy({ big: 2, sml: 1 })).stringValue;
+    const filename = (await this.settingsRepository.findOneBy({ big: 2, sml: 1, groupId: GLOBAL_GROUP_ID })).stringValue;
     const ext = filename.split('.').at(1);
     const file = createReadStream(Path.join(process.cwd(), 'logo', filename));
     res.set({
@@ -108,8 +111,8 @@ export class SettingsService {
     return result;
   }
 
-  async getMinUsePoint() {
-    const setting = await this.settingsRepository.findOneBy({ big: 7, sml: 1 });
+  async getMinUsePoint(customer: Customer) {
+    const setting = await this.customerSettingsService.getSettingForCustomer(7, 1, customer);
     if (!setting) {
       return 3000;
     }
@@ -119,8 +122,8 @@ export class SettingsService {
   /**
    * 적립금 사용 정책을 조회합니다. 사용 단위는 1,000원 고정입니다. 두 값 모두 원 단위입니다.
    */
-  async getPointUsePolicy() {
-    const minSetting = await this.settingsRepository.findOneBy({ big: 7, sml: 1 });
+  async getPointUsePolicy(customer: Customer) {
+    const minSetting = await this.customerSettingsService.getSettingForCustomer(7, 1, customer);
 
     return {
       minUsePoint: minSetting ? (minSetting.value ?? 3000) : 3000,

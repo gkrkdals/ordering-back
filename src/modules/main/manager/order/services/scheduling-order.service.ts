@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Settings } from "@src/entities/settings.entity";
+import { GLOBAL_GROUP_ID, Settings } from "@src/entities/settings.entity";
 import { Repository } from "typeorm";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { dateToString, getOrderAvailableTimes } from "@src/utils/date";
@@ -26,12 +26,13 @@ export class SchedulingOrderService {
   async handleCron() {
     const [first, last] = getOrderAvailableTimes();
     const nowString = dateToString(new Date());
-    const settings = await this.settingsRepository.findBy([
-      { id: 1 },
-      { id: 2 }
-    ]);
-    const cookExceededTime = settings[0].value ?? 0;
-    const deliverExceededTime = settings[1].value ?? 0;
+    // 조리·배달 초과시간은 주방/배달이 하나뿐이라 전역 설정만 쓴다 ([0]=조리, [1]=배달)
+    const settings = await this.settingsRepository.find({
+      where: { big: 1, groupId: GLOBAL_GROUP_ID },
+      order: { sml: 'ASC', id: 'ASC' },
+    });
+    const cookExceededTime = settings[0]?.value ?? 0;
+    const deliverExceededTime = settings[1]?.value ?? 0;
 
     const currentOrderStatus: { order_code: number; status: number; }[] =
       await this.orderStatusRepository.query(

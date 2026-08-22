@@ -55,7 +55,11 @@ describe('DishDisposalService.createDishDisposal (BOWL 적립)', () => {
     settingsRepoMock = { findBy: jest.fn().mockResolvedValue([]) };
     gatewayMock = { newDishDisposal: jest.fn(), refresh: jest.fn() };
     // 적립액 해석은 CustomerSettingsService가 담당한다 (고객 개별 > 그룹)
-    customerSettingsMock = { resolveRewards: jest.fn().mockResolvedValue({ perMenu: 0, perBowl: 7 }) };
+    customerSettingsMock = {
+      resolveRewards: jest.fn().mockResolvedValue({ perMenu: 0, perBowl: 7 }),
+      // 그릇수거 가능 시간 미설정 → 종일 허용
+      getSettingsForCustomer: jest.fn().mockResolvedValue([]),
+    };
     fcmMock = { newDishDisposal: jest.fn().mockResolvedValue(undefined) };
 
     service = new DishDisposalService(

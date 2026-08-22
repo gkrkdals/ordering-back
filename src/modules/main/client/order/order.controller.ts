@@ -55,6 +55,12 @@ export class OrderController {
     return this.orderService.addOrder(customer, orderedMenu);
   }
 
+  // 고객이 속한 그룹의 수거 가능 시간 (관리자 엔드포인트 대신 이쪽을 쓴다)
+  @Get('dish/disposal-time')
+  async getDisposalTimes(@CustomerData() customer: Customer) {
+    return this.dishDisposalService.getDisposalTimes(customer);
+  }
+
   @Get('dish')
   async getDishDisposals(@CustomerData() customer: Customer): Promise<Disposal[]> {
     return this.dishDisposalService.getDishDisposals(customer);

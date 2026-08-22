@@ -52,6 +52,8 @@ describe('OrderService (적립금)', () => {
       loadPriceContext: jest.fn().mockResolvedValue({
         groupPrices: {}, discountType: null, discountValue: 0, webDiscount: 0,
       }),
+      // 최소 사용 적립금(big=7) — 그룹 값이 없으면 전역 3,000원
+      getSettingForCustomer: jest.fn().mockResolvedValue({ value: 3000 }),
     };
 
     service = new OrderService(
@@ -164,7 +166,8 @@ describe('OrderService (적립금)', () => {
       // 설정 행이 어떤 값이든 100원 단위 금액은 허용되지 않는다
       await expect(service.usePoint({ id: 1 } as any, 3100))
         .rejects.toThrow('3,000원 이상 1,000원단위');
-      expect(settingsRepoMock.findOneBy).toHaveBeenCalledTimes(1); // 최소 금액만 조회
+      // 최소 금액만 조회하며, 사용 단위는 설정이 아닌 상수다
+      expect(customerSettingsMock.getSettingForCustomer).toHaveBeenCalledWith(7, 1, { id: 1 });
     });
   });
 

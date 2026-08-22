@@ -49,6 +49,7 @@ describe('CustomerService (적립금)', () => {
       {} as any,          // groupPriceRepository
       {} as any,          // pointHistoryRepository
       datasource as any,  // datasource
+      {} as any,          // customerSettingsService
     );
   });
 

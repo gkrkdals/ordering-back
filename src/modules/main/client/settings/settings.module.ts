@@ -7,9 +7,11 @@ import { Settings } from "@src/entities/settings.entity";
 import { JwtService } from "@nestjs/jwt";
 import { Order } from "@src/entities/order/order.entity";
 import { CustomerCredit } from "@src/entities/customer/customer-credit.entity";
+import { CustomerSettingsModule } from "@src/modules/misc/customer-settings/customer-settings.module";
 
 @Module({
   imports: [
+    CustomerSettingsModule,
     TypeOrmModule.forFeature([
       Customer,
       Settings,

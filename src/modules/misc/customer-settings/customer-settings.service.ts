@@ -4,7 +4,7 @@ import { Repository } from "typeorm";
 import { Customer } from "@src/entities/customer/customer.entity";
 import { GroupPrice } from "@src/entities/customer/group-price.entity";
 import { DiscountGroup } from "@src/entities/customer/discount-group.entity";
-import { Settings } from "@src/entities/settings.entity";
+import { GLOBAL_GROUP_ID, Settings } from "@src/entities/settings.entity";
 import { PriceContext, PricedMenu, resolveMenuPrice, resolveReward } from "@src/utils/price";
 
 /** 가격·적립을 해석할 때 필요한 고객 정보의 최소 형태 (JWT 고객·엔티티 모두 허용) */
@@ -45,7 +45,7 @@ export class CustomerSettingsService {
     const [groupPriceRows, group, webDiscountSetting] = await Promise.all([
       groupId ? this.groupPriceRepository.findBy({ groupId }) : Promise.resolve([]),
       groupId ? this.discountGroupRepository.findOneBy({ id: groupId }) : Promise.resolve(null),
-      this.settingsRepository.findOneBy({ big: 5, sml: 1 }),
+      this.getSetting(5, 1, groupId),
     ]);
 
     return {
@@ -85,6 +85,98 @@ export class CustomerSettingsService {
       perMenu: resolveReward(target.rewardPerMenu, group?.rewardPerMenu ?? null),
       perBowl: resolveReward(target.rewardPerBowl, group?.rewardPerBowl ?? null),
     };
+  }
+
+  /**
+   * 설정 한 건을 그룹 → 전역 순으로 읽습니다.
+   *
+   * 그룹 행이 없으면 전역(group_id = 0) 행을 돌려주므로,
+   * 그룹을 지정하지 않은 고객은 지금까지와 완전히 동일한 값을 받습니다.
+   */
+  async getSetting(big: number, sml: number, groupId?: number | null): Promise<Settings | null> {
+    if (groupId) {
+      const groupSetting = await this.settingsRepository.findOneBy({ big, sml, groupId });
+
+      if (groupSetting) {
+        return groupSetting;
+      }
+    }
+
+    return this.settingsRepository.findOneBy({ big, sml, groupId: GLOBAL_GROUP_ID });
+  }
+
+  /**
+   * 요일별 설정처럼 묶음으로 쓰는 설정을 그룹 → 전역 순으로 읽습니다.
+   *
+   * 그룹 행이 **하나라도** 있으면 그룹 세트를, 하나도 없으면 전역 세트를 돌려줍니다.
+   * (일부 요일만 그룹 행이 있는 어중간한 상태를 만들지 않기 위해
+   *  편집 시 ensureGroupRows 로 7행을 한꺼번에 만든다)
+   */
+  async getSettings(big: number, groupId?: number | null): Promise<Settings[]> {
+    if (groupId) {
+      const groupSettings = await this.settingsRepository.findBy({ big, groupId });
+
+      if (groupSettings.length > 0) {
+        return groupSettings;
+      }
+    }
+
+    return this.settingsRepository.findBy({ big, groupId: GLOBAL_GROUP_ID });
+  }
+
+  /**
+   * 고객이 속한 그룹의 설정을 읽습니다. (고객 → 그룹 → 전역)
+   */
+  async getSettingForCustomer(big: number, sml: number, customer: CustomerRef): Promise<Settings | null> {
+    return this.getSetting(big, sml, await this.resolveGroupId(customer));
+  }
+
+  /** 위와 같되 묶음 조회 */
+  async getSettingsForCustomer(big: number, customer: CustomerRef): Promise<Settings[]> {
+    return this.getSettings(big, await this.resolveGroupId(customer));
+  }
+
+  /**
+   * 편집을 위해 그룹 전용 행을 준비합니다. 없으면 **전역 값을 복사해** 만듭니다.
+   *
+   * 관리자가 그룹을 골라 저장하는 순간 그룹 전용 행이 생기고,
+   * 그 전까지는 전역 값을 그대로 따르는 것이 이 설계의 규칙입니다.
+   * (settings.service 의 ensureDisposalRows 와 같은 패턴)
+   */
+  async ensureGroupRows(big: number, groupId: number): Promise<Settings[]> {
+    const globalRows = await this.settingsRepository.findBy({ big, groupId: GLOBAL_GROUP_ID });
+
+    if (!groupId || groupId === GLOBAL_GROUP_ID) {
+      return globalRows;
+    }
+
+    const groupRows = await this.settingsRepository.findBy({ big, groupId });
+
+    for (const globalRow of globalRows) {
+      if (groupRows.some(row => row.sml === globalRow.sml)) {
+        continue;
+      }
+
+      const created = new Settings();
+      created.big = big;
+      created.sml = globalRow.sml;
+      created.name = globalRow.name;
+      created.value = globalRow.value;
+      created.stringValue = globalRow.stringValue;
+      created.groupId = groupId;
+      groupRows.push(await this.settingsRepository.save(created));
+    }
+
+    return groupRows.sort((a, b) => a.sml - b.sml);
+  }
+
+  /** 그룹을 지울 때 그 그룹의 설정 행도 함께 지웁니다 (FK가 없어 고아 행이 남는다) */
+  async deleteGroupSettings(groupId: number): Promise<void> {
+    if (!groupId || groupId === GLOBAL_GROUP_ID) {
+      return;
+    }
+
+    await this.settingsRepository.delete({ groupId });
   }
 
   /** 고객이 속한 그룹 id. 없으면 null */

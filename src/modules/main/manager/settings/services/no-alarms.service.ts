@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Settings } from "@src/entities/settings.entity";
+import { GLOBAL_GROUP_ID, Settings } from "@src/entities/settings.entity";
 import { Repository } from "typeorm";
 
 @Injectable()
@@ -11,7 +11,7 @@ export class NoAlarmsService {
   ) {}
 
   async getNoAlarms() {
-    const noAlarmsRaw = (await this.settingsRepository.findOneBy({ big: 3, sml: 1 })).stringValue;
+    const noAlarmsRaw = (await this.settingsRepository.findOneBy({ big: 3, sml: 1, groupId: GLOBAL_GROUP_ID })).stringValue;
 
     if (noAlarmsRaw.length === 0) {
       return [];
@@ -21,7 +21,7 @@ export class NoAlarmsService {
   }
 
   async updateNoAlarms(noAlarmMenu: number) {
-    const noAlarmsInstance = await this.settingsRepository.findOneBy({ big: 3, sml: 1 });
+    const noAlarmsInstance = await this.settingsRepository.findOneBy({ big: 3, sml: 1, groupId: GLOBAL_GROUP_ID });
     const noAlarms = await this.getNoAlarms();
     if (noAlarms.some(menu => menu === noAlarmMenu)) {
       return;
@@ -32,7 +32,7 @@ export class NoAlarmsService {
   }
 
   async deleteNoAlarms(noAlarmMenu: number) {
-    const noAlarmsInstance = await this.settingsRepository.findOneBy({ big: 3, sml: 1 });
+    const noAlarmsInstance = await this.settingsRepository.findOneBy({ big: 3, sml: 1, groupId: GLOBAL_GROUP_ID });
     const noAlarms = await this.getNoAlarms();
 
     const index = noAlarms.findIndex(menu => menu === noAlarmMenu);

@@ -1,6 +1,6 @@
 import { Injectable, OnModuleInit } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Settings } from "@src/entities/settings.entity";
+import { GLOBAL_GROUP_ID, Settings } from "@src/entities/settings.entity";
 import { Repository } from "typeorm";
 import * as cron from 'node-cron';
 import { Menu } from "@src/entities/menu/menu.entity";
@@ -21,10 +21,15 @@ export class CronService implements OnModuleInit {
   }
 
   async scheduleTasks() {
-    const businessHours = await this.settingsRepository.findBy({ big: 4 });
+    // 전역 영업시간만 읽는다. 그룹 행까지 섞이면 아래 day 카운터가 7을 넘어
+    // 엉뚱한 요일에 품절 태스크가 걸린다.
+    const businessHours = await this.settingsRepository.findBy({
+      big: 4, groupId: GLOBAL_GROUP_ID,
+    });
 
-    let day = 1;
     for (const businessHour of businessHours) {
+      // 요일은 행 순서가 아니라 sml(1=월 … 7=일)로 정한다
+      const day = businessHour.sml ?? 0;
       const timeSegments = businessHour.stringValue.split(/[:~]/g);
       const startHour = this.trimTime(timeSegments[0]);
       const startMinute = this.trimTime(timeSegments[1]);
@@ -46,8 +51,6 @@ export class CronService implements OnModuleInit {
 
         this.tasks.push(task2);
       }
-
-      day++;
     }
   }
 

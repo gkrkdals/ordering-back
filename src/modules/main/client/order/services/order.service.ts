@@ -218,8 +218,9 @@ export class OrderService {
       throw new BadRequestException('올바른 적립금 사용 금액을 입력해주세요');
     }
 
-    const minPointSetting = await this.settingsRepository.findOneBy({ big: 7, sml: 1 });
-    const minPoint = minPointSetting ? (minPointSetting.value ?? 3000) : 3000;
+    // 최소 사용 금액은 고객이 속한 그룹 값 → 전역 값 순으로 해석한다
+    const minPointSetting = await this.customerSettingsService.getSettingForCustomer(7, 1, customer);
+    const minPoint = minPointSetting?.value ?? 3000;
 
     // 고객 화면의 안내 문구와 동일한 문장으로 거절 사유를 알린다
     const policyMessage =

@@ -11,9 +11,11 @@ import { JwtService } from "@nestjs/jwt";
 import { DiscountGroup } from "@src/entities/customer/discount-group.entity";
 import { GroupPrice } from "@src/entities/customer/group-price.entity";
 import { PointHistory } from "@src/entities/point-history.entity";
+import { CustomerSettingsModule } from "@src/modules/misc/customer-settings/customer-settings.module";
 
 @Module({
   imports: [
+    CustomerSettingsModule,
     TypeOrmModule.forFeature([
       Customer,
       CustomerCategory,

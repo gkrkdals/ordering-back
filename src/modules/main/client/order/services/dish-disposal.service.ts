@@ -33,6 +33,16 @@ export class DishDisposalService {
     private readonly customerSettingsService: CustomerSettingsService,
   ) {}
 
+  /**
+   * 고객 화면에 보여줄 요일별 그릇수거 가능 시간. (그룹 → 전역)
+   *
+   * 실제 강제는 createDishDisposal 의 validateDisposalTime 에서 하고,
+   * 이 값은 화면 안내·버튼 비활성화용입니다.
+   */
+  async getDisposalTimes(customer: Customer) {
+    return this.customerSettingsService.getSettingsForCustomer(6, customer);
+  }
+
   async getDishDisposals(customer: Customer): Promise<Disposal[]> {
     return this.orderStatusRepository.query(
       DisposalSql.getDisposals,
@@ -42,7 +52,7 @@ export class DishDisposalService {
 
   async createDishDisposal(customer: Customer, body: CreateDishDisposalDto) {
     // 그릇수거 가능 시간 검증
-    await this.validateDisposalTime();
+    await this.validateDisposalTime(customer);
 
     const { disposal, location } = body;
 
@@ -102,8 +112,9 @@ export class DishDisposalService {
    * 해당 요일에 설정값이 없으면 종일 허용합니다.
    * 자정을 넘기는 구간은 시작 요일이 소유하므로 전날 설정도 함께 확인합니다.
    */
-  private async validateDisposalTime(): Promise<void> {
-    const disposalSettings = await this.settingsRepository.findBy({ big: 6 });
+  private async validateDisposalTime(customer: Customer): Promise<void> {
+    // 수거 가능 시간도 고객이 속한 그룹 값 → 전역 값 순으로 해석한다
+    const disposalSettings = await this.customerSettingsService.getSettingsForCustomer(6, customer);
     const sml = getWeekdaySml();
     const todayValue = disposalSettings.find(s => s.sml === sml)?.stringValue ?? null;
     const yesterdayValue = disposalSettings.find(s => s.sml === getPreviousWeekdaySml(sml))?.stringValue ?? null;

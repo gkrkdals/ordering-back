@@ -14,6 +14,7 @@ import { DiscountGroup } from "@src/entities/customer/discount-group.entity";
 import { GroupPrice } from "@src/entities/customer/group-price.entity";
 import { UpdateGroupPriceDto } from "@src/modules/main/manager/customer/dto/update-group-price.dto";
 import { PointHistory } from "@src/entities/point-history.entity";
+import { CustomerSettingsService } from "@src/modules/misc/customer-settings/customer-settings.service";
 
 @Injectable()
 export class CustomerService {
@@ -29,6 +30,8 @@ export class CustomerService {
     @InjectRepository(PointHistory)
     private readonly pointHistoryRepository: Repository<PointHistory>,
     private readonly datasource: DataSource,
+
+    private readonly customerSettingsService: CustomerSettingsService,
   ) {}
 
   async getCustomer(
@@ -200,6 +203,9 @@ export class CustomerService {
       });
 
       if (cnt === 0) {
+        // group_price 는 FK CASCADE 로 정리되지만 settings 그룹 행은 FK가 없어
+        // 남겨두면 그룹 id가 재사용될 때 옛 설정이 되살아난다
+        await this.customerSettingsService.deleteGroupSettings(item.id);
         await this.discountGroupRepository.delete({ id: item.id });
       }
     }

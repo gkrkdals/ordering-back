@@ -14,9 +14,11 @@ import { CronModule } from "@src/modules/misc/cron/cron.module";
 import { MenuCategory } from "@src/entities/menu/menu-category.entity";
 import { Menu } from "@src/entities/menu/menu.entity";
 import { ExcelService } from "./services/excel.service";
+import { CustomerSettingsModule } from "@src/modules/misc/customer-settings/customer-settings.module";
 
 @Module({
   imports: [
+    CustomerSettingsModule,
     TypeOrmModule.forFeature([
       Order,
       Customer,

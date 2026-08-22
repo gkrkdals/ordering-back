@@ -22,7 +22,12 @@ describe('CustomerSettingsService (그룹 > 전역)', () => {
       }),
     };
     // 웹할인 (big=5, sml=1)
-    settingsRepoMock = { findOneBy: jest.fn().mockResolvedValue({ value: 0 }) };
+    settingsRepoMock = {
+      findOneBy: jest.fn().mockResolvedValue({ value: 0 }),
+      findBy: jest.fn().mockResolvedValue([]),
+      save: jest.fn().mockImplementation(async (row: any) => ({ ...row, id: 100 })),
+      delete: jest.fn().mockResolvedValue(undefined),
+    };
 
     service = new CustomerSettingsService(
       customerRepoMock,
@@ -135,5 +140,112 @@ describe('CustomerSettingsService (그룹 > 전역)', () => {
       expect(await service.resolveRewards({ id: 1 })).toEqual({ perMenu: 0, perBowl: 0 });
       expect(discountGroupRepoMock.findOneBy).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe('CustomerSettingsService — settings 그룹 폴백', () => {
+  let service: CustomerSettingsService;
+  let settingsRepoMock: any;
+
+  const GROUP_ID = 3;
+  const GLOBAL = { id: 1, big: 4, sml: 1, name: '월요일', value: null, stringValue: '09:00~20:00', groupId: 0 };
+  const GROUP = { id: 2, big: 4, sml: 1, name: '월요일', value: null, stringValue: '11:00~15:00', groupId: GROUP_ID };
+
+  beforeEach(() => {
+    settingsRepoMock = {
+      findOneBy: jest.fn(),
+      findBy: jest.fn(),
+      save: jest.fn().mockImplementation(async (row: any) => ({ ...row, id: 99 })),
+      delete: jest.fn().mockResolvedValue(undefined),
+    };
+
+    service = new CustomerSettingsService(
+      { findOneBy: jest.fn().mockResolvedValue({ id: 1, discountGroupId: GROUP_ID }) } as any,
+      { findBy: jest.fn().mockResolvedValue([]) } as any,
+      { findOneBy: jest.fn().mockResolvedValue(null) } as any,
+      settingsRepoMock,
+    );
+  });
+
+  describe('getSetting', () => {
+    it('그룹 행이 있으면 그룹 값을 쓴다', async () => {
+      settingsRepoMock.findOneBy.mockImplementation(async (where: any) =>
+        where.groupId === GROUP_ID ? GROUP : GLOBAL);
+
+      expect(await service.getSetting(4, 1, GROUP_ID)).toBe(GROUP);
+    });
+
+    it('그룹 행이 없으면 전역 행으로 폴백한다', async () => {
+      settingsRepoMock.findOneBy.mockImplementation(async (where: any) =>
+        where.groupId === 0 ? GLOBAL : null);
+
+      expect(await service.getSetting(4, 1, GROUP_ID)).toBe(GLOBAL);
+      expect(settingsRepoMock.findOneBy).toHaveBeenLastCalledWith({ big: 4, sml: 1, groupId: 0 });
+    });
+
+    it('그룹을 지정하지 않으면 전역 행만 본다', async () => {
+      settingsRepoMock.findOneBy.mockResolvedValue(GLOBAL);
+
+      await service.getSetting(4, 1, null);
+
+      expect(settingsRepoMock.findOneBy).toHaveBeenCalledTimes(1);
+      expect(settingsRepoMock.findOneBy).toHaveBeenCalledWith({ big: 4, sml: 1, groupId: 0 });
+    });
+  });
+
+  describe('getSettings', () => {
+    it('그룹 세트가 하나라도 있으면 그룹 세트를 쓴다', async () => {
+      settingsRepoMock.findBy.mockImplementation(async (where: any) =>
+        where.groupId === GROUP_ID ? [GROUP] : [GLOBAL]);
+
+      expect(await service.getSettings(4, GROUP_ID)).toEqual([GROUP]);
+    });
+
+    it('그룹 세트가 비어 있으면 전역 세트를 쓴다', async () => {
+      settingsRepoMock.findBy.mockImplementation(async (where: any) =>
+        where.groupId === GROUP_ID ? [] : [GLOBAL]);
+
+      expect(await service.getSettings(4, GROUP_ID)).toEqual([GLOBAL]);
+    });
+  });
+
+  describe('ensureGroupRows', () => {
+    it('그룹 행이 없으면 전역 값을 복사해 만든다', async () => {
+      settingsRepoMock.findBy.mockImplementation(async (where: any) =>
+        where.groupId === 0 ? [GLOBAL] : []);
+
+      const rows = await service.ensureGroupRows(4, GROUP_ID);
+
+      expect(settingsRepoMock.save).toHaveBeenCalledWith(expect.objectContaining({
+        big: 4, sml: 1, stringValue: '09:00~20:00', groupId: GROUP_ID,
+      }));
+      expect(rows).toHaveLength(1);
+    });
+
+    it('이미 있는 그룹 행은 건드리지 않는다', async () => {
+      settingsRepoMock.findBy.mockImplementation(async (where: any) =>
+        where.groupId === 0 ? [GLOBAL] : [GROUP]);
+
+      await service.ensureGroupRows(4, GROUP_ID);
+
+      expect(settingsRepoMock.save).not.toHaveBeenCalled();
+    });
+
+    it('전역(0)에는 행을 만들지 않는다', async () => {
+      settingsRepoMock.findBy.mockResolvedValue([GLOBAL]);
+
+      await service.ensureGroupRows(4, 0);
+
+      expect(settingsRepoMock.save).not.toHaveBeenCalled();
+    });
+  });
+
+  it('그룹을 지우면 그 그룹의 설정 행도 지운다', async () => {
+    await service.deleteGroupSettings(GROUP_ID);
+    expect(settingsRepoMock.delete).toHaveBeenCalledWith({ groupId: GROUP_ID });
+
+    settingsRepoMock.delete.mockClear();
+    await service.deleteGroupSettings(0);
+    expect(settingsRepoMock.delete).not.toHaveBeenCalled();
   });
 });

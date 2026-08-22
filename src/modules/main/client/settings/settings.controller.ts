@@ -2,6 +2,8 @@ import { Body, Controller, Get, Put, Query, Res, UseGuards } from "@nestjs/commo
 import { SettingsService } from "@src/modules/main/client/settings/settings.service";
 import { Response } from "express";
 import { AuthGuard } from "@src/modules/auth/auth.guard";
+import { CustomerData } from "@src/modules/user/customer.decorator";
+import { Customer } from "@src/entities/customer/customer.entity";
 
 @UseGuards(AuthGuard)
 @Controller('settings')
@@ -55,13 +57,14 @@ export class SettingsController {
     }
   }
 
+  // 최소 사용 적립금은 고객이 속한 그룹 값을 따르므로 본인 정보가 필요하다
   @Get('min-use-point')
-  async getMinUsePoint() {
-    return this.settingsService.getMinUsePoint();
+  async getMinUsePoint(@CustomerData() customer: Customer) {
+    return this.settingsService.getMinUsePoint(customer);
   }
 
   @Get('point-use-policy')
-  async getPointUsePolicy() {
-    return this.settingsService.getPointUsePolicy();
+  async getPointUsePolicy(@CustomerData() customer: Customer) {
+    return this.settingsService.getPointUsePolicy(customer);
   }
 }
