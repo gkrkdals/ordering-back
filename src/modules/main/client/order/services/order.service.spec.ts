@@ -54,6 +54,8 @@ describe('OrderService (적립금)', () => {
       }),
       // 최소 사용 적립금(big=7) — 그룹 값이 없으면 전역 3,000원
       getSettingForCustomer: jest.fn().mockResolvedValue({ value: 3000 }),
+      // 그룹 품절 없음 → 전역 menu.sold_out 을 따른다
+      loadSoldOutMap: jest.fn().mockResolvedValue({}),
     };
 
     service = new OrderService(
@@ -107,6 +109,37 @@ describe('OrderService (적립금)', () => {
       findOneBy: jest.fn().mockResolvedValue({ big: 7, sml: 1, value: 3000 }),
     };
     createService();
+  });
+
+  describe('addOrder 품절 검증', () => {
+    it('그룹 품절이면 전역이 판매중이어도 주문을 거부한다', async () => {
+      menuRepoMock.findOneBy.mockResolvedValue({ id: 1, soldOut: 0, isRewardable: 1 });
+      customerSettingsMock.loadSoldOutMap.mockResolvedValue({ 1: 1 });
+
+      await expect(service.addOrder({ id: 1 } as any, {
+        orderedMenus: [{ menu: { id: 1, menuCategory: { price: 7000 } }, request: '' }],
+      } as any)).rejects.toThrow(BadRequestException);
+    });
+
+    it('그룹 품절 행이 없으면 전역 값을 따른다', async () => {
+      menuRepoMock.findOneBy.mockResolvedValue({ id: 1, soldOut: 1, isRewardable: 1 });
+      customerSettingsMock.loadSoldOutMap.mockResolvedValue({});
+
+      await expect(service.addOrder({ id: 1 } as any, {
+        orderedMenus: [{ menu: { id: 1, menuCategory: { price: 7000 } }, request: '' }],
+      } as any)).rejects.toThrow(BadRequestException);
+    });
+
+    it('그룹에서 판매중으로 열어두면 전역이 품절이어도 주문된다', async () => {
+      menuRepoMock.findOneBy.mockResolvedValue({ id: 1, soldOut: 1, isRewardable: 1 });
+      customerSettingsMock.loadSoldOutMap.mockResolvedValue({ 1: 0 });
+
+      await service.addOrder({ id: 1 } as any, {
+        orderedMenus: [{ menu: { id: 1, menuCategory: { price: 7000 } }, request: '' }],
+      } as any);
+
+      expect(orderRepoMock.save).toHaveBeenCalled();
+    });
   });
 
   describe('usePoint', () => {

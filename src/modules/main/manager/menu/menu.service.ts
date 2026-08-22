@@ -1,6 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Menu } from "@src/entities/menu/menu.entity";
+import { GroupMenuSoldOut } from "@src/entities/menu/group-menu-sold-out.entity";
+import { GLOBAL_GROUP_ID } from "@src/entities/settings.entity";
 import { FindOptionsOrder, FindOperator, Like, MoreThan, Not, Raw, Repository } from "typeorm";
 import { countToTotalPage } from "@src/utils/data";
 import { hasJamo, SQL_GAP, toSearchPattern } from "@src/utils/hangul";
@@ -14,14 +16,17 @@ export class MenuService {
     @InjectRepository(Menu)
     private readonly menuRepository: Repository<Menu>,
     @InjectRepository(MenuCategory)
-    private readonly foodCategoryRepository: Repository<MenuCategory>
+    private readonly foodCategoryRepository: Repository<MenuCategory>,
+    @InjectRepository(GroupMenuSoldOut)
+    private readonly groupSoldOutRepository: Repository<GroupMenuSoldOut>,
   ) {}
 
   async getMenus(
     column: keyof Menu,
     order: '' | 'asc' | 'desc',
     page: number,
-    query: string | undefined
+    query: string | undefined,
+    groupId?: number,
   ): Promise<GetMenuResponseDto> {
     // 초성이 섞인 검색어는 음절 범위 정규식으로, 그 외에는 기존 부분일치로 찾는다
     const like: FindOperator<string> = hasJamo(query ?? '')
@@ -50,7 +55,8 @@ export class MenuService {
     return {
       currentPage: page,
       totalPage: countToTotalPage(count),
-      data,
+      // 그룹을 고른 상태면 그 그룹의 품절 상태를 얹어 보여준다
+      data: await this.applyGroupSoldOut(data, groupId),
       count,
     }
   }
@@ -113,12 +119,62 @@ export class MenuService {
     }
   }
 
-  async toggleSoldOut(menu: number, soldOut: boolean) {
-    await this.menuRepository.update({ id: menu }, { soldOut: !soldOut ? 1 : 0 });
+  /**
+   * 메뉴 하나의 품절을 토글합니다.
+   *
+   * groupId 를 주면 그 그룹의 품절만 바꾸고 전역 menu.sold_out 은 건드리지 않습니다.
+   */
+  async toggleSoldOut(menu: number, soldOut: boolean, groupId?: number) {
+    const nextValue = !soldOut ? 1 : 0;
+
+    if (!groupId || groupId === GLOBAL_GROUP_ID) {
+      await this.menuRepository.update({ id: menu }, { soldOut: nextValue });
+      return;
+    }
+
+    await this.groupSoldOutRepository.upsert(
+      { groupId, menu, soldOut: nextValue },
+      ['groupId', 'menu'],
+    );
   }
 
-  async toggleSoldOutAll(soldOut: boolean) {
-    await this.menuRepository.update({}, { soldOut: soldOut ? 1 : 0 });
+  async toggleSoldOutAll(soldOut: boolean, groupId?: number) {
+    const nextValue = soldOut ? 1 : 0;
+
+    if (!groupId || groupId === GLOBAL_GROUP_ID) {
+      await this.menuRepository.update({}, { soldOut: nextValue });
+      return;
+    }
+
+    const menus = await this.menuRepository.find({ select: { id: true } });
+
+    if (menus.length === 0) {
+      return;
+    }
+
+    await this.groupSoldOutRepository.upsert(
+      menus.map(item => ({ groupId, menu: item.id, soldOut: nextValue })),
+      ['groupId', 'menu'],
+    );
+  }
+
+  /**
+   * 그룹의 품절 상태를 얹어 목록을 돌려줍니다. (관리자 메뉴 탭에서 그룹을 골랐을 때)
+   *
+   * 그룹 행이 없는 메뉴는 전역 값을 그대로 보여줍니다.
+   */
+  private async applyGroupSoldOut(menus: Menu[], groupId?: number) {
+    if (!groupId || groupId === GLOBAL_GROUP_ID) {
+      return menus;
+    }
+
+    const rows = await this.groupSoldOutRepository.findBy({ groupId });
+    const map: Record<number, number> = {};
+    rows.forEach(row => { map[row.menu] = row.soldOut; });
+
+    menus.forEach(menu => { menu.soldOut = map[menu.id] ?? menu.soldOut; });
+
+    return menus;
   }
 
   async updateMenuSeq(seqArray: { id: number, seq: number | null }[]) {

@@ -28,9 +28,10 @@ export class MenuController {
     @Query('column') column: keyof Menu,
     @Query('order') order: '' | 'asc' | 'desc',
     @Query('page') page: number,
-    @Query('query') query: string | undefined
+    @Query('query') query: string | undefined,
+    @Query('groupId') groupId?: number,
   ) {
-    return this.menuService.getMenus(column, order, page, query);
+    return this.menuService.getMenus(column, order, page, query, Number(groupId) || undefined);
   }
 
   @Get('all')
@@ -59,14 +60,19 @@ export class MenuController {
     return this.menuService.updateMenu(body);
   }
 
+  // groupId 를 생략하면 전역 품절(menu.sold_out)을 다룬다
   @Put('sold-out')
-  async toggleSoldOut(@Body('menu') menu: number, @Body('soldOut') soldOut: boolean) {
-    return this.menuService.toggleSoldOut(menu, soldOut);
+  async toggleSoldOut(
+    @Body('menu') menu: number,
+    @Body('soldOut') soldOut: boolean,
+    @Body('groupId') groupId?: number,
+  ) {
+    return this.menuService.toggleSoldOut(menu, soldOut, Number(groupId) || undefined);
   }
 
   @Put('sold-out/all')
-  async toggleSoldOutAll(@Body('soldOut') soldOut: boolean) {
-    return this.menuService.toggleSoldOutAll(soldOut);
+  async toggleSoldOutAll(@Body('soldOut') soldOut: boolean, @Body('groupId') groupId?: number) {
+    return this.menuService.toggleSoldOutAll(soldOut, Number(groupId) || undefined);
   }
 
   @Put('seq')

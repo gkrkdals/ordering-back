@@ -4,6 +4,7 @@ describe('CustomerSettingsService (그룹 > 전역)', () => {
   let service: CustomerSettingsService;
   let customerRepoMock: any;
   let groupPriceRepoMock: any;
+  let groupSoldOutRepoMock: any;
   let discountGroupRepoMock: any;
   let settingsRepoMock: any;
 
@@ -16,6 +17,7 @@ describe('CustomerSettingsService (그룹 > 전역)', () => {
       }),
     };
     groupPriceRepoMock = { findBy: jest.fn().mockResolvedValue([]) };
+    groupSoldOutRepoMock = { findBy: jest.fn().mockResolvedValue([]), delete: jest.fn() };
     discountGroupRepoMock = {
       findOneBy: jest.fn().mockResolvedValue({
         id: GROUP_ID, discountType: null, discountValue: 0, rewardPerMenu: null, rewardPerBowl: null,
@@ -32,6 +34,7 @@ describe('CustomerSettingsService (그룹 > 전역)', () => {
     service = new CustomerSettingsService(
       customerRepoMock,
       groupPriceRepoMock,
+      groupSoldOutRepoMock,
       discountGroupRepoMock,
       settingsRepoMock,
     );
@@ -103,6 +106,24 @@ describe('CustomerSettingsService (그룹 > 전역)', () => {
     });
   });
 
+  describe('loadSoldOutMap', () => {
+    it('그룹 품절 행을 메뉴 id 맵으로 돌려준다', async () => {
+      groupSoldOutRepoMock.findBy.mockResolvedValue([
+        { groupId: GROUP_ID, menu: 5, soldOut: 1 },
+        { groupId: GROUP_ID, menu: 7, soldOut: 0 },
+      ]);
+
+      expect(await service.loadSoldOutMap({ id: 1 })).toEqual({ 5: 1, 7: 0 });
+    });
+
+    it('그룹이 없는 고객은 조회하지 않고 빈 맵을 준다', async () => {
+      customerRepoMock.findOneBy.mockResolvedValue({ id: 1, discountGroupId: null });
+
+      expect(await service.loadSoldOutMap({ id: 1 })).toEqual({});
+      expect(groupSoldOutRepoMock.findBy).not.toHaveBeenCalled();
+    });
+  });
+
   describe('resolveRewards', () => {
     it('고객 값이 0이면 그룹 값을 쓴다', async () => {
       discountGroupRepoMock.findOneBy.mockResolvedValue({
@@ -162,6 +183,7 @@ describe('CustomerSettingsService — settings 그룹 폴백', () => {
     service = new CustomerSettingsService(
       { findOneBy: jest.fn().mockResolvedValue({ id: 1, discountGroupId: GROUP_ID }) } as any,
       { findBy: jest.fn().mockResolvedValue([]) } as any,
+      { findBy: jest.fn().mockResolvedValue([]), delete: jest.fn() } as any,
       { findOneBy: jest.fn().mockResolvedValue(null) } as any,
       settingsRepoMock,
     );

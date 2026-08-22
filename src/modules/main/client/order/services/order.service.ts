@@ -22,7 +22,7 @@ import { PointHistory } from "@src/entities/point-history.entity";
 import { PointEnum } from "@src/types/enum/PointEnum";
 import { POINT_USE_UNIT } from "@src/types/point";
 import { CustomerSettingsService } from "@src/modules/misc/customer-settings/customer-settings.service";
-import { applyMenuPrices } from "@src/utils/price";
+import { applyMenuPrices, applySoldOut, resolveSoldOut } from "@src/utils/price";
 import { GetPointHistoryResponseDto } from "@src/modules/main/client/order/dto/response/get-point-history-response.dto";
 
 /** 고객 화면에 내려주는 적립금 내역의 최대 건수 */
@@ -75,8 +75,11 @@ export class OrderService {
   }
 
   async getLastOrders(customer: Customer) {
-    // 가격은 고객 개별 > 그룹 > 전역 순으로 해석된다 (utils/price.ts)
-    const priceContext = await this.customerSettingsService.loadPriceContext(customer);
+    // 가격·품절 모두 그룹 > 전역 순으로 해석된다 (utils/price.ts)
+    const [priceContext, soldOutMap] = await Promise.all([
+      this.customerSettingsService.loadPriceContext(customer),
+      this.customerSettingsService.loadSoldOutMap(customer),
+    ]);
 
     const recentMenuOnDigit: { id: number; menu: number }[] = await this.orderRepository.query(
       `SELECT 
@@ -103,10 +106,7 @@ export class OrderService {
     }
 
     applyMenuPrices(recentMenus, priceContext);
-
-    if (customer.isSoldOut === 1) {
-      recentMenus.forEach(item => { item.soldOut = 1; });
-    }
+    applySoldOut(recentMenus, soldOutMap, customer.isSoldOut);
 
     return recentMenus
   }
@@ -143,6 +143,8 @@ export class OrderService {
 
     // 적립액은 고객 개별 > 그룹 순으로 해석한다 (트랜잭션 밖에서 미리 확정)
     const { perMenu: rewardPerMenu } = await this.customerSettingsService.resolveRewards(customer);
+    // 품절 검증도 그룹 상태를 반영해야 화면과 서버 판정이 어긋나지 않는다
+    const soldOutMap = await this.customerSettingsService.loadSoldOutMap(customer);
 
     // 주문 생성·적립·잔금 기록을 하나의 트랜잭션으로 묶음
     // 적립금 '사용'은 주문에 귀속되지 않고 usePoint 단독 경로로만 이뤄진다
@@ -158,8 +160,8 @@ export class OrderService {
         const newOrder = new Order();
         const currentMenu = await em.getRepository(Menu).findOneBy({ id: orderedMenu.menu.id });
 
-        // 메뉴가 품절이 된 경우
-        if (currentMenu.soldOut === 1) {
+        // 메뉴가 품절이 된 경우 (그룹 품절 포함)
+        if (resolveSoldOut(currentMenu, soldOutMap) === 1) {
           throw new BadRequestException();
         } else {
           newOrder.price = orderedMenu.menu.menuCategory.price;

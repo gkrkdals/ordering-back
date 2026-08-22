@@ -206,6 +206,7 @@ export class CustomerService {
         // group_price 는 FK CASCADE 로 정리되지만 settings 그룹 행은 FK가 없어
         // 남겨두면 그룹 id가 재사용될 때 옛 설정이 되살아난다
         await this.customerSettingsService.deleteGroupSettings(item.id);
+        await this.customerSettingsService.deleteGroupSoldOut(item.id);
         await this.discountGroupRepository.delete({ id: item.id });
       }
     }

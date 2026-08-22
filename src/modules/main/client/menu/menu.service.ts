@@ -6,7 +6,7 @@ import { Customer } from "@src/entities/customer/customer.entity";
 import { Order } from "@src/entities/order/order.entity";
 import { RecentMenu } from "@src/types/models/RecentMenu";
 import { CustomerSettingsService } from "@src/modules/misc/customer-settings/customer-settings.service";
-import { applyMenuPrices } from "@src/utils/price";
+import { applyMenuPrices, applySoldOut } from "@src/utils/price";
 
 @Injectable()
 export class MenuService {
@@ -17,8 +17,11 @@ export class MenuService {
   ) {}
 
   async findAll(customer: Customer): Promise<Menu[]> {
-    // 가격은 고객 개별 > 그룹 > 전역 순으로 해석된다 (utils/price.ts)
-    const priceContext = await this.customerSettingsService.loadPriceContext(customer);
+    // 가격·품절 모두 그룹 > 전역 순으로 해석된다 (utils/price.ts)
+    const [priceContext, soldOutMap] = await Promise.all([
+      this.customerSettingsService.loadPriceContext(customer),
+      this.customerSettingsService.loadSoldOutMap(customer),
+    ]);
 
     const data = await this.menuRepository.find({
       relations: { menuCategory: true },
@@ -32,10 +35,7 @@ export class MenuService {
     });
 
     applyMenuPrices(data, priceContext);
-
-    if (customer.isSoldOut === 1) {
-      data.forEach(item => { item.soldOut = 1; });
-    }
+    applySoldOut(data, soldOutMap, customer.isSoldOut);
 
     return data;
   }

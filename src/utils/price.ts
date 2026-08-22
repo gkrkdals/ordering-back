@@ -70,6 +70,42 @@ export function applyMenuPrices<T extends PricedMenu>(menus: T[], context: Price
 }
 
 /**
+ * 메뉴의 품절 여부를 해석합니다.
+ *
+ * 우선순위는 **고객 전체품절 > 그룹 품절 > 전역(menu.sold_out)** 입니다.
+ *
+ * @param menu 메뉴 (id, soldOut)
+ * @param groupSoldOut 그룹 품절 맵 (menu.id → 0|1). 행이 없으면 전역 값을 쓴다
+ * @param customerSoldOut 고객 단위 전체품절 (customer.is_sold_out)
+ */
+export function resolveSoldOut(
+  menu: { id: number, soldOut: number },
+  groupSoldOut: Record<number, number>,
+  customerSoldOut?: number,
+): number {
+  if (customerSoldOut === 1) {
+    return 1;
+  }
+
+  return groupSoldOut[menu.id] ?? menu.soldOut;
+}
+
+/**
+ * 메뉴 목록의 품절 상태를 제자리에서 갱신합니다.
+ */
+export function applySoldOut<T extends { id: number, soldOut: number }>(
+  menus: T[],
+  groupSoldOut: Record<number, number>,
+  customerSoldOut?: number,
+): T[] {
+  menus.forEach(menu => {
+    menu.soldOut = resolveSoldOut(menu, groupSoldOut, customerSoldOut);
+  });
+
+  return menus;
+}
+
+/**
  * 적립액을 해석합니다. 단위는 백원.
  *
  * 고객 컬럼은 NOT NULL DEFAULT 0이라 '미설정'과 '0원 적립'이 구분되지 않으므로

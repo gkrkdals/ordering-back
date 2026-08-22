@@ -3,6 +3,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { Customer } from "@src/entities/customer/customer.entity";
 import { GroupPrice } from "@src/entities/customer/group-price.entity";
+import { GroupMenuSoldOut } from "@src/entities/menu/group-menu-sold-out.entity";
 import { DiscountGroup } from "@src/entities/customer/discount-group.entity";
 import { GLOBAL_GROUP_ID, Settings } from "@src/entities/settings.entity";
 import { PriceContext, PricedMenu, resolveMenuPrice, resolveReward } from "@src/utils/price";
@@ -28,6 +29,8 @@ export class CustomerSettingsService {
     private readonly customerRepository: Repository<Customer>,
     @InjectRepository(GroupPrice)
     private readonly groupPriceRepository: Repository<GroupPrice>,
+    @InjectRepository(GroupMenuSoldOut)
+    private readonly groupSoldOutRepository: Repository<GroupMenuSoldOut>,
     @InjectRepository(DiscountGroup)
     private readonly discountGroupRepository: Repository<DiscountGroup>,
     @InjectRepository(Settings)
@@ -85,6 +88,34 @@ export class CustomerSettingsService {
       perMenu: resolveReward(target.rewardPerMenu, group?.rewardPerMenu ?? null),
       perBowl: resolveReward(target.rewardPerBowl, group?.rewardPerBowl ?? null),
     };
+  }
+
+  /**
+   * 고객이 속한 그룹의 메뉴 품절 상태를 읽습니다. (menu.id → 0|1)
+   *
+   * 행이 없는 메뉴는 전역 menu.sold_out 을 따르므로 맵에도 담기지 않습니다.
+   */
+  async loadSoldOutMap(customer: CustomerRef): Promise<Record<number, number>> {
+    const groupId = await this.resolveGroupId(customer);
+
+    if (!groupId) {
+      return {};
+    }
+
+    const rows = await this.groupSoldOutRepository.findBy({ groupId });
+    const map: Record<number, number> = {};
+    rows.forEach(row => { map[row.menu] = row.soldOut; });
+
+    return map;
+  }
+
+  /** 그룹을 지울 때 품절 행도 함께 지웁니다 */
+  async deleteGroupSoldOut(groupId: number): Promise<void> {
+    if (!groupId || groupId === GLOBAL_GROUP_ID) {
+      return;
+    }
+
+    await this.groupSoldOutRepository.delete({ groupId });
   }
 
   /**

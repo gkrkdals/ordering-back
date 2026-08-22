@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { Menu } from "@src/entities/menu/menu.entity";
+import { GroupMenuSoldOut } from "@src/entities/menu/group-menu-sold-out.entity";
 import { MenuController } from "@src/modules/main/manager/menu/menu.controller";
 import { MenuService } from "@src/modules/main/manager/menu/menu.service";
 import { MenuCategory } from "@src/entities/menu/menu-category.entity";
@@ -11,6 +12,7 @@ import { JwtService } from "@nestjs/jwt";
     TypeOrmModule.forFeature([
       Menu,
       MenuCategory,
+      GroupMenuSoldOut,
     ]),
   ],
   controllers: [MenuController],
