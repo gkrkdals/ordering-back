@@ -4,7 +4,8 @@ export class OrderSql {
       SELECT t.*,
               IFNULL(ph.amount, 0) * -1 used_point,
              crd.credit,
-             u.nickname by_nickname
+             u.nickname by_nickname,
+             dg.name group_name
       FROM (SELECT b.id,
                    c.id   order_id,
                    a.order_code,
@@ -23,6 +24,7 @@ export class OrderSql {
                    f.tel,
                    f.floor,
                    f.point_balance,
+                   f.discount_group_id,
                    c.memo,
                    b.location,
                    a.by
@@ -61,6 +63,7 @@ export class OrderSql {
                   WHERE path_type IN ('USE', 'CANCELED')
                   GROUP BY order_id
               ) ph ON ph.order_id = t.order_id
+               LEFT JOIN discount_group dg ON dg.id = t.discount_group_id
       WHERE (t.customer_name LIKE ?
           OR t.menu_name LIKE ?
           OR t.request LIKE ?
