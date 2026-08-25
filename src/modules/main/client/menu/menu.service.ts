@@ -18,9 +18,10 @@ export class MenuService {
 
   async findAll(customer: Customer): Promise<Menu[]> {
     // 가격·품절 모두 그룹 > 전역 순으로 해석된다 (utils/price.ts)
-    const [priceContext, soldOutMap] = await Promise.all([
+    const [priceContext, soldOutMap, outOfSchedule] = await Promise.all([
       this.customerSettingsService.loadPriceContext(customer),
       this.customerSettingsService.loadSoldOutMap(customer),
+      this.customerSettingsService.loadOutOfScheduleMap(customer),
     ]);
 
     const data = await this.menuRepository.find({
@@ -35,7 +36,7 @@ export class MenuService {
     });
 
     applyMenuPrices(data, priceContext);
-    applySoldOut(data, soldOutMap, customer.isSoldOut);
+    applySoldOut(data, soldOutMap, customer.isSoldOut, outOfSchedule);
 
     return data;
   }

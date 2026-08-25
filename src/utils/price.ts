@@ -72,18 +72,27 @@ export function applyMenuPrices<T extends PricedMenu>(menus: T[], context: Price
 /**
  * 메뉴의 품절 여부를 해석합니다.
  *
- * 우선순위는 **고객 전체품절 > 그룹 품절 > 전역(menu.sold_out)** 입니다.
+ * **품절 = 고객 전체품절 ∨ 수동 품절 ∨ 판매시간 밖**
+ *
+ * 판매시간 스케줄은 '이 시간대에만 판다'는 제약이므로, 시간 밖이면 수동으로 풀어도
+ * 팔리지 않는다. 반대로 시간 안이라도 재료가 떨어져 수동 품절해 둘 수 있다.
  *
  * @param menu 메뉴 (id, soldOut)
- * @param groupSoldOut 그룹 품절 맵 (menu.id → 0|1). 행이 없으면 전역 값을 쓴다
+ * @param groupSoldOut 그룹 수동 품절 맵 (menu.id → 0|1). 행이 없으면 전역 값을 쓴다
  * @param customerSoldOut 고객 단위 전체품절 (customer.is_sold_out)
+ * @param outOfSchedule 지금이 판매시간 밖인 메뉴 (menu.id → true). 스케줄이 없는 메뉴는 없음
  */
 export function resolveSoldOut(
   menu: { id: number, soldOut: number },
   groupSoldOut: Record<number, number>,
   customerSoldOut?: number,
+  outOfSchedule: Record<number, boolean> = {},
 ): number {
   if (customerSoldOut === 1) {
+    return 1;
+  }
+
+  if (outOfSchedule[menu.id]) {
     return 1;
   }
 
@@ -97,9 +106,10 @@ export function applySoldOut<T extends { id: number, soldOut: number }>(
   menus: T[],
   groupSoldOut: Record<number, number>,
   customerSoldOut?: number,
+  outOfSchedule: Record<number, boolean> = {},
 ): T[] {
   menus.forEach(menu => {
-    menu.soldOut = resolveSoldOut(menu, groupSoldOut, customerSoldOut);
+    menu.soldOut = resolveSoldOut(menu, groupSoldOut, customerSoldOut, outOfSchedule);
   });
 
   return menus;

@@ -2,6 +2,9 @@ import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Menu } from "@src/entities/menu/menu.entity";
 import { GroupMenuSoldOut } from "@src/entities/menu/group-menu-sold-out.entity";
+import { MenuSchedule } from "@src/entities/menu/menu-schedule.entity";
+import { UpdateMenuScheduleDto } from "@src/modules/main/manager/menu/dto/update-menu-schedule.dto";
+import { WEEKDAY_NAMES, trimTime } from "@src/utils/date";
 import { GLOBAL_GROUP_ID } from "@src/entities/settings.entity";
 import { FindOptionsOrder, FindOperator, Like, MoreThan, Not, Raw, Repository } from "typeorm";
 import { countToTotalPage } from "@src/utils/data";
@@ -19,6 +22,8 @@ export class MenuService {
     private readonly foodCategoryRepository: Repository<MenuCategory>,
     @InjectRepository(GroupMenuSoldOut)
     private readonly groupSoldOutRepository: Repository<GroupMenuSoldOut>,
+    @InjectRepository(MenuSchedule)
+    private readonly menuScheduleRepository: Repository<MenuSchedule>,
   ) {}
 
   async getMenus(
@@ -55,8 +60,8 @@ export class MenuService {
     return {
       currentPage: page,
       totalPage: countToTotalPage(count),
-      // 그룹을 고른 상태면 그 그룹의 품절 상태를 얹어 보여준다
-      data: await this.applyGroupSoldOut(data, groupId),
+      // 그룹을 고른 상태면 그 그룹의 품절 상태를 얹고, 판매시간이 걸린 메뉴를 표시한다
+      data: await this.markScheduled(await this.applyGroupSoldOut(data, groupId), groupId),
       count,
     }
   }
@@ -177,6 +182,30 @@ export class MenuService {
     return menus;
   }
 
+  /**
+   * 판매시간이 설정된 메뉴에 hasSchedule 을 달아줍니다.
+   *
+   * 관리자 목록의 품절 칸은 '수동 품절' 상태만 보여주므로, 시간 제약 때문에
+   * 고객 화면에서 품절로 보일 수 있다는 걸 여기서 드러냅니다.
+   * 그룹 전용 스케줄이 없으면 전역 스케줄을 따르므로 둘 다 확인합니다.
+   */
+  private async markScheduled(menus: Menu[], groupId?: number) {
+    const target = Number(groupId) || GLOBAL_GROUP_ID;
+    const rows = await this.menuScheduleRepository.find({
+      where: target === GLOBAL_GROUP_ID
+        ? { groupId: GLOBAL_GROUP_ID }
+        : [{ groupId: target }, { groupId: GLOBAL_GROUP_ID }],
+    });
+
+    const groupMenus = new Set(rows.filter(row => row.groupId === target).map(row => row.menu));
+    const globalMenus = new Set(rows.filter(row => row.groupId === GLOBAL_GROUP_ID).map(row => row.menu));
+
+    return menus.map(menu => ({
+      ...menu,
+      hasSchedule: groupMenus.has(menu.id) || globalMenus.has(menu.id),
+    })) as Menu[];
+  }
+
   async updateMenuSeq(seqArray: { id: number, seq: number | null }[]) {
     for (const element of seqArray) {
       const foundMenu = await this.menuRepository.findOneBy({ id: element.id });
@@ -189,5 +218,63 @@ export class MenuService {
     const foundMenu = await this.menuRepository.findOneBy({ id });
     foundMenu.withdrawn = 1;
     await this.menuRepository.save(foundMenu);
+  }
+
+  /**
+   * 메뉴의 요일별 판매시간을 조회합니다. 항상 7행(월~일)을 돌려줍니다.
+   *
+   * 그룹 행이 하나도 없으면 전역(0) 값을 대신 내려줘, 화면이 '전체 공통을 따르는 중'임을
+   * 알 수 있게 합니다. 저장하는 순간 그룹 전용 행이 만들어집니다.
+   */
+  async getMenuSchedule(menu: number, groupId = GLOBAL_GROUP_ID) {
+    const target = Number(groupId) || GLOBAL_GROUP_ID;
+    const groupRows = await this.menuScheduleRepository.findBy({ groupId: target, menu });
+    const rows = groupRows.length > 0 || target === GLOBAL_GROUP_ID
+      ? groupRows
+      : await this.menuScheduleRepository.findBy({ groupId: GLOBAL_GROUP_ID, menu });
+
+    return Array.from({ length: 7 }, (_, index) => {
+      const sml = index + 1;
+      const found = rows.find(row => row.sml === sml);
+
+      return {
+        sml,
+        name: WEEKDAY_NAMES[index],
+        groupId: found?.groupId ?? GLOBAL_GROUP_ID,
+        stringValue: found?.stringValue ?? null,
+      };
+    });
+  }
+
+  /**
+   * 메뉴의 요일별 판매시간을 저장합니다.
+   *
+   * 네 칸이 모두 유효할 때만 제약을 걸고, 하나라도 비면 그 요일은 제약 없음(행 삭제)입니다.
+   */
+  async updateMenuSchedule(menu: number, days: UpdateMenuScheduleDto[], groupId = GLOBAL_GROUP_ID) {
+    const target = Number(groupId) || GLOBAL_GROUP_ID;
+
+    for (const day of days) {
+      const sh = trimTime(day.startHour);
+      const sm = trimTime(day.startMinute, false);
+      const eh = trimTime(day.endHour);
+      const em = trimTime(day.endMinute, false);
+      const isComplete = [sh, sm, eh, em].every(part => part.length > 0);
+
+      if (!isComplete) {
+        await this.menuScheduleRepository.delete({ groupId: target, menu, sml: day.sml });
+        continue;
+      }
+
+      await this.menuScheduleRepository.upsert(
+        {
+          groupId: target,
+          menu,
+          sml: day.sml,
+          stringValue: `${sh.padStart(2, '0')}:${sm.padStart(2, '0')}~${eh.padStart(2, '0')}:${em.padStart(2, '0')}`,
+        },
+        ['groupId', 'menu', 'sml'],
+      );
+    }
   }
 }

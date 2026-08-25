@@ -3,13 +3,14 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { Customer } from "@src/entities/customer/customer.entity";
 import { GroupPrice } from "@src/entities/customer/group-price.entity";
 import { GroupMenuSoldOut } from "@src/entities/menu/group-menu-sold-out.entity";
+import { MenuSchedule } from "@src/entities/menu/menu-schedule.entity";
 import { DiscountGroup } from "@src/entities/customer/discount-group.entity";
 import { Settings } from "@src/entities/settings.entity";
 import { CustomerSettingsService } from "@src/modules/misc/customer-settings/customer-settings.service";
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Customer, GroupPrice, GroupMenuSoldOut, DiscountGroup, Settings]),
+    TypeOrmModule.forFeature([Customer, GroupPrice, GroupMenuSoldOut, MenuSchedule, DiscountGroup, Settings]),
   ],
   providers: [CustomerSettingsService],
   exports: [CustomerSettingsService],

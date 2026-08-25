@@ -5,6 +5,7 @@ describe('CustomerSettingsService (그룹 > 전역)', () => {
   let customerRepoMock: any;
   let groupPriceRepoMock: any;
   let groupSoldOutRepoMock: any;
+  let menuScheduleRepoMock: any;
   let discountGroupRepoMock: any;
   let settingsRepoMock: any;
 
@@ -18,6 +19,8 @@ describe('CustomerSettingsService (그룹 > 전역)', () => {
     };
     groupPriceRepoMock = { findBy: jest.fn().mockResolvedValue([]) };
     groupSoldOutRepoMock = { findBy: jest.fn().mockResolvedValue([]), delete: jest.fn() };
+    // 판매시간 스케줄 — 기본은 제약 없음
+    menuScheduleRepoMock = { find: jest.fn().mockResolvedValue([]), delete: jest.fn() };
     discountGroupRepoMock = {
       findOneBy: jest.fn().mockResolvedValue({
         id: GROUP_ID, discountType: null, discountValue: 0, rewardPerMenu: null, rewardPerBowl: null,
@@ -35,6 +38,7 @@ describe('CustomerSettingsService (그룹 > 전역)', () => {
       customerRepoMock,
       groupPriceRepoMock,
       groupSoldOutRepoMock,
+      menuScheduleRepoMock,
       discountGroupRepoMock,
       settingsRepoMock,
     );
@@ -162,6 +166,60 @@ describe('CustomerSettingsService (그룹 > 전역)', () => {
       expect(discountGroupRepoMock.findOneBy).not.toHaveBeenCalled();
     });
   });
+
+  describe('loadOutOfScheduleMap', () => {
+    /** 2026-08-24 는 월요일(sml 1) */
+    const MONDAY_NOON = new Date('2026-08-24T12:00:00');
+
+    it('스케줄이 없으면 아무 메뉴도 제약받지 않는다', async () => {
+      expect(await service.loadOutOfScheduleMap({ id: 1 }, MONDAY_NOON)).toEqual({});
+    });
+
+    it('판매시간 안이면 제약 목록에 넣지 않는다', async () => {
+      menuScheduleRepoMock.find.mockResolvedValue([
+        { groupId: GROUP_ID, menu: 7, sml: 1, stringValue: '11:00~14:00' },
+      ]);
+
+      expect(await service.loadOutOfScheduleMap({ id: 1 }, MONDAY_NOON)).toEqual({});
+    });
+
+    it('판매시간 밖이면 그 메뉴만 표시한다', async () => {
+      menuScheduleRepoMock.find.mockResolvedValue([
+        { groupId: GROUP_ID, menu: 7, sml: 1, stringValue: '17:00~22:00' },
+      ]);
+
+      expect(await service.loadOutOfScheduleMap({ id: 1 }, MONDAY_NOON)).toEqual({ 7: true });
+    });
+
+    it('그룹 스케줄이 있으면 전역 스케줄을 무시한다', async () => {
+      menuScheduleRepoMock.find.mockResolvedValue([
+        { groupId: GROUP_ID, menu: 7, sml: 1, stringValue: '11:00~14:00' },
+        { groupId: 0, menu: 7, sml: 1, stringValue: '17:00~22:00' },
+      ]);
+
+      // 그룹이 점심 판매로 열어뒀으므로 정오는 판매시간 안
+      expect(await service.loadOutOfScheduleMap({ id: 1 }, MONDAY_NOON)).toEqual({});
+    });
+
+    it('그룹 스케줄이 없는 메뉴는 전역 스케줄을 따른다', async () => {
+      menuScheduleRepoMock.find.mockResolvedValue([
+        { groupId: GROUP_ID, menu: 7, sml: 1, stringValue: '11:00~14:00' },
+        { groupId: 0, menu: 8, sml: 1, stringValue: '17:00~22:00' },
+      ]);
+
+      expect(await service.loadOutOfScheduleMap({ id: 1 }, MONDAY_NOON)).toEqual({ 8: true });
+    });
+
+    it('자정을 넘긴 구간은 시작 요일 설정으로 판정한다', async () => {
+      // 일요일 23:00~02:00 → 월요일 새벽 1시는 판매시간 안
+      menuScheduleRepoMock.find.mockResolvedValue([
+        { groupId: GROUP_ID, menu: 7, sml: 7, stringValue: '23:00~02:00' },
+      ]);
+
+      const mondayDawn = new Date('2026-08-24T01:00:00');
+      expect(await service.loadOutOfScheduleMap({ id: 1 }, mondayDawn)).toEqual({});
+    });
+  });
 });
 
 describe('CustomerSettingsService — settings 그룹 폴백', () => {
@@ -184,6 +242,7 @@ describe('CustomerSettingsService — settings 그룹 폴백', () => {
       { findOneBy: jest.fn().mockResolvedValue({ id: 1, discountGroupId: GROUP_ID }) } as any,
       { findBy: jest.fn().mockResolvedValue([]) } as any,
       { findBy: jest.fn().mockResolvedValue([]), delete: jest.fn() } as any,
+      { find: jest.fn().mockResolvedValue([]), delete: jest.fn() } as any,
       { findOneBy: jest.fn().mockResolvedValue(null) } as any,
       settingsRepoMock,
     );

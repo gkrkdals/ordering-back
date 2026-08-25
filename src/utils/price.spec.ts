@@ -1,4 +1,4 @@
-import { EMPTY_PRICE_CONTEXT, PriceContext, resolveMenuPrice, resolveReward } from "@src/utils/price";
+import { EMPTY_PRICE_CONTEXT, PriceContext, resolveMenuPrice, resolveReward, resolveSoldOut } from "@src/utils/price";
 
 /** menu_category 기본가 7,000원, 할인 가능한 메뉴 */
 function menu(category = 1, isDiscountable = 1, basePrice = 7000) {
@@ -67,5 +67,36 @@ describe('resolveReward — 적립 폴백', () => {
 
   it('그룹 값이 0이면 적립을 끈 것으로 본다', () => {
     expect(resolveReward(0, 0)).toBe(0);
+  });
+});
+
+describe('resolveSoldOut — 판매시간 스케줄', () => {
+  const menu = { id: 1, soldOut: 0 };
+
+  it('스케줄이 없으면 기존 규칙 그대로다', () => {
+    expect(resolveSoldOut(menu, {}, undefined, {})).toBe(0);
+    expect(resolveSoldOut(menu, { 1: 1 }, undefined, {})).toBe(1);
+  });
+
+  it('판매시간 밖이면 품절이다', () => {
+    expect(resolveSoldOut(menu, {}, undefined, { 1: true })).toBe(1);
+  });
+
+  it('판매시간 밖이면 그룹에서 판매중으로 열어둬도 품절이다', () => {
+    // 스케줄은 '이 시간대에만 판다'는 제약이므로 수동으로 풀어도 이긴다
+    expect(resolveSoldOut(menu, { 1: 0 }, undefined, { 1: true })).toBe(1);
+  });
+
+  it('판매시간 안이라도 수동 품절이면 품절이다', () => {
+    // 재료 소진으로 직접 내린 경우
+    expect(resolveSoldOut(menu, { 1: 1 }, undefined, {})).toBe(1);
+  });
+
+  it('다른 메뉴의 스케줄에는 영향받지 않는다', () => {
+    expect(resolveSoldOut(menu, {}, undefined, { 2: true })).toBe(0);
+  });
+
+  it('고객 전체품절이 모든 것보다 우선한다', () => {
+    expect(resolveSoldOut(menu, { 1: 0 }, 1, {})).toBe(1);
   });
 });

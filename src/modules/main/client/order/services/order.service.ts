@@ -76,9 +76,10 @@ export class OrderService {
 
   async getLastOrders(customer: Customer) {
     // 가격·품절 모두 그룹 > 전역 순으로 해석된다 (utils/price.ts)
-    const [priceContext, soldOutMap] = await Promise.all([
+    const [priceContext, soldOutMap, outOfSchedule] = await Promise.all([
       this.customerSettingsService.loadPriceContext(customer),
       this.customerSettingsService.loadSoldOutMap(customer),
+      this.customerSettingsService.loadOutOfScheduleMap(customer),
     ]);
 
     const recentMenuOnDigit: { id: number; menu: number }[] = await this.orderRepository.query(
@@ -106,7 +107,7 @@ export class OrderService {
     }
 
     applyMenuPrices(recentMenus, priceContext);
-    applySoldOut(recentMenus, soldOutMap, customer.isSoldOut);
+    applySoldOut(recentMenus, soldOutMap, customer.isSoldOut, outOfSchedule);
 
     return recentMenus
   }
@@ -144,7 +145,10 @@ export class OrderService {
     // 적립액은 고객 개별 > 그룹 순으로 해석한다 (트랜잭션 밖에서 미리 확정)
     const { perMenu: rewardPerMenu } = await this.customerSettingsService.resolveRewards(customer);
     // 품절 검증도 그룹 상태를 반영해야 화면과 서버 판정이 어긋나지 않는다
-    const soldOutMap = await this.customerSettingsService.loadSoldOutMap(customer);
+    const [soldOutMap, outOfSchedule] = await Promise.all([
+      this.customerSettingsService.loadSoldOutMap(customer),
+      this.customerSettingsService.loadOutOfScheduleMap(customer),
+    ]);
 
     // 주문 생성·적립·잔금 기록을 하나의 트랜잭션으로 묶음
     // 적립금 '사용'은 주문에 귀속되지 않고 usePoint 단독 경로로만 이뤄진다
@@ -161,7 +165,7 @@ export class OrderService {
         const currentMenu = await em.getRepository(Menu).findOneBy({ id: orderedMenu.menu.id });
 
         // 메뉴가 품절이 된 경우 (그룹 품절 포함)
-        if (resolveSoldOut(currentMenu, soldOutMap) === 1) {
+        if (resolveSoldOut(currentMenu, soldOutMap, undefined, outOfSchedule) === 1) {
           throw new BadRequestException();
         } else {
           newOrder.price = orderedMenu.menu.menuCategory.price;

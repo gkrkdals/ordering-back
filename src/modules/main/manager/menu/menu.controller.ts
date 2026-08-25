@@ -16,6 +16,7 @@ import { FileInterceptor } from "@nestjs/platform-express";
 import { AuthGuard } from "@src/modules/auth/auth.guard";
 import { RolesGuard } from "@src/modules/auth/roles.guard";
 import { Roles } from "@src/decorators/roles.decorator";
+import { UpdateMenuScheduleDto } from "@src/modules/main/manager/menu/dto/update-menu-schedule.dto";
 
 @Controller('manager/menu')
 @UseGuards(AuthGuard, RolesGuard)
@@ -61,6 +62,21 @@ export class MenuController {
   }
 
   // groupId 를 생략하면 전역 품절(menu.sold_out)을 다룬다
+  // 메뉴별 판매시간 (그룹별·요일별). groupId 생략 시 전체 공통
+  @Get('schedule')
+  async getMenuSchedule(@Query('menu') menu: number, @Query('groupId') groupId?: number) {
+    return this.menuService.getMenuSchedule(Number(menu), Number(groupId) || undefined);
+  }
+
+  @Put('schedule')
+  async updateMenuSchedule(
+    @Body('menu') menu: number,
+    @Body('days') days: UpdateMenuScheduleDto[],
+    @Body('groupId') groupId?: number,
+  ) {
+    return this.menuService.updateMenuSchedule(Number(menu), days, Number(groupId) || undefined);
+  }
+
   @Put('sold-out')
   async toggleSoldOut(
     @Body('menu') menu: number,

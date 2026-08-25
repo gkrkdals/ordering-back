@@ -56,6 +56,8 @@ describe('OrderService (적립금)', () => {
       getSettingForCustomer: jest.fn().mockResolvedValue({ value: 3000 }),
       // 그룹 품절 없음 → 전역 menu.sold_out 을 따른다
       loadSoldOutMap: jest.fn().mockResolvedValue({}),
+      // 판매시간 스케줄 — 기본은 제약 없음
+      loadOutOfScheduleMap: jest.fn().mockResolvedValue({}),
     };
 
     service = new OrderService(

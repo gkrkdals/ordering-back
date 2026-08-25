@@ -1,12 +1,14 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { In, Repository } from "typeorm";
 import { Customer } from "@src/entities/customer/customer.entity";
 import { GroupPrice } from "@src/entities/customer/group-price.entity";
 import { GroupMenuSoldOut } from "@src/entities/menu/group-menu-sold-out.entity";
+import { MenuSchedule } from "@src/entities/menu/menu-schedule.entity";
 import { DiscountGroup } from "@src/entities/customer/discount-group.entity";
 import { GLOBAL_GROUP_ID, Settings } from "@src/entities/settings.entity";
 import { PriceContext, PricedMenu, resolveMenuPrice, resolveReward } from "@src/utils/price";
+import { getPreviousWeekdaySml, getWeekdaySml, isWithinDisposalTime } from "@src/utils/date";
 
 /** 가격·적립을 해석할 때 필요한 고객 정보의 최소 형태 (JWT 고객·엔티티 모두 허용) */
 export interface CustomerRef {
@@ -31,6 +33,8 @@ export class CustomerSettingsService {
     private readonly groupPriceRepository: Repository<GroupPrice>,
     @InjectRepository(GroupMenuSoldOut)
     private readonly groupSoldOutRepository: Repository<GroupMenuSoldOut>,
+    @InjectRepository(MenuSchedule)
+    private readonly menuScheduleRepository: Repository<MenuSchedule>,
     @InjectRepository(DiscountGroup)
     private readonly discountGroupRepository: Repository<DiscountGroup>,
     @InjectRepository(Settings)
@@ -109,6 +113,46 @@ export class CustomerSettingsService {
     return map;
   }
 
+  /**
+   * 지금이 '판매시간 밖'인 메뉴를 찾습니다. (menu.id → true)
+   *
+   * 그룹 스케줄이 있으면 그 메뉴는 그룹 값을, 없으면 전역(0) 스케줄을 따릅니다.
+   * 자정을 넘기는 구간은 시작 요일이 소유하므로 오늘·어제 두 요일을 함께 봅니다.
+   */
+  async loadOutOfScheduleMap(customer: CustomerRef, now: Date = new Date()): Promise<Record<number, boolean>> {
+    const groupId = (await this.resolveGroupId(customer)) ?? GLOBAL_GROUP_ID;
+    const sml = getWeekdaySml(now);
+    const previousSml = getPreviousWeekdaySml(sml);
+    const smls = [sml, previousSml];
+
+    const rows = await this.menuScheduleRepository.find({
+      where: groupId === GLOBAL_GROUP_ID
+        ? { groupId: GLOBAL_GROUP_ID, sml: In(smls) }
+        : [{ groupId, sml: In(smls) }, { groupId: GLOBAL_GROUP_ID, sml: In(smls) }],
+    });
+
+    if (rows.length === 0) {
+      return {};
+    }
+
+    const groupRows = rows.filter(row => row.groupId === groupId);
+    const globalRows = rows.filter(row => row.groupId === GLOBAL_GROUP_ID);
+    const outOfSchedule: Record<number, boolean> = {};
+
+    for (const menuId of new Set(rows.map(row => row.menu))) {
+      // 그룹에 그 메뉴의 스케줄이 하나라도 있으면 그룹 것을 쓰고, 없으면 전역 것을 쓴다
+      const source = groupRows.some(row => row.menu === menuId) ? groupRows : globalRows;
+      const find = (targetSml: number) =>
+        source.find(row => row.menu === menuId && row.sml === targetSml)?.stringValue ?? null;
+
+      if (!isWithinDisposalTime(find(sml), find(previousSml), now)) {
+        outOfSchedule[menuId] = true;
+      }
+    }
+
+    return outOfSchedule;
+  }
+
   /** 그룹을 지울 때 품절 행도 함께 지웁니다 */
   async deleteGroupSoldOut(groupId: number): Promise<void> {
     if (!groupId || groupId === GLOBAL_GROUP_ID) {
@@ -116,6 +160,7 @@ export class CustomerSettingsService {
     }
 
     await this.groupSoldOutRepository.delete({ groupId });
+    await this.menuScheduleRepository.delete({ groupId });
   }
 
   /**
