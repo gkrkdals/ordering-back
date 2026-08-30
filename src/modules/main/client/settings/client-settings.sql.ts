@@ -77,6 +77,7 @@ export class ClientSettingsSql {
                   WHERE (customer_credit.time >= ? AND customer_credit.time <= ?)
                     AND customer = ?
                     AND order_code = 0
+                    AND IFNULL(customer_credit.memo, '') != '적립금 사용'
 
                     UNION ALL
 
