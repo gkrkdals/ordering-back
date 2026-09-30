@@ -75,15 +75,20 @@ export class OrderSql {
         AND (ISNULL(?) OR (t.status <= ?))
           ;`;
 
+  // 취소 판정에 파생테이블(GROUP BY order_code)을 쓰면 주문 이력 전체를 임시테이블로 만든 뒤
+  // 정작 하루치 수십 건만 조회하게 된다. Canceled(8)가 status 최댓값이라
+  // `MAX(status) != 8` 은 `status = 8 인 행이 없음` 과 같으므로 NOT EXISTS 로 바꾼다.
+  // 이러면 order 를 ix_order_time 으로 자른 뒤 주문마다 order_status_pk 를 한 번 찍고 끝난다.
   // language=MySQL
   static getSales = `
-      SELECT SUM(price) AS sales
+      SELECT SUM(a.price) AS sales
       FROM \`order\` a
-               LEFT JOIN (SELECT order_code, MAX(status) status FROM order_status GROUP BY order_code) b
-                         ON a.id = b.order_code
       WHERE a.time >= ?
         AND a.time <= ?
-        AND b.status != ?
+        AND NOT EXISTS (SELECT 1
+                        FROM order_status os
+                        WHERE os.order_code = a.id
+                          AND os.status = ?)
   `;
 
   static getOrderStatusCount = `
