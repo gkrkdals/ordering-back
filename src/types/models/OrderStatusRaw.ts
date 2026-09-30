@@ -18,4 +18,5 @@ export interface OrderStatusRaw {
   memo: string;
   location: string;
   used_point: any;
+  is_qr_order: number;
 }

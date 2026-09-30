@@ -27,7 +27,8 @@ export class OrderSql {
                    f.discount_group_id,
                    c.memo,
                    b.location,
-                   a.by
+                   a.by,
+                   c.path IS NULL is_qr_order -- 고객이 QR로 직접 주문한 건 (관리자 수정 후에도 유지)
             FROM (SELECT os1.order_code,
                          os1.status,
                          os1.by
